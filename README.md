@@ -86,7 +86,7 @@ The extractor works with any MuseScore score that has lyrics and chord symbols, 
 
 ### Syllable separation
 
-Use MuseScore's built-in syllable tools (hyphen to advance, space to complete a word). Avoid typing hyphens manually in the lyric text.
+In MuseScore's lyrics input mode (`Ctrl+L`), press `-` (hyphen) to advance to the next note within the same word, and `Space` to complete a word and move to the next note. This sets the syllabic types (begin/middle/end/single) correctly. Avoid typing hyphens directly in the lyric text.
 
 ### Synalepha (vowel linking)
 
