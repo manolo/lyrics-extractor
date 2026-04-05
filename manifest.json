@@ -1,0 +1,20 @@
+{
+    "uri": "musescore://extensions/lyrics-extractor",
+    "type": "composite",
+    "title": "Lyrics and Chords Extractor",
+    "description": "Lyrics tools for vocal scores: synalepha formatting, lyrics+chords export",
+    "category": "lyrics",
+    "version": "1.0",
+    "apiversion": 1,
+
+    "actions": [
+        {
+            "code": "lyrics-form",
+            "type": "form",
+            "title": "Lyrics and Chords",
+            "icon": "TEXT",
+            "show_on_toolbar": true,
+            "path": "ui/LyricsForm.qml"
+        }
+    ]
+}

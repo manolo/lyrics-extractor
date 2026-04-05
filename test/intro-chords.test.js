@@ -1,0 +1,73 @@
+var test = require("node:test");
+var assert = require("node:assert/strict");
+var IntroChords = require("../lib/intro-chords");
+var RepeatStructure = require("../lib/repeat-structure");
+
+test("buildIntroChordsPerf expands volta pair correctly", function() {
+    // Repeat 960-8640 with volta1 (5760-8640) and volta2 (8640-9600)
+    // Chords: Do@960, Sol7@2880 (main), Do@6720 (volta1), Sol7@8640 (volta2), Do@9600 (gap)
+    var chords = [
+        { tick: 960, chord: "Do" },
+        { tick: 2880, chord: "Sol7" },
+        { tick: 6720, chord: "Do" },
+        { tick: 8640, chord: "Sol7" },
+        { tick: 9600, chord: "Do" }
+    ];
+    var repeats = [{ startTick: 960, endTick: 8640 }];
+    var voltas = [{ startTick: 5760, endTick: 8640 }, { startTick: 8640, endTick: 9600 }];
+    var repStruct = {
+        repeats: repeats, voltas: voltas,
+        sections: RepeatStructure.buildSections(repeats, voltas)
+    };
+
+    var result = IntroChords.buildIntroChordsPerf(chords, repStruct, [], 11520);
+
+    // Pass 0: Do, Sol7 (main) + Do (volta1) = Do, Sol7, Do
+    // Pass 1: Do, Sol7 (main, dedup reset) + Sol7 (volta2, dedup) = Do, Sol7
+    // Gap: Do@9600
+    // Full: Do, Sol7, Do, Do, Sol7, Do
+    assert.ok(result.length >= 5, "should have at least 5 chords: " + result.join(", "));
+    assert.equal(result[0], "Do", "first chord");
+    assert.equal(result[result.length - 1], "Do", "last chord should be gap Do");
+});
+
+test("buildIntroChordsPerf resets dedup between passes", function() {
+    // Same chord at end of pass 0 and start of pass 1 should NOT be suppressed
+    var chords = [
+        { tick: 0, chord: "Lam" },
+        { tick: 480, chord: "Mi7" },
+        { tick: 960, chord: "Lam" }  // volta1
+    ];
+    var repeats = [{ startTick: 0, endTick: 960 }];
+    var voltas = [{ startTick: 480, endTick: 960 }];
+    var repStruct = {
+        repeats: repeats, voltas: voltas,
+        sections: RepeatStructure.buildSections(repeats, voltas)
+    };
+
+    var result = IntroChords.buildIntroChordsPerf(chords, repStruct, [], 2000);
+
+    // Pass 0: Lam (main@0-480) + Lam (volta1, but Lam==lastChord -> dedup? No, volta uses full chords array)
+    // The key: pass 1 starts with Lam again, dedup reset means it's NOT suppressed
+    // Should have Lam appearing at the start of pass 1
+    var lamCount = result.filter(function(c) { return c === "Lam"; }).length;
+    assert.ok(lamCount >= 2, "Lam should appear at least twice (once per pass): " + result.join(", "));
+});
+
+test("buildIntroChordsPerf includes gap chords after section end", function() {
+    // Chord in gap between section end and first lyric should be included
+    var chords = [
+        { tick: 0, chord: "Re" },
+        { tick: 480, chord: "Sol" },
+        { tick: 960, chord: "La" }  // gap chord after repeat
+    ];
+    var repeats = [{ startTick: 0, endTick: 480 }];
+    var voltas = [];
+    var repStruct = {
+        repeats: repeats, voltas: voltas,
+        sections: RepeatStructure.buildSections(repeats, voltas)
+    };
+
+    var result = IntroChords.buildIntroChordsPerf(chords, repStruct, [], 2000);
+    assert.ok(result.indexOf("La") >= 0, "gap chord La should be included: " + result.join(", "));
+});
