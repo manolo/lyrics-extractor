@@ -145,6 +145,71 @@ test("expandTextForChords handles empty placements", function() {
     assert.equal(result.text, "hello");
 });
 
+test("expandTextForChords expands at word boundary when multiple chords at pos 0", function() {
+    // 4 chords at pos 0: expansion should go to the space between "Yo…" and "text"
+    var result = fmt.expandTextForChords("Yo… text here", [
+        { pos: 0, chord: "La" },
+        { pos: 0, chord: "Re" },
+        { pos: 0, chord: "Mi" },
+        { pos: 0, chord: "La" }
+    ]);
+    // Chords should be sequential: La Re Mi La
+    assert.ok(result.chordLine.indexOf("La Re Mi La") >= 0,
+        "chords should be sequential: " + result.chordLine);
+    // "Yo…" should start at pos 0 (first chord aligns with first word)
+    assert.equal(result.text.indexOf("Yo…"), 0,
+        "Yo… should stay at pos 0: " + result.text);
+    // Gap between "Yo…" and "text" should be expanded
+    assert.ok(result.text.indexOf("text here") > 4,
+        "gap should be expanded between words: " + result.text);
+});
+
+test("expandTextForChords trailing chords start after expanded text", function() {
+    // Trailing chords (pos >= text.length) should start 1 position after expanded text,
+    // not at their inflated natural position.
+    var result = fmt.expandTextForChords("short text,", [
+        { pos: 0, chord: "Lam" },
+        { pos: 13, chord: "Re" },   // trailing (11 + 2)
+        { pos: 16, chord: "Sol" }   // trailing
+    ]);
+    // Re and Sol should be right after text, not far away
+    var reIdx = result.chordLine.indexOf("Re");
+    var textLen = result.text.length;
+    assert.ok(reIdx <= textLen + 2,
+        "trailing Re should be near text end, not far: chordLine=" + result.chordLine + " textLen=" + textLen);
+    assert.ok(result.chordLine.indexOf("Sol") === reIdx + 3,
+        "Sol should be right after Re: " + result.chordLine);
+});
+
+test("expandTextForChords trailing chords do not expand text", function() {
+    // Even with cumShift from in-text expansion, trailing chords must not add spaces to text
+    var result = fmt.expandTextForChords("ab cd ef,", [
+        { pos: 0, chord: "Sol#m7" },
+        { pos: 3, chord: "Re" },
+        { pos: 11, chord: "La7" },   // trailing
+        { pos: 15, chord: "Mi" }     // trailing
+    ]);
+    // Text should only be expanded between "ab" and "cd", not at the end
+    assert.ok(result.text.indexOf("ef,") >= 0, "ef, should be in text: " + result.text);
+    // No trailing spaces in text beyond original content
+    assert.equal(result.text.replace(/\s+$/, "").slice(-3), "ef,",
+        "text should end with ef,: " + result.text);
+});
+
+test("expandTextForChords forward boundary search when no space before", function() {
+    // When chord at pos 0 needs expansion and there's no space before,
+    // search forward to the first space between words
+    var result = fmt.expandTextForChords("Hello world", [
+        { pos: 0, chord: "Lam7b5" },  // 6 chars, needs expansion
+        { pos: 0, chord: "Re" }
+    ]);
+    // "Hello" should stay at pos 0, space inserted between "Hello" and "world"
+    assert.equal(result.text.indexOf("Hello"), 0,
+        "Hello should stay at pos 0: " + result.text);
+    assert.ok(result.text.indexOf("world") > 6,
+        "world should be pushed right: " + result.text);
+});
+
 test("expandTextForChords handles multiple tight chords", function() {
     // "a b c" with long chords at each position
     var result = fmt.expandTextForChords("a b c", [
@@ -177,6 +242,108 @@ test("formatLines expands text for long chords", function() {
     assert.ok(resultLines[0].indexOf("Re") > 6);
     // Text should be expanded
     assert.ok(resultLines[1].length > 5);
+});
+
+test("formatLines places trailing chords after text, not inside it", function() {
+    // Chords after endTick should be placed as trailing chords (text.length + 2),
+    // not mapped to positions inside the text via findPosForTick.
+    var lines = [{
+        text: "del Arauca vibrador,",
+        sylMap: [
+            { tick: 0, pos: 0 },
+            { tick: 240, pos: 4 },
+            { tick: 480, pos: 11 }
+        ],
+        startTick: 0,
+        endTick: 480
+    }];
+    var chords = [
+        { tick: 0, chord: "Mi" },
+        { tick: 480, chord: "La" },
+        { tick: 720, chord: "Re#" }  // After endTick: trailing chord
+    ];
+
+    var result = fmt.formatLines(lines, chords, null, -1);
+    var resultLines = result.output.split("\n");
+    // Text should NOT have extra spaces inside it
+    assert.equal(resultLines[1], "del Arauca vibrador,",
+        "text should not be expanded by trailing chords: " + resultLines[1]);
+    // Trailing chord Re# should appear after La in the chord line
+    assert.ok(resultLines[0].indexOf("Re#") > resultLines[0].indexOf("La"),
+        "Re# should be after La: " + resultLines[0]);
+});
+
+test("formatLines handles multiple trailing chords without expanding text", function() {
+    var lines = [{
+        text: "de la espuma,",
+        sylMap: [
+            { tick: 0, pos: 0 },
+            { tick: 240, pos: 6 }
+        ],
+        startTick: 0,
+        endTick: 240
+    }];
+    var chords = [
+        { tick: 0, chord: "Mi" },
+        { tick: 480, chord: "Re" },    // trailing
+        { tick: 720, chord: "La7" }    // trailing
+    ];
+
+    var result = fmt.formatLines(lines, chords, null, -1);
+    var resultLines = result.output.split("\n");
+    // No extra spaces in the text
+    assert.equal(resultLines[1], "de la espuma,",
+        "text should not have extra spaces: " + resultLines[1]);
+    // Both trailing chords present
+    assert.ok(resultLines[0].indexOf("Re") >= 0, "Re should appear: " + resultLines[0]);
+    assert.ok(resultLines[0].indexOf("La7") >= 0, "La7 should appear: " + resultLines[0]);
+});
+
+test("formatLines renders 4+ trailing chords as separate interlude line", function() {
+    var lines = [{
+        text: "rosas y del sol.",
+        sylMap: [{ tick: 0, pos: 0 }, { tick: 480, pos: 6 }],
+        startTick: 0,
+        endTick: 480
+    }];
+    var chords = [
+        { tick: 0, chord: "La" },
+        { tick: 720, chord: "Mi" },
+        { tick: 960, chord: "Re#" },
+        { tick: 1200, chord: "Re" },
+        { tick: 1440, chord: "Do#m" },
+        { tick: 1680, chord: "Sim" }
+    ];
+    var result = fmt.formatLines(lines, chords, null, -1);
+    // Text should not be expanded by trailing chords
+    assert.ok(result.output.indexOf("rosas y del sol.") >= 0,
+        "text intact: " + result.output);
+    // 5 trailing chords (>= 4) should be on separate line, not on chord line
+    assert.ok(result.output.indexOf("Mi  Re#  Re  Do#m  Sim") >= 0,
+        "interlude line should appear: " + result.output);
+    // The interlude should be after the text
+    var textIdx = result.output.indexOf("rosas y del sol.");
+    var interIdx = result.output.indexOf("Mi  Re#");
+    assert.ok(interIdx > textIdx, "interlude after text: " + result.output);
+});
+
+test("formatLines keeps <4 trailing chords on chord line", function() {
+    var lines = [{
+        text: "hello world.",
+        sylMap: [{ tick: 0, pos: 0 }],
+        startTick: 0,
+        endTick: 480
+    }];
+    var chords = [
+        { tick: 0, chord: "Lam" },
+        { tick: 720, chord: "Re" },
+        { tick: 960, chord: "Sol" }
+    ];
+    var result = fmt.formatLines(lines, chords, null, -1);
+    var resultLines = result.output.split("\n");
+    // 2 trailing chords should be on the chord line (same line as Lam)
+    assert.ok(resultLines[0].indexOf("Re") >= 0, "Re on chord line: " + resultLines[0]);
+    assert.ok(resultLines[0].indexOf("Sol") >= 0, "Sol on chord line: " + resultLines[0]);
 });
 
 test("getInterludeChords returns chords in gap", function() {

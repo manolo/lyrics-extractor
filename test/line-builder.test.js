@@ -129,6 +129,20 @@ test("splitLongLines does not split short lines", function() {
     assert.equal(result.length, 3);
 });
 
+test("splitLongLines splits very long line even when comma is far from median", function() {
+    // When median is low but line is 150+ chars, the comma should still be found
+    var longText = "En esta noche clara de inquietos luceros lo que yo mas quiero te vengo a decir, en tanto que la luna extiende en el cielo su palido velo de plata y jazmin.";
+    var lines = [
+        { text: longText, sylMap: [], startTick: 0, endTick: 100, sectionEnd: false },
+        { text: "short line one here.", sylMap: [], startTick: 100, endTick: 200, sectionEnd: false },
+        { text: "another short line.", sylMap: [], startTick: 200, endTick: 300, sectionEnd: false }
+    ];
+    var result = lb.splitLongLines(lines);
+    assert.ok(result.length >= 4, "should split long line: got " + result.length + " lines");
+    assert.ok(result[0].text.length < longText.length, "first part should be shorter than original");
+    assert.ok(result[0].text.indexOf("decir,") >= 0, "should split at comma: " + result[0].text);
+});
+
 test("cleanWordText replaces underties and synalepha dots", function() {
     assert.equal(lb.cleanWordText("da\u203Fes"), "da es");
     assert.equal(lb.cleanWordText("vi.da"), "vi da");

@@ -57,9 +57,14 @@ test("detectPhraseBreak on strong punctuation", function() {
     assert.equal(wb.detectPhraseBreak(syl2, null), true);
 });
 
-test("detectPhraseBreak on significant rest", function() {
-    var syl = { text: "word", syllabic: "single", durationQ: 1, restAfter: true, restDurationQ: 2, gapDurationQ: 2 };
+test("detectPhraseBreak on long rest (>= 4 beats)", function() {
+    var syl = { text: "word", syllabic: "single", durationQ: 1, restAfter: true, restDurationQ: 4, gapDurationQ: 2 };
     assert.equal(wb.detectPhraseBreak(syl, null), true);
+});
+
+test("detectPhraseBreak no break on moderate rest (< 4 beats)", function() {
+    var syl = { text: "word", syllabic: "single", durationQ: 1, restAfter: true, restDurationQ: 2, gapDurationQ: 2 };
+    assert.equal(wb.detectPhraseBreak(syl, null), false);
 });
 
 test("detectPhraseBreak no break on short notes", function() {
@@ -107,6 +112,27 @@ test("repairSyllabicChains does not affect valid chains", function() {
 test("detectPhraseBreak on fullwidth comma", function() {
     var syl = { text: "word\uFF0C", syllabic: "single", durationQ: 0.5, restAfter: false, restDurationQ: 0, gapDurationQ: 0 };
     assert.equal(wb.detectPhraseBreak(syl, null), true);
+});
+
+test("detectPhraseBreak: suspension points (...) suppress all breaks", function() {
+    // Consecutive dots should NOT trigger break, even with long gap
+    var syl = { text: "sas...", syllabic: "end", durationQ: 0.5, restAfter: false, restDurationQ: 0, gapDurationQ: 5 };
+    assert.equal(wb.detectPhraseBreak(syl, null), false, "... should suppress gap break");
+});
+
+test("detectPhraseBreak: suspension points (..) suppress all breaks", function() {
+    var syl = { text: "te..", syllabic: "end", durationQ: 4, restAfter: true, restDurationQ: 3, gapDurationQ: 5 };
+    assert.equal(wb.detectPhraseBreak(syl, null), false, ".. should suppress all breaks");
+});
+
+test("detectPhraseBreak: ellipsis unicode suppresses all breaks", function() {
+    var syl = { text: "sas\u2026", syllabic: "end", durationQ: 0.5, restAfter: true, restDurationQ: 3, gapDurationQ: 5 };
+    assert.equal(wb.detectPhraseBreak(syl, null), false, "ellipsis should suppress all breaks");
+});
+
+test("detectPhraseBreak: single dot still triggers break", function() {
+    var syl = { text: "sol.", syllabic: "end", durationQ: 0.5, restAfter: false, restDurationQ: 0, gapDurationQ: 0 };
+    assert.equal(wb.detectPhraseBreak(syl, null), true, "single dot is sentence end");
 });
 
 test("buildWords joins broken chain after repair", function() {

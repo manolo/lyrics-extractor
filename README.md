@@ -86,7 +86,7 @@ The extractor works with any MuseScore score that has lyrics and chord symbols, 
 
 ### Syllable separation
 
-In MuseScore's lyrics input mode (`Ctrl+L`), press `-` (hyphen) to advance to the next note within the same word, and `Space` to complete a word and move to the next note. This sets the syllabic types (begin/middle/end/single) correctly. Avoid typing hyphens directly in the lyric text.
+In MuseScore's lyrics input mode (`Cmd+L`), press `-` (hyphen) to advance to the next note within the same word, and `Space` to complete a word and move to the next note. This sets the syllabic types (begin/middle/end/single) correctly. Avoid typing hyphens directly in the lyric text.
 
 ### Synalepha (vowel linking)
 
@@ -98,19 +98,26 @@ For songs with repeat bars and different lyrics per pass, add lyrics to verse 0 
 
 ### Section labels
 
-Add System Text (`Alt+Shift+T` on Mac, or Add > Text > System Text) to mark sections: "Intro", "Estrofa", "Estribillo", "Solista", "Subida", etc. These appear as section labels in the output and enable smart abbreviation of repeated sections.
+Add System Text (`Cmd+Shift+T`, or Add > Text > System Text) to mark sections: "Intro", "Estrofa", "Estribillo", "Solista", "Subida", etc. These appear as section labels in the output and enable smart abbreviation of repeated sections.
 
 ### Chord symbols
 
-Add chord symbols (`Shift+K`, or Add > Text > Chord Symbol) to the staff that should be used for chord extraction. The extractor auto-detects the staff with the most chord symbols. Linked/tab staves are automatically excluded.
+Add chord symbols (`Cmd+K`, or Add > Text > Chord Symbol) to the staff that should be used for chord extraction. The extractor auto-detects the staff with the most chord symbols. Linked/tab staves are automatically excluded.
 
 ### Phrase separators
 
-Use semicolons (`;`) in lyrics to indicate line breaks within the same stanza (no blank line). The **Fix** button converts these to fullwidth commas for visual distinction in the score.
+Use semicolons (`;`) in lyrics to indicate line breaks within the same stanza (no blank line). The **Fix** button converts these to fullwidth commas (U+FF0C) for visual distinction in the score. In the output, both semicolons and fullwidth commas are normalized to regular commas.
+
+```
+Score input:    "palabra;"        (user types semicolon)
+After Fix:      "palabra，"       (fullwidth comma in the score)
+Text output:    "palabra,"        (regular comma)
+                "palabra."        (if last line of stanza)
+```
 
 ### Suspension points
 
-Use `..` or `...` in lyrics for dramatic effect (e.g., `A.. so.. ma.. te...`). These are converted to the unicode ellipsis character `...`.
+Use `..` or `...` in lyrics for dramatic effect (e.g., `A.. so.. ma.. te...`). These are converted to the unicode ellipsis character `…` (U+2026). Suspension points suppress all automatic line breaks: the phrase continues even if there is a long gap or rest after the syllable. This allows patterns like `rosas… y del sol` to stay on one line even when there is an instrumental interlude between the words.
 
 ### Navigation markers
 
@@ -140,7 +147,7 @@ The MuseScore extension provides:
 node --test
 ```
 
-164 tests covering all modules: extractors, performance stream, word builder, line builder, formatter, navigation, PDF writer, orchestrator, and integration tests.
+178 tests covering all modules: extractors, performance stream, word builder, line builder, formatter, navigation, PDF writer, orchestrator, and integration tests.
 
 ## Project structure
 
