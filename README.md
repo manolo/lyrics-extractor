@@ -98,11 +98,11 @@ For songs with repeat bars and different lyrics per pass, add lyrics to verse 0 
 
 ### Section labels
 
-Add **System Text** (Add > Text > System Text) to mark sections: "Intro", "Estrofa", "Estribillo", "Solista", "Subida", etc. These appear as section labels in the output and enable smart abbreviation of repeated sections.
+Add System Text (`Alt+Shift+T` on Mac, or Add > Text > System Text) to mark sections: "Intro", "Estrofa", "Estribillo", "Solista", "Subida", etc. These appear as section labels in the output and enable smart abbreviation of repeated sections.
 
 ### Chord symbols
 
-Add chord symbols (Add > Text > Chord Symbol) to the staff that should be used for chord extraction. The extractor auto-detects the staff with the most chord symbols. Linked/tab staves are automatically excluded.
+Add chord symbols (`Shift+K`, or Add > Text > Chord Symbol) to the staff that should be used for chord extraction. The extractor auto-detects the staff with the most chord symbols. Linked/tab staves are automatically excluded.
 
 ### Phrase separators
 
