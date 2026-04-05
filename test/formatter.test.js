@@ -824,9 +824,60 @@ test("findPosForTick returns correct position", function() {
         { tick: 480, pos: 5 },
         { tick: 960, pos: 12 }
     ];
-    assert.equal(fmt.findPosForTick(sylMap, 480), 5);
-    assert.equal(fmt.findPosForTick(sylMap, 700), 5);
-    assert.equal(fmt.findPosForTick(sylMap, 960), 12);
+    assert.equal(fmt.findPosForTick(sylMap, 480).pos, 5);
+    assert.equal(fmt.findPosForTick(sylMap, 700).pos, 5);
+    assert.equal(fmt.findPosForTick(sylMap, 960).pos, 12);
+});
+
+test("formatPerfLines positions gap chord before next word (> 1 beat gap)", function() {
+    // Chord "Fa" is assigned to syllable "y" at pos 6, but the actual chord tick
+    // falls in a gap > 1 beat before "y". It should be positioned before "y".
+    var lines = [{
+        text: "sitio y es",
+        sylMap: [
+            { tick: 0, pos: 0, chord: "Sol7" },
+            { tick: 960, pos: 6, chord: "Fa" }  // gap of 960 ticks (2 beats) from prev
+        ],
+        startTick: 0, endTick: 960, sectionEnd: false
+    }];
+    var chords = [
+        { tick: 0, chord: "Sol7" },
+        { tick: 720, chord: "Fa" }  // Fa plays at tick 720, before "y" at 960
+    ];
+    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    // Fa should appear before "y" in the chord line, not on top of it
+    var chordLine = output.split("\n")[0];
+    var faIdx = chordLine.indexOf("Fa");
+    assert.ok(faIdx >= 0, "Fa should appear: " + output);
+    assert.ok(faIdx < 6, "Fa should be before pos 6 (y): pos=" + faIdx + " line: " + chordLine);
+});
+
+test("formatLines adjusts snapped chord to not overlap word", function() {
+    // When findPosForTick snaps to next syllable, formatLines backs up by chord length
+    var lines = [{
+        text: "ese sitio y es en",
+        sylMap: [
+            { tick: 0, pos: 0 },
+            { tick: 480, pos: 4 },
+            { tick: 960, pos: 10 },  // "y"
+            { tick: 1200, pos: 12 }
+        ],
+        startTick: 0, endTick: 1200
+    }];
+    // Chord at tick 800: midpoint of 480-960 is 720, 800 > 720 so snaps to pos 10
+    // formatLines should adjust: 10 - chord.length back to avoid covering "y"
+    var chords = [
+        { tick: 0, chord: "Sol7" },
+        { tick: 800, chord: "Fa" },
+        { tick: 960, chord: "Sol7" }
+    ];
+    var result = fmt.formatLines(lines, chords, null, -1);
+    var chordLine = result.output.split("\n")[0];
+    var textLine = result.output.split("\n")[1];
+    // "Fa" should end before "y" in the text
+    var faEnd = chordLine.indexOf("Fa") + 2;
+    var yPos = textLine.indexOf("y");
+    assert.ok(faEnd <= yPos, "Fa should end before y: faEnd=" + faEnd + " yPos=" + yPos + " chord=[" + chordLine + "] text=[" + textLine + "]");
 });
 
 // ========================================
