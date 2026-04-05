@@ -313,6 +313,29 @@ test("formatLines renders system text before corresponding line", function() {
     assert.ok(sysIdx < secondIdx, "system text before second verse: " + result.output);
 });
 
+test("formatLines renders system text before interlude chords (not after)", function() {
+    var lines = [
+        { text: "end of verse.", sylMap: [{ tick: 0, pos: 0 }], startTick: 0, endTick: 480 },
+        { text: "next verse.", sylMap: [{ tick: 5000, pos: 0 }], startTick: 5000, endTick: 5480 }
+    ];
+    var chords = [
+        { tick: 0, chord: "Lam" },
+        { tick: 1000, chord: "Re" },
+        { tick: 1500, chord: "Sol" },
+        { tick: 2000, chord: "Mi" },
+        { tick: 2500, chord: "La" },
+        { tick: 5000, chord: "Lam" }
+    ];
+    // System text "Musica" at tick 800, falls in the trailing chord range
+    var systemTexts = [{ tick: 800, text: "Musica" }];
+    var result = fmt.formatLines(lines, chords, null, -1, systemTexts);
+    var musicaIdx = result.output.indexOf("- MUSICA -");
+    var interludeIdx = result.output.indexOf("Re  Sol  Mi  La");
+    assert.ok(musicaIdx >= 0, "should have MUSICA: " + result.output);
+    assert.ok(interludeIdx >= 0, "should have interlude: " + result.output);
+    assert.ok(musicaIdx < interludeIdx, "MUSICA should be before interlude chords: " + result.output);
+});
+
 test("formatLines does not duplicate system text already shown in intro", function() {
     // System text at tick 0 should NOT appear inline (it's before firstLineTick)
     var lines = [
