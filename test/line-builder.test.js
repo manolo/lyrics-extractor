@@ -149,15 +149,20 @@ test("cleanWordText replaces underties and synalepha dots", function() {
     assert.equal(lb.cleanWordText("normal word"), "normal word");
 });
 
-test("cleanWordText converts consecutive dots to ellipsis unicode", function() {
-    assert.equal(lb.cleanWordText("A.."), "A\u2026");
-    assert.equal(lb.cleanWordText("só.."), "só\u2026");
-    assert.equal(lb.cleanWordText("te..."), "te\u2026");
-    assert.equal(lb.cleanWordText("word...."), "word\u2026");
+test("cleanWordText converts 3+ dots to ellipsis, 2 dots to small full stop", function() {
+    assert.equal(lb.cleanWordText("te..."), "te\u2026", "3 dots → ellipsis");
+    assert.equal(lb.cleanWordText("word...."), "word\u2026", "4 dots → ellipsis");
+    assert.equal(lb.cleanWordText("A.."), "A\uFE52", "2 dots → small full stop");
+    assert.equal(lb.cleanWordText("só.."), "só\uFE52", "2 dots → small full stop");
     // Single dot between letters is still synalepha
     assert.equal(lb.cleanWordText("da.es"), "da es");
-    // Ellipsis preserved, not treated as synalepha
+    // Ellipsis preserved
     assert.equal(lb.cleanWordText("A\u2026"), "A\u2026");
+});
+
+test("cleanWordText converts double comma to small comma", function() {
+    assert.equal(lb.cleanWordText("word,,"), "word\uFE50");
+    assert.equal(lb.cleanWordText("normal,"), "normal,", "single comma unchanged");
 });
 
 test("mergeShortLines backward merge: 1-word line at end merges into previous", function() {
@@ -199,4 +204,25 @@ test("applyStanzaFormatting converts semicolon to period on last line", function
     ];
     lb.applyStanzaFormatting(lines);
     assert.equal(lines[0].text, "Only line.");  // ; -> , -> . (last line)
+});
+
+test("applyStanzaFormatting converts small comma (U+FE50) to regular comma", function() {
+    var lines = [
+        { text: "rosas\uFE50" },
+        { text: "y del sol" }
+    ];
+    lb.applyStanzaFormatting(lines);
+    assert.equal(lines[0].text, "Rosas,");
+    assert.equal(lines[1].text, "y del sol.");
+});
+
+test("applyStanzaFormatting converts small full stop (U+FE52) to regular period", function() {
+    var lines = [
+        { text: "rosas\uFE52" },
+        { text: "y del sol" }
+    ];
+    lb.applyStanzaFormatting(lines);
+    assert.equal(lines[0].text, "Rosas.");
+    // Period counts as punctuation, no extra comma added
+    assert.equal(lines[1].text, "y del sol.");
 });

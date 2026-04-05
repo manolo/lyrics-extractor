@@ -153,9 +153,12 @@ MuseScore {
                 var cleanText = entry.text;
 
                 cleanText = TextUtils.replaceSynalepha(cleanText);
-                // Convert consecutive dots (2+) to ellipsis unicode
-                cleanText = cleanText.replace(/\.{2,}/g, "\u2026");
-                // Convert semicolons to fullwidth comma (phrase separator, not stanza break)
+                // Convert consecutive dots: 3+ → ellipsis, 2 → small full stop (no-break period)
+                cleanText = cleanText.replace(/\.{3,}/g, "\u2026");
+                cleanText = cleanText.replace(/\.\./g, "\uFE52");
+                // Convert double commas to small comma (no-break comma)
+                cleanText = cleanText.replace(/,,/g, "\uFE50");
+                // Convert semicolons to fullwidth comma (phrase separator, stanza break)
                 cleanText = cleanText.replace(/;/g, "\uFF0C");
                 if (cleanText !== entry.text) {
                     entry.lyric.text = cleanText;

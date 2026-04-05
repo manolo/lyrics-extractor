@@ -111,13 +111,21 @@ Use semicolons (`;`) in lyrics to indicate line breaks within the same stanza (n
 ```
 Score input:    "palabra;"        (user types semicolon)
 After Fix:      "palabra，"       (fullwidth comma in the score)
-Text output:    "palabra,"        (regular comma)
+Text output:    "palabra,"        (regular comma + new line)
                 "palabra."        (if last line of stanza)
 ```
 
-### Suspension points
+### No-break punctuation
 
-Use `..` or `...` in lyrics for dramatic effect (e.g., `A.. so.. ma.. te...`). These are converted to the unicode ellipsis character `…` (U+2026). Suspension points suppress all automatic line breaks: the phrase continues even if there is a long gap or rest after the syllable. This allows patterns like `rosas… y del sol` to stay on one line even when there is an instrumental interlude between the words.
+Use double comma (`,,`) or double period (`..`) in lyrics to insert punctuation without triggering a line break. The **Fix** button converts these to small form variants for visual distinction.
+
+```
+,,  → ﹐ (U+FE50 small comma)   → output: ,  (no line break)
+..  → ﹒ (U+FE52 small full stop) → output: .  (no line break)
+... → … (U+2026 ellipsis)        → output: …  (no line break)
+```
+
+This allows phrases like `rosas.. y del sol` to stay on one line even when there is an instrumental interlude between the words.
 
 ### Navigation markers
 
@@ -147,7 +155,7 @@ The MuseScore extension provides:
 node --test
 ```
 
-178 tests covering all modules: extractors, performance stream, word builder, line builder, formatter, navigation, PDF writer, orchestrator, and integration tests.
+184 tests covering all modules: extractors, performance stream, word builder, line builder, formatter, navigation, PDF writer, orchestrator, and integration tests.
 
 ## Project structure
 

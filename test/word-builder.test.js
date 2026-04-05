@@ -135,6 +135,21 @@ test("detectPhraseBreak: single dot still triggers break", function() {
     assert.equal(wb.detectPhraseBreak(syl, null), true, "single dot is sentence end");
 });
 
+test("detectPhraseBreak: double comma (,,) suppresses all breaks", function() {
+    var syl = { text: "word,,", syllabic: "end", durationQ: 0.5, restAfter: true, restDurationQ: 5, gapDurationQ: 10 };
+    assert.equal(wb.detectPhraseBreak(syl, null), false, ",, should suppress all breaks");
+});
+
+test("detectPhraseBreak: small comma (U+FE50) suppresses all breaks", function() {
+    var syl = { text: "word\uFE50", syllabic: "end", durationQ: 0.5, restAfter: true, restDurationQ: 5, gapDurationQ: 10 };
+    assert.equal(wb.detectPhraseBreak(syl, null), false, "small comma should suppress");
+});
+
+test("detectPhraseBreak: small full stop (U+FE52) suppresses all breaks", function() {
+    var syl = { text: "word\uFE52", syllabic: "end", durationQ: 0.5, restAfter: true, restDurationQ: 5, gapDurationQ: 10 };
+    assert.equal(wb.detectPhraseBreak(syl, null), false, "small full stop should suppress");
+});
+
 test("buildWords joins broken chain after repair", function() {
     var syls = [
         { tick: 0, verse: 0, text: "co", syllabic: "begin", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
