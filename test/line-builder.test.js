@@ -41,6 +41,22 @@ test("findPosForTick finds best position", function() {
     assert.equal(lb.findPosForTick(sylMap, 2000), 10);
 });
 
+test("findPosForTick snaps to next syllable when in second half of gap", function() {
+    var sylMap = [
+        { tick: 0, pos: 0 },
+        { tick: 480, pos: 5 },
+        { tick: 960, pos: 10 }
+    ];
+    // tick 250 is in the second half of gap 0-480 (midpoint=240): snap to pos 4 (5-1)
+    assert.equal(lb.findPosForTick(sylMap, 250), 4);
+    // tick 239 is in the first half: stay at pos 0
+    assert.equal(lb.findPosForTick(sylMap, 239), 0);
+    // tick 730 is in the second half of gap 480-960 (midpoint=720): snap to pos 9 (10-1)
+    assert.equal(lb.findPosForTick(sylMap, 730), 9);
+    // tick 719 is in the first half: stay at pos 5
+    assert.equal(lb.findPosForTick(sylMap, 719), 5);
+});
+
 test("applyStanzaFormatting capitalizes first line", function() {
     var lines = [
         { text: "hello world" },
