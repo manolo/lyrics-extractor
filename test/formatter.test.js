@@ -299,6 +299,43 @@ test("formatLines handles multiple trailing chords without expanding text", func
     assert.ok(resultLines[0].indexOf("La7") >= 0, "La7 should appear: " + resultLines[0]);
 });
 
+test("formatLines renders system text before corresponding line", function() {
+    var lines = [
+        { text: "intro verse.", sylMap: [{ tick: 0, pos: 0 }], startTick: 0, endTick: 480 },
+        { text: "second verse.", sylMap: [{ tick: 960, pos: 0 }], startTick: 960, endTick: 1440 }
+    ];
+    var chords = [{ tick: 0, chord: "Lam" }];
+    var systemTexts = [{ tick: 960, text: "Todos" }];
+    var result = fmt.formatLines(lines, chords, null, -1, systemTexts);
+    assert.ok(result.output.indexOf("- TODOS -") >= 0, "system text should appear: " + result.output);
+    var sysIdx = result.output.indexOf("- TODOS -");
+    var secondIdx = result.output.indexOf("second verse.");
+    assert.ok(sysIdx < secondIdx, "system text before second verse: " + result.output);
+});
+
+test("formatLines does not duplicate system text already shown in intro", function() {
+    // System text at tick 0 should NOT appear inline (it's before firstLineTick)
+    var lines = [
+        { text: "hello world.", sylMap: [{ tick: 480, pos: 0 }], startTick: 480, endTick: 960 }
+    ];
+    var chords = [{ tick: 480, chord: "Lam" }];
+    // Only pass texts at or after firstLineTick (orchestrator filters these)
+    var systemTexts = [{ tick: 480, text: "Solista" }];
+    var result = fmt.formatLines(lines, chords, null, -1, systemTexts);
+    assert.ok(result.output.indexOf("- SOLISTA -") >= 0, "should have Solista: " + result.output);
+    // Should appear only once
+    var first = result.output.indexOf("- SOLISTA -");
+    var second = result.output.indexOf("- SOLISTA -", first + 1);
+    assert.equal(second, -1, "should not duplicate: " + result.output);
+});
+
+test("formatLines works without systemTexts parameter", function() {
+    var lines = [{ text: "hello.", sylMap: [{ tick: 0, pos: 0 }], startTick: 0, endTick: 480 }];
+    var chords = [{ tick: 0, chord: "Lam" }];
+    var result = fmt.formatLines(lines, chords, null, -1);
+    assert.ok(result.output.indexOf("hello.") >= 0, "should render text: " + result.output);
+});
+
 test("formatLines renders 4+ trailing chords as separate interlude line", function() {
     var lines = [{
         text: "rosas y del sol.",
