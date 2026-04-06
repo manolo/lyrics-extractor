@@ -919,9 +919,9 @@ test("abbreviateRepeatedStanzas abbreviates regardless of multi-verse source", f
     assert.ok(lastLine.abbreviated, "should abbreviate even with multi-verse source: " + lastLine.text);
 });
 
-test("formatPerfLines intro system text reappears on repeat pass", function() {
-    // System text between intro chords and first lyric should appear after intro
-    // AND again when ticks go backwards (second repeat pass)
+test("formatPerfLines sole intro label does not repeat on repeat pass", function() {
+    // With only 1 system text (Solista), it labels the entire repeat.
+    // Should NOT repeat on the second pass.
     var lines = [
         { text: "first verse.", sylMap: [{ tick: 200, pos: 0, chord: "Lam" }], startTick: 200, endTick: 480, sectionEnd: false },
         { text: "more text.", sylMap: [{ tick: 960, pos: 0, chord: "Re" }], startTick: 960, endTick: 1440, sectionEnd: true },
@@ -934,7 +934,7 @@ test("formatPerfLines intro system text reappears on repeat pass", function() {
     var first = output.indexOf("- SOLISTA -");
     assert.ok(first >= 0, "should have first occurrence: " + output);
     var second = output.indexOf("- SOLISTA -", first + 1);
-    assert.ok(second >= 0, "intro system text should reappear on repeat pass: " + output);
+    assert.equal(second, -1, "sole label should NOT repeat on pass 2: " + output);
 });
 
 test("formatPerfLines solista label repeats on backwards tick", function() {
