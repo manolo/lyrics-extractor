@@ -150,6 +150,16 @@ test("detectPhraseBreak: small full stop (U+FE52) suppresses all breaks", functi
     assert.equal(wb.detectPhraseBreak(syl, null), false, "small full stop should suppress");
 });
 
+test("detectPhraseBreak: sectionBar triggers break", function() {
+    var syl = { text: "word", syllabic: "end", durationQ: 0.5, restAfter: false, restDurationQ: 0, gapDurationQ: 0, sectionBar: true };
+    assert.equal(wb.detectPhraseBreak(syl, null), true, "sectionBar should trigger break");
+});
+
+test("detectPhraseBreak: no sectionBar no break (other rules aside)", function() {
+    var syl = { text: "word", syllabic: "end", durationQ: 0.5, restAfter: false, restDurationQ: 0, gapDurationQ: 0 };
+    assert.equal(wb.detectPhraseBreak(syl, null), false, "no sectionBar, no other trigger");
+});
+
 test("buildWords joins broken chain after repair", function() {
     var syls = [
         { tick: 0, verse: 0, text: "co", syllabic: "begin", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },

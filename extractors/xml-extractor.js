@@ -454,8 +454,9 @@ function extractAll(xmlString) {
         });
     }
 
-    // Build repeats using walkStaffMeasures on staff 0
+    // Build repeats and collect section barline ticks
     var currentTick0 = 0;
+    var sectionBarTicks = {}; // ticks where section-ending barlines occur (endRepeat, double, final)
     if (staffElements.length > 0) {
         var repeatStartTick = -1;
 
@@ -466,6 +467,15 @@ function extractAll(xmlString) {
             if (findChild(measure, "endRepeat")) {
                 repeats.push({ startTick: repeatStartTick >= 0 ? repeatStartTick : 0, endTick: endTick });
                 repeatStartTick = -1;
+                sectionBarTicks[endTick] = "endRepeat";
+            }
+            // Detect section barlines (double, final, etc.)
+            var barline = findChild(measure, "BarLine");
+            if (barline) {
+                var barSubtype = childText(barline, "subtype");
+                if (barSubtype === "double" || barSubtype === "final" || barSubtype === "end-repeat") {
+                    sectionBarTicks[endTick] = barSubtype;
+                }
             }
         });
     }
@@ -533,11 +543,16 @@ function extractAll(xmlString) {
     }
     chords.sort(function(a, b) { return a.tick - b.tick; });
 
-    // Compute gap durations for syllables
+    // Compute gap durations and section bar flags for syllables
     // Sort syllables by tick for gap computation
     syllables.sort(function(a, b) { return a.tick - b.tick || a.verse - b.verse; });
     for (var gi = 0; gi < syllables.length; gi++) {
         var gSyl = syllables[gi];
+        // Check if this syllable's note ends at a section barline
+        var sylEndTick = gSyl.tick + Math.round(gSyl.durationQ * division);
+        if (sectionBarTicks[sylEndTick]) {
+            gSyl.sectionBar = true;
+        }
         // Find next syllable in same verse
         for (var gj = gi + 1; gj < syllables.length; gj++) {
             if (syllables[gj].verse === gSyl.verse) {
@@ -547,6 +562,14 @@ function extractAll(xmlString) {
                     if (gap > 0.25) {
                         gSyl.restAfter = true;
                         gSyl.restDurationQ = gap;
+                    }
+                }
+                // Also check if a section barline falls between this syllable and the next
+                for (var bt in sectionBarTicks) {
+                    var barTick = parseInt(bt);
+                    if (barTick > gSyl.tick && barTick <= syllables[gj].tick) {
+                        gSyl.sectionBar = true;
+                        break;
                     }
                 }
                 break;

@@ -517,6 +517,33 @@ test("extractAll extracts Jump and Marker at measure level (not inside voice)", 
     assert.equal(data.jumps[0].continueAt, "codab");
 });
 
+test("extractAll marks syllables at endRepeat barline with sectionBar", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><startRepeat/><voice>',
+        '<Chord><durationType>quarter</durationType><Lyrics><syllabic>single</syllabic><text>hello</text></Lyrics><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '<Chord><durationType>quarter</durationType><Lyrics><syllabic>single</syllabic><text>world</text></Lyrics><Note><pitch>62</pitch><tpc>16</tpc></Note></Chord>',
+        '</voice><endRepeat/></Measure>',
+        '<Measure><voice>',
+        '<Chord><durationType>quarter</durationType><Lyrics><syllabic>single</syllabic><text>next</text></Lyrics><Note><pitch>64</pitch><tpc>18</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff></Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml);
+    // "world" is the last syllable in the repeat measure, should have sectionBar
+    var worldSyl = data.syllables.filter(function(s) { return s.text === "world"; })[0];
+    assert.ok(worldSyl, "should have world syllable");
+    assert.equal(worldSyl.sectionBar, true, "world should have sectionBar (endRepeat): " + JSON.stringify(worldSyl));
+    // "hello" should NOT have sectionBar
+    var helloSyl = data.syllables.filter(function(s) { return s.text === "hello"; })[0];
+    assert.ok(!helloSyl.sectionBar, "hello should not have sectionBar");
+});
+
 test("extractAll skips grace notes (acciaccatura) in tick calculation", function() {
     var xml = [
         '<?xml version="1.0" encoding="UTF-8"?>',
