@@ -1,11 +1,10 @@
 ==== RONDALLA ====
 
 - INTRO -
-Rem  Sol7  DoM  Fa  Mi  Mi7  Lam  La7  Lam
+Rem  Sol7  DoM  Fa  Mi  Mi7  Lam  La7  Rem  Sol7  DoM  Fa  Mi  Mi7
+Lam
 
 - ESTROFA -
-Rem  Sol7  DoM  Fa  Mi  Mi7  Lam  La7  Lam
-
                          Mi7       Lam      Rem        Lam       Mi7       Lam
 En esta noche clara de inquietos luceros lo que yo más quiero te vengo a decir,
 Mi              Lam    Mi7          Lam      Rem    Lam     Mi7        Lam  Mi
