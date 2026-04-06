@@ -86,6 +86,7 @@ function findStaves() {
     var voiceStaves = [];
     var harmonyStaves = [];
     var linkedStaves = {};
+    var hiddenStaves = {};
 
     // Try to detect linked staves
     try {
@@ -94,9 +95,28 @@ function findStaves() {
         // API not available, skip linked detection
     }
 
+    // Build set of hidden staff indices from parts with show=false
+    try {
+        for (var pi = 0; pi < curScore.parts.length; pi++) {
+            var part = curScore.parts[pi];
+            if (part.show === false) {
+                var startStaff = Math.floor(part.startTrack / 4);
+                var endStaff = Math.floor((part.endTrack - 1) / 4);
+                for (var hs = startStaff; hs <= endStaff; hs++) {
+                    hiddenStaves[hs] = true;
+                }
+            }
+        }
+    } catch (e) {
+        // API not available, skip hidden detection
+    }
+
     var segment = curScore.firstSegment();
     while (segment) {
         for (var staff = 0; staff < curScore.nstaves; staff++) {
+            // Skip hidden staves
+            if (hiddenStaves[staff]) continue;
+
             var element = segment.elementAt(staff * 4);
             if (element && (element.type === Element.CHORD || element.type === Element.REST)) {
                 var lyr = element.lyrics;
@@ -104,12 +124,12 @@ function findStaves() {
                     var found = false;
                     for (var v = 0; v < voiceStaves.length; v++) {
                         if (voiceStaves[v].idx === staff) {
-                            voiceStaves[v].count++;
+                            voiceStaves[v].count += lyr.length; // count total lyrics (all verses)
                             found = true;
                             break;
                         }
                     }
-                    if (!found) voiceStaves.push({ idx: staff, count: 1 });
+                    if (!found) voiceStaves.push({ idx: staff, count: lyr.length });
                 }
             }
         }
@@ -120,8 +140,8 @@ function findStaves() {
                 var ann = annotations[a];
                 if (ann && ann.type === Element.HARMONY) {
                     var hStaff = Math.floor(ann.track / 4);
-                    // Skip linked staves for harmony selection
-                    if (linkedStaves[hStaff]) continue;
+                    // Skip linked and hidden staves for harmony selection
+                    if (linkedStaves[hStaff] || hiddenStaves[hStaff]) continue;
                     var hFound = false;
                     for (var h = 0; h < harmonyStaves.length; h++) {
                         if (harmonyStaves[h].idx === hStaff) {
@@ -483,6 +503,7 @@ function extractAll() {
             var dinfo = { part: dp, name: dpart.longName || dpart.shortName || "" };
             try { dinfo.startTrack = dpart.startTrack; } catch(e) { dinfo.startTrack = "N/A"; }
             try { dinfo.endTrack = dpart.endTrack; } catch(e) { dinfo.endTrack = "N/A"; }
+            try { dinfo.show = dpart.show; } catch(e) { dinfo.show = "N/A"; }
             _staffDebug.push(dinfo);
         }
     } catch(e) { _staffDebug.push({ error: "" + e }); }

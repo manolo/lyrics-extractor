@@ -312,8 +312,10 @@ function extractAll(xmlString) {
     var parts = findChildren(score, "Part");
     var nstaves = 0;
     var linkedStaves = {};
+    var hiddenStaves = {};
     var staffCounter = 0;
     for (var p = 0; p < parts.length; p++) {
+        var partHidden = childText(parts[p], "show") === "0";
         var partStaffs = findChildren(parts[p], "Staff");
         nstaves += partStaffs.length;
         for (var ps = 0; ps < partStaffs.length; ps++) {
@@ -321,6 +323,10 @@ function extractAll(xmlString) {
             var isLinked = findChild(partStaffs[ps], "linkedTo") !== null;
             if (isLinked) {
                 linkedStaves[staffCounter - 1] = true; // 0-based
+            }
+            var staffHidden = childText(partStaffs[ps], "isStaffVisible") === "0";
+            if (partHidden || staffHidden) {
+                hiddenStaves[staffCounter - 1] = true; // 0-based
             }
         }
     }
@@ -473,9 +479,12 @@ function extractAll(xmlString) {
     var bestLyricStaff = -1;
     var bestLyricCount = 0;
     for (var ls in lyricCounts) {
+        var lsIdx = parseInt(ls);
+        // Skip hidden staves
+        if (hiddenStaves[lsIdx]) continue;
         if (lyricCounts[ls] > bestLyricCount) {
             bestLyricCount = lyricCounts[ls];
-            bestLyricStaff = parseInt(ls);
+            bestLyricStaff = lsIdx;
         }
     }
 
@@ -483,8 +492,8 @@ function extractAll(xmlString) {
     var bestHarmonyCount = 0;
     for (var hs in harmonyCounts) {
         var hsIdx = parseInt(hs);
-        // Skip linked staves (tab/linked copies may have stale chord data)
-        if (linkedStaves[hsIdx]) continue;
+        // Skip linked and hidden staves
+        if (linkedStaves[hsIdx] || hiddenStaves[hsIdx]) continue;
         if (harmonyCounts[hs] > bestHarmonyCount) {
             bestHarmonyCount = harmonyCounts[hs];
             bestHarmonyStaff = hsIdx;
