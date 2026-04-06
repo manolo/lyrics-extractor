@@ -551,7 +551,7 @@ test("formatPerfLines shows interlude chords on backwards tick (repeat pass)", f
     assert.ok(between.indexOf("Re") >= 0, "Re should be in interlude between passes: " + between);
 });
 
-test("formatPerfLines renders coda chords after last line", function() {
+test("formatPerfLines shows trailing coda chords on chord line (< 4 chords)", function() {
     var lines = [
         {
             text: "last line of song",
@@ -566,10 +566,13 @@ test("formatPerfLines renders coda chords after last line", function() {
         { tick: 1440, chord: "Sol" }
     ];
     var output = fmt.formatPerfLines(lines, [], null, "", chords);
-    assert.ok(output.indexOf("Re  Sol") >= 0, "coda chords should appear: " + output);
-    var idxText = output.indexOf("last line of song");
-    var idxCoda = output.indexOf("Re  Sol");
-    assert.ok(idxCoda > idxText, "coda after last line");
+    // Trailing chords (< 4) appear on the chord line, not as separate coda
+    var chordLine = output.split("\n")[0];
+    assert.ok(chordLine.indexOf("Re") >= 0, "Re on chord line: " + chordLine);
+    assert.ok(chordLine.indexOf("Sol") >= 0, "Sol on chord line: " + chordLine);
+    // No separate coda line
+    var lines2 = output.trim().split("\n");
+    assert.equal(lines2.length, 2, "only chord line + text, no coda: " + output);
 });
 
 test("formatPerfLines no coda when no chords after last line", function() {
@@ -1186,8 +1189,8 @@ test("formatPerfLines does not append coda chords after last abbreviated line", 
     assert.ok(output.indexOf("Sim") < 0, "should not have coda chord Sim after abbreviated line: " + output);
 });
 
-test("formatPerfLines still appends coda chords after non-abbreviated last line", function() {
-    // When the last line is NOT abbreviated, coda chords should still appear.
+test("formatPerfLines trailing coda chords on chord line, not duplicated below", function() {
+    // Trailing chords (< 4) after last line go on the chord line, no separate coda.
     var lines = [
         { text: "The final line of the song.", sylMap: [{ tick: 0, pos: 0, chord: "Lam" }], startTick: 0, endTick: 480, sectionEnd: false }
     ];
@@ -1197,5 +1200,7 @@ test("formatPerfLines still appends coda chords after non-abbreviated last line"
         { tick: 1440, chord: "Sol" }
     ];
     var output = fmt.formatPerfLines(lines, [], null, "", chords);
-    assert.ok(output.indexOf("Re  Sol") >= 0, "coda chords should appear after non-abbreviated last line: " + output);
+    var chordLine = output.split("\n")[0];
+    assert.ok(chordLine.indexOf("Re") >= 0 && chordLine.indexOf("Sol") >= 0,
+        "trailing chords on chord line: " + chordLine);
 });
