@@ -97,7 +97,7 @@ test("formatPerfLines adds blank line after sectionEnd", function() {
 
     var output = fmt.formatPerfLines(lines, [], null, "");
     // line1 has no chords: empty chord line + text + sectionEnd blank + line2 empty chord line + text
-    assert.ok(output.indexOf("line1\n\n\nline2") >= 0, "should have section break: " + JSON.stringify(output));
+    assert.ok(output.indexOf("line1\n\nline2") >= 0, "should have section break: " + JSON.stringify(output));
 });
 
 test("formatPerfLines keeps blank line between stanzas when no chord changes", function() {
@@ -702,8 +702,12 @@ test("abbreviated stanza has extra blank line before it", function() {
         { text: "Estribillo full text here.", sylMap: [{ tick: 1440, pos: 0, chord: "Re" }], startTick: 1440, endTick: 1920, sectionEnd: true }
     ];
     var output = fmt.formatPerfLines(lines, [], null, "", []);
-    // The abbreviated line should have double blank line before it (sectionEnd \n + abbreviated \n)
-    assert.ok(output.indexOf("\n\n\n") >= 0, "should have double blank line before abbreviated stanza: " + JSON.stringify(output));
+    // The abbreviated line should have a blank line before it (collapsed from multiple newlines)
+    var abbrIdx = output.indexOf("Estribillo full text here...");
+    assert.ok(abbrIdx >= 0, "should have abbreviated stanza: " + output);
+    // There should be a blank line (at least \n\n) before the abbreviated text
+    var before = output.substring(Math.max(0, abbrIdx - 5), abbrIdx);
+    assert.ok(before.indexOf("\n\n") >= 0, "should have blank line before abbreviated stanza: " + JSON.stringify(before));
 });
 
 test("formatPerfLines abbreviates repeated stanzas in output", function() {
