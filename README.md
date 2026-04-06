@@ -84,52 +84,60 @@ cli/index.js lyrics.txt --pdf --header "My Band"
 
 The extractor works with any MuseScore score that has lyrics and chord symbols, but following these conventions produces the best output:
 
-### Syllable separation
+### Entering lyrics in MuseScore
 
-In MuseScore's lyrics input mode (`Cmd+L`), press `-` (hyphen) to advance to the next note within the same word, and `Space` to complete a word and move to the next note. This sets the syllabic types (begin/middle/end/single) correctly. Avoid typing hyphens directly in the lyric text.
+| Action | Shortcut | Effect |
+|--------|----------|--------|
+| Enter lyrics mode | `Cmd+L` | Start typing lyrics on the selected note |
+| Next note (same word) | `-` (hyphen) | Advance to the next note within the same word (syllable separator) |
+| Next note (new word) | `Space` | Complete the current word and move to the next note |
+| Melisma (extend syllable) | `_` (underscore) | Extend the syllable over the next note without new text |
+| Synalepha (vowel linking) | `.` between letters | `da.es` renders as `da es` (two syllables sung as one) |
+| Add chord symbol | `Cmd+K` | Add a chord symbol above the staff |
+| Add system text | `Cmd+Shift+T` | Add a section label (Intro, Estrofa, etc.) |
+
+### Line breaks and punctuation
+
+The extractor automatically detects line breaks based on the musical structure. You can also control line breaks explicitly:
+
+| In the score | After Fix button | Output | Line break? |
+|-------------|-----------------|--------|-------------|
+| `;` (semicolon) | `，` (fullwidth comma) | `,` | YES (new line, same stanza) |
+| `,,` (double comma) | `﹐` (small comma) | `,` | NO (same line) |
+| `..` (double period) | `﹒` (small full stop) | `.` | NO (same line) |
+| `...` (triple period) | `…` (ellipsis) | `…` | NO (same line) |
+| `.` `!` `?` (single) | unchanged | unchanged | YES (end of sentence) |
+
+**Automatic line breaks** are triggered by sentence-ending punctuation (`.` `!` `?`), long rests (>= 4 beats), and section barlines (end repeat `:|`, double barline, final barline).
+
+**Stanza breaks** (blank line between sections) are determined by system text labels when present. Without labels, heuristic breaks occur at sentence ends followed by rests and uppercase starts.
+
+**Principle:** When in doubt, the extractor does NOT break. Use `;` to force a break where needed.
 
 ### Synalepha (vowel linking)
 
-Use a dot between vowels to indicate synalepha: `da.es` renders as `da es` (two syllables sung as one). The **Fix** button in the plugin converts these to the undertie character (U+203F) for visual clarity.
+Use a dot between vowels to indicate synalepha: `da.es` renders as `da es` (two syllables sung as one). The **Fix** button converts these to the undertie character (U+203F) for visual clarity in the score.
 
 ### Verse numbering
 
-For songs with repeat bars and different lyrics per pass, add lyrics to verse 0 (first pass) and verse 1 (second pass) using MuseScore's verse number feature. The extractor automatically expands repeats with the correct verse for each pass.
+For songs with repeat bars and different lyrics per pass, add lyrics to verse 0 (first pass) and verse 1 (second pass) using MuseScore's verse number feature. The extractor automatically expands repeats with the correct verse for each pass. With 4 verses (0,1,2,3), a D.S. with playRepeats uses verses 2,3 on the second execution.
 
 ### Section labels
 
-Add System Text (`Cmd+Shift+T`, or Add > Text > System Text) to mark sections: "Intro", "Estrofa", "Estribillo", "Solista", "Subida", etc. These appear as section labels in the output and enable smart abbreviation of repeated sections.
+Add System Text (`Cmd+Shift+T`) to mark sections: "Intro", "Estrofa", "Estribillo", "Solista", "Subida", etc. Labels control the output structure:
+
+- **With labels:** stanza breaks occur only at label boundaries (no heuristic breaks). Add more labels for more divisions.
+- **Single label in `|: :|`:** appears once (both passes are the same section).
+- **Multiple labels in `|: :|`:** all labels re-emit on each pass (sub-sections).
+- **Repeated sections:** if a labeled section repeats identically (D.S./D.C.), only the label is shown (content abbreviated).
 
 ### Chord symbols
 
-Add chord symbols (`Cmd+K`, or Add > Text > Chord Symbol) to the staff that should be used for chord extraction. The extractor auto-detects the staff with the most chord symbols. Linked/tab staves are automatically excluded.
-
-### Phrase separators
-
-Use semicolons (`;`) in lyrics to indicate line breaks within the same stanza (no blank line). The **Fix** button converts these to fullwidth commas (U+FF0C) for visual distinction in the score. In the output, both semicolons and fullwidth commas are normalized to regular commas.
-
-```
-Score input:    "palabra;"        (user types semicolon)
-After Fix:      "palabra，"       (fullwidth comma in the score)
-Text output:    "palabra,"        (regular comma + new line)
-                "palabra."        (if last line of stanza)
-```
-
-### No-break punctuation
-
-Use double comma (`,,`) or double period (`..`) in lyrics to insert punctuation without triggering a line break. The **Fix** button converts these to small form variants for visual distinction.
-
-```
-,,  → ﹐ (U+FE50 small comma)   → output: ,  (no line break)
-..  → ﹒ (U+FE52 small full stop) → output: .  (no line break)
-... → … (U+2026 ellipsis)        → output: …  (no line break)
-```
-
-This allows phrases like `rosas.. y del sol` to stay on one line even when there is an instrumental interlude between the words.
+Add chord symbols (`Cmd+K`) to the staff used for chord extraction. The extractor auto-detects the staff with the most chord symbols. Linked/tab staves and hidden staves are automatically excluded.
 
 ### Navigation markers
 
-D.S., D.C., Coda, Fine, Segno markers are automatically detected and used to build the correct playback order.
+D.S., D.C., Coda, Fine, Segno markers are automatically detected and used to build the correct playback order. The `playRepeats` property on D.S./D.C. jumps controls whether repeat bars are honored in the replay. When all verses are consumed, the replay wraps to verse 0 (song repeats with the same lyrics).
 
 ## Plugin UI
 
