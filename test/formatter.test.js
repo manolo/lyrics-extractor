@@ -787,6 +787,26 @@ test("formatPerfLines renders system text before intro chords when at intro star
     assert.ok(sysIdx < introIdx, "system text at intro start should come before intro chords: " + output);
 });
 
+test("formatPerfLines suppresses sole label in repeat even when other labels exist outside", function() {
+    // "Estrofa" inside repeat (tick 100), "Estribillo" outside repeat (tick 500).
+    // On second pass, Estrofa is the only emitted label so far, so it's suppressed.
+    var lines = [
+        { text: "v0.", sylMap: [{tick:100,pos:0,chord:"Lam"}], startTick: 100, endTick: 200, sectionEnd: true },
+        // v1 (backwards, same repeat)
+        { text: "v1.", sylMap: [{tick:100,pos:0,chord:"Re"}], startTick: 100, endTick: 200, sectionEnd: true },
+        // Estribillo (forward, outside repeat)
+        { text: "estrib.", sylMap: [{tick:500,pos:0,chord:"Sol"}], startTick: 500, endTick: 600, sectionEnd: false }
+    ];
+    var systemTexts = [{tick:100, text:"Estrofa"}, {tick:500, text:"Estribillo"}];
+    var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    // Estrofa should appear once (suppressed on v1 since it's the sole label in that repeat)
+    assert.equal((output.match(/ESTROFA/g) || []).length, 1,
+        "ESTROFA should appear once (sole label in repeat): " + output);
+    // Estribillo should appear once
+    assert.equal((output.match(/ESTRIBILLO/g) || []).length, 1,
+        "ESTRIBILLO should appear once: " + output);
+});
+
 test("formatPerfLines does NOT repeat system text on repeat pass (same section)", function() {
     // Two pass scenario: lines go tick 0, 960, then back to 0 (repeat).
     // System text at tick 0 labels the repeat section. It should appear once,
