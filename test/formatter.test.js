@@ -994,6 +994,22 @@ test("formatPerfLines D.S. interlude includes intro chords when segment goes bef
         "interlude should have intro chords: " + between);
 });
 
+test("formatPerfLines replaces # in labels with pass number", function() {
+    // "Estrofa #" should render as "ESTROFA 1", "ESTROFA 2" etc.
+    var lines = [
+        { text: "verse one.", sylMap: [{tick:100,pos:0,chord:"Lam"}], startTick: 100, endTick: 200, sectionEnd: true },
+        { text: "chorus.", sylMap: [{tick:500,pos:0,chord:"Sol"}], startTick: 500, endTick: 600, sectionEnd: true },
+        // Backwards (second pass)
+        { text: "verse two.", sylMap: [{tick:100,pos:0,chord:"Re"}], startTick: 100, endTick: 200, sectionEnd: true },
+        { text: "chorus.", sylMap: [{tick:500,pos:0,chord:"Mi"}], startTick: 500, endTick: 600, sectionEnd: false }
+    ];
+    var systemTexts = [{tick:100, text:"Estrofa #"}, {tick:500, text:"Estribillo"}];
+    var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    assert.ok(output.indexOf("- ESTROFA 1 -") >= 0, "should have ESTROFA 1: " + output);
+    assert.ok(output.indexOf("- ESTROFA 2 -") >= 0, "should have ESTROFA 2: " + output);
+    assert.equal(output.indexOf("ESTROFA #"), -1, "# should be replaced: " + output);
+});
+
 test("formatPerfLines solista label repeats on backwards tick", function() {
     // "Solista" at tick 100 (after intro chord at tick 50, before first lyric at 200).
     // On repeat (backwards tick), Solista should appear again.

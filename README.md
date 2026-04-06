@@ -130,6 +130,7 @@ Add System Text (`Cmd+Shift+T`) to mark sections: "Intro", "Estrofa", "Estribill
 - **Single label in `|: :|`:** appears once (both passes are the same section).
 - **Multiple labels in `|: :|`:** all labels re-emit on each pass (sub-sections).
 - **Repeated sections:** if a labeled section repeats identically (D.S./D.C.), only the label is shown (content abbreviated).
+- **Numbered labels:** use `#` in the label text (e.g. `Estrofa #`) to get automatic numbering: `ESTROFA 1`, `ESTROFA 2`, etc. on each pass.
 
 ### Chord symbols
 
@@ -163,7 +164,7 @@ The MuseScore extension provides:
 node --test
 ```
 
-210 tests covering all modules: extractors, performance stream, word builder, line builder, formatter, navigation, PDF writer, orchestrator, and integration tests.
+211 tests covering all modules: extractors, performance stream, word builder, line builder, formatter, navigation, PDF writer, orchestrator, and integration tests.
 
 ## Project structure
 
