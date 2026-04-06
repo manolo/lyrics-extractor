@@ -121,3 +121,32 @@ test("buildPerformanceStream with simple repeat and two verses", function() {
     assert.equal(stream[0].text, "first");
     assert.equal(stream[1].text, "second");
 });
+
+test("buildPerformanceStream with verseOffset skips consumed verses", function() {
+    // 4 verses in a repeat. verseOffset=2 means verses 0-1 already consumed.
+    // Should use verses 2 and 3.
+    var syllables = [
+        { tick: 0, verse: 0, text: "v0", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 0, verse: 1, text: "v1", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 0, verse: 2, text: "v2", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 0, verse: 3, text: "v3", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+    ];
+    var chords = [];
+    var repStruct = {
+        repeats: [{ startTick: 0, endTick: 480 }],
+        voltas: [],
+        sections: [{ repeat: { startTick: 0, endTick: 480 }, volta1: null, volta2: null }]
+    };
+
+    // Without offset: uses verses 0 and 1 (2 passes)
+    var stream0 = ps.buildPerformanceStream(syllables, chords, repStruct, 0);
+    assert.equal(stream0.length, 2);
+    assert.equal(stream0[0].text, "v0");
+    assert.equal(stream0[1].text, "v1");
+
+    // With offset=2: uses verses 2 and 3
+    var stream2 = ps.buildPerformanceStream(syllables, chords, repStruct, 2);
+    assert.equal(stream2.length, 2, "should have 2 syllables with offset: " + stream2.map(function(s){return s.text;}).join(","));
+    assert.equal(stream2[0].text, "v2");
+    assert.equal(stream2[1].text, "v3");
+});
