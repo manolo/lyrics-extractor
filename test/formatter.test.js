@@ -742,9 +742,10 @@ test("formatPerfLines renders system text before intro chords when at intro star
     assert.ok(sysIdx < introIdx, "system text at intro start should come before intro chords: " + output);
 });
 
-test("formatPerfLines repeats system text on backwards tick jump (repeat pass)", function() {
+test("formatPerfLines does NOT repeat system text on repeat pass (same section)", function() {
     // Two pass scenario: lines go tick 0, 960, then back to 0 (repeat).
-    // System text at tick 0 should appear before both the first and repeated pass.
+    // System text at tick 0 labels the repeat section. It should appear once,
+    // not on both passes (both passes are the same musical section).
     var lines = [
         {
             text: "first pass line one.",
@@ -767,12 +768,32 @@ test("formatPerfLines repeats system text on backwards tick jump (repeat pass)",
     ];
     var systemTexts = [{ tick: 0, text: "Estribillo" }];
     var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
-    // When ticks go backwards (repeat pass), prevStartTick resets to -1,
-    // allowing the system text at tick 0 to match again.
     var firstIdx = output.indexOf("- ESTRIBILLO -");
     assert.ok(firstIdx >= 0, "should have first occurrence: " + output);
     var secondIdx = output.indexOf("- ESTRIBILLO -", firstIdx + 1);
-    assert.ok(secondIdx >= 0, "should have second occurrence on repeat pass: " + output);
+    assert.equal(secondIdx, -1, "should NOT repeat on second pass of same repeat: " + output);
+});
+
+test("formatPerfLines re-emits system text on D.S. segment boundary", function() {
+    // D.S. replay: segmentBoundary marks where a new segment begins.
+    // System text should re-appear after segment boundary.
+    var lines = [
+        { text: "v0.", sylMap: [{tick:100,pos:0,chord:"Lam"}], startTick: 100, endTick: 200, sectionEnd: true },
+        { text: "v1.", sylMap: [{tick:100,pos:0,chord:"Re"}], startTick: 100, endTick: 200, sectionEnd: true },
+        { text: "estrib.", sylMap: [{tick:500,pos:0,chord:"Sol"}], startTick: 500, endTick: 600, sectionEnd: true, segmentBoundary: true },
+        // D.S. segment: backwards tick
+        { text: "v2.", sylMap: [{tick:100,pos:0,chord:"Mi"}], startTick: 100, endTick: 200, sectionEnd: true },
+        { text: "v3.", sylMap: [{tick:100,pos:0,chord:"La"}], startTick: 100, endTick: 200, sectionEnd: false }
+    ];
+    var systemTexts = [{ tick: 100, text: "Estrofa" }];
+    var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var first = output.indexOf("- ESTROFA -");
+    assert.ok(first >= 0, "should have first: " + output);
+    var second = output.indexOf("- ESTROFA -", first + 1);
+    assert.ok(second >= 0, "should re-emit after segmentBoundary: " + output);
+    // v1 and v3 should NOT have their own ESTROFA
+    var third = output.indexOf("- ESTROFA -", second + 1);
+    assert.equal(third, -1, "should not emit for repeat pass: " + output);
 });
 
 test("formatPerfLines intro system text reappears on repeat pass", function() {
