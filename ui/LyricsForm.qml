@@ -25,7 +25,7 @@ MuseScore {
     description: "Lyrics tools for vocal scores: synalepha formatting, lyrics+chords export"
     version: "1.0"
     pluginType: "dialog"
-    width: 620
+    width: 800
     height: 840
 
     property bool isSpanish: Qt.locale().name.indexOf("es") === 0
