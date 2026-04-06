@@ -1067,6 +1067,31 @@ test("formatPerfLines splits intro chords at label boundaries", function() {
     assert.ok(betweenIntroMusica.indexOf("Mi") < 0, "INTRO should NOT have Mi: " + betweenIntroMusica);
 });
 
+test("formatPerfLines does not split intro when label has < 2 chords after it", function() {
+    // "Estrofa" at tick 490 is right before the first lyric (500).
+    // Only 1 chord after it (tick 495). Should NOT split: all chords stay under INTRO.
+    var lines = [
+        { text: "verse.", sylMap: [{tick:500,pos:0,chord:"Lam"}], startTick: 500, endTick: 600, sectionEnd: false }
+    ];
+    var chords = [{tick:10,chord:"Re"},{tick:50,chord:"Sol"},{tick:100,chord:"La"},{tick:495,chord:"Mi"},{tick:500,chord:"Lam"}];
+    var systemTexts = [{tick:10,text:"Intro"},{tick:490,text:"Estrofa"}];
+    var output = fmt.formatPerfLines(lines, ["Re","Sol","La","Mi"], null, "", chords, null, systemTexts);
+    // All intro chords under INTRO (no split)
+    var introIdx = output.indexOf("- INTRO -");
+    var estrofaIdx = output.indexOf("- ESTROFA -");
+    assert.ok(introIdx >= 0, "should have INTRO: " + output);
+    assert.ok(estrofaIdx >= 0, "should have ESTROFA: " + output);
+    // INTRO section should have all chords (Re, Sol, La, Mi)
+    var betweenIntroEstrofa = output.substring(introIdx, estrofaIdx);
+    assert.ok(betweenIntroEstrofa.indexOf("Sol") >= 0, "INTRO chords include Sol: " + betweenIntroEstrofa);
+    assert.ok(betweenIntroEstrofa.indexOf("La") >= 0, "INTRO chords include La: " + betweenIntroEstrofa);
+    // ESTROFA label should NOT have a chord line (just label before lyrics)
+    var afterEstrofa = output.substring(estrofaIdx);
+    var estrofaNextLine = afterEstrofa.split("\n")[1] || "";
+    assert.ok(estrofaNextLine.indexOf("Lam") >= 0 || estrofaNextLine.trim() === "",
+        "no extra chord block under ESTROFA: [" + estrofaNextLine + "]");
+});
+
 test("formatPerfLines pre-repeat intro does NOT re-emit when intro has internal splits", function() {
     // INTRO(0) + MÚSICA(100) split the intro. INTRO is pre-repeat, should not re-emit.
     var lines = [
