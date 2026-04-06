@@ -31,5 +31,9 @@ Rem             La               Mi7             Lam
 en esta noche callada de toda mi vida serás la mejor.
 
 
-Sol7  Do  Sol7  Do  Fa  Mi7  Lam  Mi7  Lam  Rem  Lam  Mi7  La  Mi7  La
-La7  Re  Rem  La  Mi7  Lam
+Mi7  Lam  Rem  Lam  Mi7  Lam  Mi
+Mi7  Lam  Rem  Lam  Mi7  Lam
+Sol7  Do  Sol7  Do
+Sol7  Do  Sol7
+Fa  Mi7  Lam  Mi7  Lam  Rem  Lam  Mi7  La  Mi7  La  La7  Re  Rem  La
+Mi7
