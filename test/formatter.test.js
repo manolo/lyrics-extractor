@@ -937,6 +937,63 @@ test("formatPerfLines sole intro label does not repeat on repeat pass", function
     assert.equal(second, -1, "sole label should NOT repeat on pass 2: " + output);
 });
 
+test("formatPerfLines intro label re-emits when multiple labels in repeat", function() {
+    // Intro(0) + Solista(100) + Estribillo(500): 3 labels.
+    // Intro is the introLabel (at introFirstChordTick). On backwards tick,
+    // it should re-emit because there are 2+ other emitted labels.
+    var lines = [
+        { text: "verse one.", sylMap: [{tick:200,pos:0,chord:"Lam"}], startTick: 200, endTick: 400, sectionEnd: true },
+        { text: "chorus.", sylMap: [{tick:500,pos:0,chord:"Sol"}], startTick: 500, endTick: 700, sectionEnd: true },
+        // Backwards (second pass)
+        { text: "verse two.", sylMap: [{tick:200,pos:0,chord:"Re"}], startTick: 200, endTick: 400, sectionEnd: true },
+        { text: "chorus again.", sylMap: [{tick:500,pos:0,chord:"Mi"}], startTick: 500, endTick: 700, sectionEnd: false }
+    ];
+    var chords = [{tick:0, chord:"Do"}];
+    var systemTexts = [{tick:0, text:"Intro"}, {tick:100, text:"Solista"}, {tick:500, text:"Estribillo"}];
+    var output = fmt.formatPerfLines(lines, ["Do"], null, "", chords, null, systemTexts);
+    // Intro should appear twice (multi-label repeat)
+    assert.equal((output.match(/- INTRO -/g) || []).length, 2,
+        "INTRO should appear twice with multiple labels: " + output);
+});
+
+test("formatPerfLines pre-intro label does NOT re-emit even with multiple labels", function() {
+    // MÚSICA labels the intro section before the repeat.
+    // Even with other labels (Estrofa, Estribillo), MÚSICA is an introLabel
+    // and only appears once.
+    var lines = [
+        { text: "verse.", sylMap: [{tick:500,pos:0,chord:"Lam"}], startTick: 500, endTick: 600, sectionEnd: true },
+        // Backwards (D.S.)
+        { text: "verse.", sylMap: [{tick:500,pos:0,chord:"Re"}], startTick: 500, endTick: 600, sectionEnd: false, segmentBoundary: false }
+    ];
+    // introLabel = MÚSICA (at introFirstChordTick = 10)
+    // Estrofa at 500 is the only label in the main loop
+    var chords = [{tick:10, chord:"Sol"}];
+    var systemTexts = [{tick:10, text:"Música"}, {tick:500, text:"Estrofa"}];
+    var output = fmt.formatPerfLines(lines, ["Sol"], null, "", chords, null, systemTexts);
+    // MÚSICA should appear only once (introLabel, not re-emitted)
+    assert.equal((output.match(/MÚSICA/g) || []).length, 1,
+        "MÚSICA (introLabel) should appear once: " + output);
+});
+
+test("formatPerfLines D.S. interlude includes intro chords when segment goes before first lyric", function() {
+    // D.S. replay with segmentBoundary: the interlude between stanzas should
+    // include intro chords when the D.S. goes back before the first lyric.
+    var lines = [
+        { text: "estribillo.", sylMap: [{tick:500,pos:0,chord:"Sol"}], startTick: 500, endTick: 700, sectionEnd: true, segmentBoundary: true },
+        // D.S. backwards to first lyric
+        { text: "verse again.", sylMap: [{tick:200,pos:0,chord:"Lam"}], startTick: 200, endTick: 400, sectionEnd: false }
+    ];
+    var chords = [{tick:10, chord:"Re"}, {tick:50, chord:"Sol"}, {tick:200, chord:"Lam"}, {tick:500, chord:"Sol"}];
+    var introChords = ["Re", "Sol"];
+    var output = fmt.formatPerfLines(lines, introChords, null, "", chords, null, []);
+    // The interlude between estribillo and D.S. verse should include intro chords
+    var estrIdx = output.indexOf("estribillo.");
+    var verseIdx = output.indexOf("verse again.");
+    var between = output.substring(estrIdx, verseIdx);
+    assert.ok(between.indexOf("Re") >= 0 || between.indexOf("Sol") >= 0,
+        "interlude should have intro chords: " + between);
+});
+
 test("formatPerfLines solista label repeats on backwards tick", function() {
     // "Solista" at tick 100 (after intro chord at tick 50, before first lyric at 200).
     // On repeat (backwards tick), Solista should appear again.
