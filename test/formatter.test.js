@@ -876,6 +876,49 @@ test("formatPerfLines re-emits system text on D.S. segment boundary", function()
     assert.equal(third, -1, "should not emit for repeat pass: " + output);
 });
 
+test("formatPerfLines suppresses all stanzas in abbreviated labeled section", function() {
+    // A labeled section with multiple stanzas. When the section repeats (D.S.),
+    // ALL stanzas should be suppressed (just the label shown), not individual incipits.
+    var lines = [
+        { text: "verse line one,", sylMap: [{tick:100,pos:0,chord:"Lam"}], startTick: 100, endTick: 200, sectionEnd: false },
+        { text: "verse line two.", sylMap: [{tick:300,pos:0,chord:"Re"}], startTick: 300, endTick: 400, sectionEnd: true },
+        { text: "chorus here.", sylMap: [{tick:500,pos:0,chord:"Sol"}], startTick: 500, endTick: 600, sectionEnd: true },
+        // D.S. replay (backwards tick, segmentBoundary)
+        { text: "verse line one,", sylMap: [{tick:100,pos:0,chord:"Lam"}], startTick: 100, endTick: 200, sectionEnd: false, segmentBoundary: false },
+        { text: "verse line two.", sylMap: [{tick:300,pos:0,chord:"Re"}], startTick: 300, endTick: 400, sectionEnd: true },
+        { text: "chorus here.", sylMap: [{tick:500,pos:0,chord:"Sol"}], startTick: 500, endTick: 600, sectionEnd: true }
+    ];
+    // Mark segmentBoundary on the line before the D.S. replay
+    lines[2].segmentBoundary = true;
+    var systemTexts = [{tick:100, text:"Estrofa"}, {tick:500, text:"Estribillo"}];
+    var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    // Second ESTROFA should show only the label (abbreviated section suppressed)
+    var estrofa1 = output.indexOf("- ESTROFA -");
+    var estrofa2 = output.indexOf("- ESTROFA -", estrofa1 + 1);
+    assert.ok(estrofa2 >= 0, "should have second ESTROFA label: " + output);
+    // "verse line one" should appear in first section but NOT after second ESTROFA
+    var afterSecondEstrofa = output.substring(estrofa2);
+    assert.ok(afterSecondEstrofa.indexOf("verse line one,") < 0 || afterSecondEstrofa.indexOf("verse line one...") >= 0,
+        "second ESTROFA should not show full verse text: " + afterSecondEstrofa);
+});
+
+test("abbreviateRepeatedStanzas abbreviates regardless of multi-verse source", function() {
+    // Even if the source ticks have multi-verse syllables, the stream text
+    // is already selected. Identical text should always be abbreviated.
+    var lines = [
+        { text: "same text here.", sylMap: [], startTick: 0, endTick: 480, sectionEnd: true },
+        { text: "different text.", sylMap: [], startTick: 960, endTick: 1440, sectionEnd: true },
+        { text: "same text here.", sylMap: [], startTick: 0, endTick: 480, sectionEnd: true }
+    ];
+    // Pass syllables with multi-verse at tick 0 (should NOT prevent abbreviation)
+    var syllables = [
+        { tick: 0, verse: 0 }, { tick: 0, verse: 1 }
+    ];
+    var result = fmt.abbreviateRepeatedStanzas(lines, syllables);
+    var lastLine = result[result.length - 1];
+    assert.ok(lastLine.abbreviated, "should abbreviate even with multi-verse source: " + lastLine.text);
+});
+
 test("formatPerfLines intro system text reappears on repeat pass", function() {
     // System text between intro chords and first lyric should appear after intro
     // AND again when ticks go backwards (second repeat pass)

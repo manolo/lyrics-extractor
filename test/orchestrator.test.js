@@ -422,6 +422,64 @@ test("phrase extension stops at coda marker between segment boundary and extende
     assert.ok(low.indexOf("end") >= 0, "should have 'end' from first pass: " + output);
 });
 
+test("D.S. replay wraps to verse 0 when all verses consumed", function() {
+    // Structure: |: Verse(v0,v1) :| [D.S.]
+    // First execution uses v0+v1. D.S. replay wraps to v0.
+    var data = {
+        title: "",
+        syllables: [
+            syl(0, 0, "Hello", "single", { durationQ: 2, restAfter: true, restDurationQ: 4, gapDurationQ: 4 }),
+            syl(1440, 0, "world.", "single", { durationQ: 2, restAfter: true, restDurationQ: 4, gapDurationQ: 4 }),
+            syl(0, 1, "Good", "single", { durationQ: 2, restAfter: true, restDurationQ: 4, gapDurationQ: 4 }),
+            syl(1440, 1, "night.", "single", { durationQ: 2, restAfter: true, restDurationQ: 4, gapDurationQ: 4 })
+        ],
+        chords: [{ tick: 0, chord: "Do" }],
+        repeats: [{ startTick: 0, endTick: 2880 }],
+        voltas: [],
+        markers: [{ tick: 0, label: "segno", type: "segno" }],
+        jumps: [{ tick: 2880, jumpTo: "segno", playUntil: "end", continueAt: "", playRepeats: false }],
+        lastTick: 3840
+    };
+
+    var output = orch.processExtraction(data);
+    var low = output.toLowerCase();
+    // First execution: v0 (Hello) + v1 (Good)
+    assert.ok(low.indexOf("hello") >= 0, "should have verse 0: " + output);
+    assert.ok(low.indexOf("good") >= 0, "should have verse 1: " + output);
+    // D.S. replay should produce lyrics (wraps to available verse)
+    // Count total occurrences: more than just the first pass
+    var helloCount = (low.match(/hello/g) || []).length;
+    var goodCount = (low.match(/good/g) || []).length;
+    assert.ok(helloCount + goodCount > 2, "D.S. replay should produce lyrics: hello=" + helloCount + " good=" + goodCount + " " + output);
+});
+
+test("heuristic stanza breaks disabled when system texts exist", function() {
+    // With system texts, only labels create stanza breaks (not punctuation + rest + uppercase).
+    var data = {
+        title: "",
+        syllables: [
+            syl(0, 0, "First", "single", { durationQ: 2 }),
+            syl(960, 0, "sentence.", "single", { durationQ: 2, restAfter: true, restDurationQ: 4, gapDurationQ: 4 }),
+            syl(3840, 0, "Second", "single", { durationQ: 2 }),
+            syl(4800, 0, "sentence.", "single", { durationQ: 2 })
+        ],
+        chords: [{ tick: 0, chord: "Do" }],
+        repeats: [],
+        voltas: [],
+        markers: [],
+        jumps: [],
+        systemTexts: [{ tick: 0, text: "Section" }]
+    };
+
+    var output = orch.processExtraction(data);
+    // Without system texts, "sentence." + rest + "Second" (uppercase) would create stanza break.
+    // With system texts, no heuristic break: all 4 syllables stay in one section.
+    var lines = output.split("\n").filter(function(l) { return l.trim().length > 0 && !l.match(/^[=-]/) && !l.match(/^Do/); });
+    // Should be 1-2 text lines (no blank line separating them)
+    var blankBetween = output.indexOf("sentence.\n\n");
+    assert.equal(blankBetween, -1, "no heuristic stanza break with system texts: " + output);
+});
+
 test("navigation fallback when no valid plan", function() {
     // Jumps with no matching markers should fallback to linear processing
     var data = {
