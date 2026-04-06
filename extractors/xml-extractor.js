@@ -225,12 +225,16 @@ function walkStaffMeasures(staffNode, division, onElement, onMeasure) {
                 }
 
                 if (elem.tag === "Chord" || elem.tag === "Rest") {
-                    var durType = childText(elem, "durationType") || "quarter";
-                    var dotsNode = findChild(elem, "dots");
-                    var dots = dotsNode ? parseInt(dotsNode.text) || 0 : 0;
-                    var dur = durationToTicks(durType, dots, division, actualMeasureTicks);
-                    if (tupletRatio) dur = Math.round(dur * tupletRatio);
-                    voiceTick += dur;
+                    // Grace notes (acciaccatura/appoggiatura) have zero musical duration
+                    var isGrace = findChild(elem, "acciaccatura") || findChild(elem, "appoggiatura");
+                    if (!isGrace) {
+                        var durType = childText(elem, "durationType") || "quarter";
+                        var dotsNode = findChild(elem, "dots");
+                        var dots = dotsNode ? parseInt(dotsNode.text) || 0 : 0;
+                        var dur = durationToTicks(durType, dots, division, actualMeasureTicks);
+                        if (tupletRatio) dur = Math.round(dur * tupletRatio);
+                        voiceTick += dur;
+                    }
                     if (voiceTick > maxTick) maxTick = voiceTick;
                 }
             }
