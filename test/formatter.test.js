@@ -575,6 +575,48 @@ test("formatPerfLines shows trailing coda chords on chord line (< 4 chords)", fu
     assert.equal(lines2.length, 2, "only chord line + text, no coda: " + output);
 });
 
+test("formatPerfLines no coda dump when no trailing chords (lastChordTick fallback)", function() {
+    // When there are no trailing chords after the last line, the coda code
+    // should use lastLine.endTick (not -1), avoiding a scan from tick 0.
+    var lines = [
+        { text: "first section.", sylMap: [{tick:0,pos:0,chord:"Sol"}], startTick: 0, endTick: 480, sectionEnd: true },
+        { text: "last line here.", sylMap: [{tick:1000,pos:0,chord:"Re7"}], startTick: 1000, endTick: 1500, sectionEnd: false }
+    ];
+    var chords = [
+        { tick: 0, chord: "Sol" },
+        { tick: 200, chord: "Re" },
+        { tick: 400, chord: "Sol7" },
+        { tick: 1000, chord: "Re7" },
+        { tick: 1400, chord: "Sol" }
+    ];
+    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    // Sol at 1400 is on the chord line (within last line). No chords after 1500.
+    // Should NOT dump all chords from tick 0 as coda.
+    var chordDump = output.indexOf("Sol  Re  Sol7");
+    assert.equal(chordDump, -1, "should not dump all chords as coda: " + output);
+});
+
+test("formatPerfLines no duplicate coda when trailing chords cover them", function() {
+    // Trailing chords on the last chord line should not also appear as separate coda.
+    var lines = [
+        { text: "final words.", sylMap: [{tick:0,pos:0,chord:"Mim"}], startTick: 0, endTick: 480, sectionEnd: false }
+    ];
+    var chords = [
+        { tick: 0, chord: "Mim" },
+        { tick: 960, chord: "Lam" },
+        { tick: 1200, chord: "Si7" },
+        { tick: 1440, chord: "Mim" }
+    ];
+    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    // Trailing: Lam, Si7, Mim (3 < 4) on chord line
+    var chordLine = output.split("\n")[0];
+    assert.ok(chordLine.indexOf("Lam") >= 0, "Lam on chord line: " + chordLine);
+    assert.ok(chordLine.indexOf("Si7") >= 0, "Si7 on chord line: " + chordLine);
+    // Count occurrences of "Lam" in full output: should be 1 (not 2)
+    var count = (output.match(/Lam/g) || []).length;
+    assert.equal(count, 1, "Lam should appear once, not duplicated as coda: " + output);
+});
+
 test("formatPerfLines no coda when no chords after last line", function() {
     var lines = [
         {
