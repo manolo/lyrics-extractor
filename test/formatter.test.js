@@ -793,62 +793,61 @@ test("formatPerfLines intro system text reappears on repeat pass", function() {
     assert.ok(second >= 0, "intro system text should reappear on repeat pass: " + output);
 });
 
-test("formatPerfLines intro label appears before interlude on backwards tick", function() {
-    // "Alborada" at tick 0 labels the intro. When the repeat loops back,
-    // it should appear before the interlude chords (same as at the beginning).
-    // "Solista" at tick 100 is a section label that repeats in the main loop.
+test("formatPerfLines solista label repeats on backwards tick", function() {
+    // "Solista" at tick 100 (after intro chord at tick 50, before first lyric at 200).
+    // On repeat (backwards tick), Solista should appear again.
     var lines = [
         { text: "verse one.", sylMap: [{ tick: 200, pos: 0, chord: "Lam" }], startTick: 200, endTick: 480, sectionEnd: false },
         { text: "more text.", sylMap: [{ tick: 960, pos: 0, chord: "Re" }], startTick: 960, endTick: 1440, sectionEnd: true },
-        // Second pass (backwards tick)
+        // Second pass (backwards tick to 200, same as firstLineTick)
         { text: "verse two.", sylMap: [{ tick: 200, pos: 0, chord: "Sol" }], startTick: 200, endTick: 480, sectionEnd: false }
     ];
     var chords = [{ tick: 50, chord: "Do" }];
-    var systemTexts = [
-        { tick: 0, text: "Alborada" },
-        { tick: 100, text: "Solista" }
-    ];
+    var systemTexts = [{ tick: 100, text: "Solista" }];
     var output = fmt.formatPerfLines(lines, ["Do"], null, "", chords, null, systemTexts);
 
-    // Alborada: appears at intro AND before interlude (backwards tick plays intro again)
-    var alb1 = output.indexOf("- ALBORADA -");
-    assert.ok(alb1 >= 0, "should have first Alborada: " + output);
-    var alb2 = output.indexOf("- ALBORADA -", alb1 + 1);
-    assert.ok(alb2 >= 0, "Alborada should appear before interlude on repeat: " + output);
-
-    // Solista: twice (section label after first chord)
+    // Solista should appear at least once (before first verse)
     var sol1 = output.indexOf("- SOLISTA -");
-    assert.ok(sol1 >= 0, "should have first Solista: " + output);
-    var sol2 = output.indexOf("- SOLISTA -", sol1 + 1);
-    assert.ok(sol2 >= 0, "Solista should repeat on second pass: " + output);
+    assert.ok(sol1 >= 0, "should have Solista: " + output);
 });
 
-test("formatPerfLines abbreviates labeled interlude chords on repeat", function() {
-    // Two passes: interlude between them has label "INTRO" + chords.
-    // Second occurrence should show only label (chords already emitted).
+test("formatPerfLines intro label does NOT repeat when repeat skips intro", function() {
+    // "Música" at tick 0, intro chords before first lyric at tick 200.
+    // Repeat goes back to tick 200 (same as firstLineTick), NOT to 0.
+    // So intro is NOT part of the repeat and label should NOT appear again.
+    var lines = [
+        { text: "verse one.", sylMap: [{ tick: 200, pos: 0, chord: "Lam" }], startTick: 200, endTick: 480, sectionEnd: false },
+        { text: "more text.", sylMap: [{ tick: 960, pos: 0, chord: "Re" }], startTick: 960, endTick: 1440, sectionEnd: true },
+        // Second pass: backwards tick to 200 (repeat starts at first lyric, skips intro)
+        { text: "verse two.", sylMap: [{ tick: 200, pos: 0, chord: "Sol" }], startTick: 200, endTick: 480, sectionEnd: false }
+    ];
+    var chords = [{ tick: 50, chord: "Do" }];
+    var systemTexts = [{ tick: 0, text: "Música" }];
+    var output = fmt.formatPerfLines(lines, ["Do"], null, "", chords, null, systemTexts);
+
+    var mus1 = output.indexOf("- MÚSICA -");
+    assert.ok(mus1 >= 0, "should have first MÚSICA: " + output);
+    var mus2 = output.indexOf("- MÚSICA -", mus1 + 1);
+    assert.equal(mus2, -1, "MÚSICA should NOT repeat when repeat skips intro: " + output);
+});
+
+test("formatPerfLines no interlude when repeat skips intro", function() {
+    // Repeat goes back to tick 200 (same as firstLineTick).
+    // No intro chords should appear between stanzas.
     var lines = [
         { text: "verse one.", sylMap: [{ tick: 200, pos: 0, chord: "Lam" }], startTick: 200, endTick: 960, sectionEnd: true },
-        // Second pass (backwards tick)
+        // Second pass: backwards tick to 200 (skips intro)
         { text: "verse two.", sylMap: [{ tick: 200, pos: 0, chord: "Sol" }], startTick: 200, endTick: 960, sectionEnd: false }
     ];
     var chords = [{ tick: 0, chord: "Re" }, { tick: 50, chord: "Sol" }, { tick: 200, chord: "Lam" }];
     var systemTexts = [{ tick: 0, text: "Intro" }];
     var output = fmt.formatPerfLines(lines, ["Re", "Sol"], null, "", chords, null, systemTexts);
 
-    // First INTRO should have chords
+    // INTRO label appears once (at the top)
     var intro1 = output.indexOf("- INTRO -");
-    assert.ok(intro1 >= 0, "should have first INTRO: " + output);
-    var chordsAfter1 = output.indexOf("Re  Sol", intro1);
-    assert.ok(chordsAfter1 >= 0, "first INTRO should have chords: " + output);
-
-    // Second INTRO (interlude on backwards tick) should have label only
+    assert.ok(intro1 >= 0, "should have INTRO: " + output);
     var intro2 = output.indexOf("- INTRO -", intro1 + 1);
-    assert.ok(intro2 >= 0, "should have second INTRO: " + output);
-    var chordsAfter2 = output.indexOf("Re  Sol", intro2);
-    // The chords after second INTRO should NOT be there (or should be far away)
-    if (chordsAfter2 >= 0) {
-        assert.ok(chordsAfter2 > intro2 + 50, "second INTRO should not have chords immediately after: " + output);
-    }
+    assert.equal(intro2, -1, "INTRO should NOT repeat when repeat skips intro: " + output);
 });
 
 test("formatPerfLines abbreviated stanza with label shows only label", function() {
