@@ -516,3 +516,56 @@ test("extractAll extracts Jump and Marker at measure level (not inside voice)", 
     assert.equal(data.jumps[0].playUntil, "coda");
     assert.equal(data.jumps[0].continueAt, "codab");
 });
+
+test("extractAll skips grace notes (acciaccatura) in tick calculation", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Chord><durationType>eighth</durationType><Lyrics><syllabic>single</syllabic><text>jos</text></Lyrics><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '<Chord><durationType>eighth</durationType><acciaccatura/><Note><pitch>62</pitch><tpc>16</tpc></Note></Chord>',
+        '<Chord><durationType>eighth</durationType><Lyrics><syllabic>single</syllabic><text>tie</text></Lyrics><Note><pitch>64</pitch><tpc>18</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff></Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml);
+    var syls = data.syllables;
+    assert.equal(syls.length, 2, "should have 2 syllables (grace note has no lyrics)");
+    assert.equal(syls[0].text, "jos");
+    assert.equal(syls[0].tick, 0);
+    assert.equal(syls[1].text, "tie");
+    // tie should be at tick 240 (1 eighth), not 480 (grace note skipped)
+    assert.equal(syls[1].tick, 240, "grace note duration should not shift tick: got " + syls[1].tick);
+});
+
+test("extractAll excludes hidden staves from selection", function() {
+    // Staff 1 is visible with 1 lyric, Staff 2 is hidden (show=0) with 2 lyrics.
+    // Should select Staff 1 (visible) even though Staff 2 has more lyrics.
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Part><Staff id="2"><StaffType group="pitched"/><isStaffVisible>0</isStaffVisible></Staff><show>0</show></Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Chord><durationType>quarter</durationType><Lyrics><syllabic>single</syllabic><text>visible</text></Lyrics><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '<Staff id="2">',
+        '<Measure><voice>',
+        '<Chord><durationType>quarter</durationType><Lyrics><syllabic>single</syllabic><text>hidden1</text></Lyrics><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '<Chord><durationType>quarter</durationType><Lyrics><syllabic>single</syllabic><text>hidden2</text></Lyrics><Note><pitch>62</pitch><tpc>16</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml);
+    assert.equal(data.syllables.length, 1, "should only have syllables from visible staff");
+    assert.equal(data.syllables[0].text, "visible");
+});

@@ -155,7 +155,7 @@ The MuseScore extension provides:
 node --test
 ```
 
-190 tests covering all modules: extractors, performance stream, word builder, line builder, formatter, navigation, PDF writer, orchestrator, and integration tests.
+194 tests covering all modules: extractors, performance stream, word builder, line builder, formatter, navigation, PDF writer, orchestrator, and integration tests.
 
 ## Project structure
 
