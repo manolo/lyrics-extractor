@@ -693,6 +693,39 @@ test("abbreviateRepeatedStanzas handles short first line by concatenating", func
     assert.ok(abbrev.text.length > 10, "should be longer than just 'Short...': " + abbrev.text);
 });
 
+test("formatPerfLines collapses consecutive blank lines to single blank", function() {
+    // Multiple sectionEnd + abbreviated stanzas should not produce 3+ newlines
+    var lines = [
+        { text: "first.", sylMap: [{tick:0,pos:0,chord:"Lam"}], startTick: 0, endTick: 480, sectionEnd: true },
+        { text: "second.", sylMap: [{tick:960,pos:0,chord:"Re"}], startTick: 960, endTick: 1440, sectionEnd: true },
+        { text: "third.", sylMap: [{tick:1920,pos:0,chord:"Sol"}], startTick: 1920, endTick: 2400, sectionEnd: true }
+    ];
+    var output = fmt.formatPerfLines(lines, [], null, "", []);
+    // No triple newlines should exist
+    assert.equal(output.indexOf("\n\n\n"), -1, "should not have 3+ consecutive newlines: " + JSON.stringify(output));
+    // But blank lines between sections should exist
+    assert.ok(output.indexOf("first.\n\n") >= 0, "should have blank line after first: " + output);
+});
+
+test("formatPerfLines interlude skips intro chords when they match", function() {
+    // When the interlude chords are identical to the intro chords,
+    // they should be skipped (already shown at the top).
+    var lines = [
+        { text: "verse.", sylMap: [{tick:200,pos:0,chord:"Lam"}], startTick: 200, endTick: 400, sectionEnd: true },
+        // Backwards (second pass)
+        { text: "verse.", sylMap: [{tick:200,pos:0,chord:"Re"}], startTick: 200, endTick: 400, sectionEnd: false }
+    ];
+    var chords = [{tick:0, chord:"Re"}, {tick:50, chord:"Sol"}, {tick:200, chord:"Lam"}];
+    var introChords = ["Re", "Sol"];
+    var output = fmt.formatPerfLines(lines, introChords, null, "", chords);
+    // Intro chords at top
+    assert.ok(output.indexOf("Re  Sol") >= 0, "should have intro chords at top: " + output);
+    // The interlude should NOT duplicate the intro chords
+    var firstIntro = output.indexOf("Re  Sol");
+    var secondIntro = output.indexOf("Re  Sol", firstIntro + 1);
+    assert.equal(secondIntro, -1, "should not duplicate intro chords as interlude: " + output);
+});
+
 test("abbreviated stanza has extra blank line before it", function() {
     var lines = [
         { text: "Verse text here.", sylMap: [{ tick: 0, pos: 0, chord: "Lam" }], startTick: 0, endTick: 480, sectionEnd: true },
