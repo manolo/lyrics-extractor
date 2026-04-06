@@ -1047,6 +1047,39 @@ test("formatPerfLines replaces # in labels with pass number", function() {
     assert.equal(output.indexOf("ESTROFA #"), -1, "# should be replaced: " + output);
 });
 
+test("formatPerfLines splits intro chords at label boundaries", function() {
+    // "Intro" labels chords 0-100, "Música" labels chords 100-500
+    var lines = [
+        { text: "verse.", sylMap: [{tick:500,pos:0,chord:"Lam"}], startTick: 500, endTick: 600, sectionEnd: false }
+    ];
+    var chords = [{tick:10,chord:"Re"},{tick:50,chord:"Sol"},{tick:100,chord:"La"},{tick:200,chord:"Mi"}];
+    var systemTexts = [{tick:10,text:"Intro"},{tick:100,text:"Música"},{tick:500,text:"Solista"}];
+    var output = fmt.formatPerfLines(lines, ["Re","Sol","La","Mi"], null, "", chords, null, systemTexts);
+    // INTRO should have Re Sol (before tick 100)
+    var introIdx = output.indexOf("- INTRO -");
+    var musicaIdx = output.indexOf("- MÚSICA -");
+    assert.ok(introIdx >= 0, "should have INTRO: " + output);
+    assert.ok(musicaIdx >= 0, "should have MÚSICA: " + output);
+    assert.ok(introIdx < musicaIdx, "INTRO before MÚSICA: " + output);
+    // Check chords are split
+    var betweenIntroMusica = output.substring(introIdx, musicaIdx);
+    assert.ok(betweenIntroMusica.indexOf("Re") >= 0, "INTRO should have Re: " + betweenIntroMusica);
+    assert.ok(betweenIntroMusica.indexOf("Mi") < 0, "INTRO should NOT have Mi: " + betweenIntroMusica);
+});
+
+test("formatPerfLines pre-repeat intro does NOT re-emit when intro has internal splits", function() {
+    // INTRO(0) + MÚSICA(100) split the intro. INTRO is pre-repeat, should not re-emit.
+    var lines = [
+        { text: "v0.", sylMap: [{tick:500,pos:0,chord:"Lam"}], startTick: 500, endTick: 600, sectionEnd: true },
+        { text: "v1.", sylMap: [{tick:500,pos:0,chord:"Re"}], startTick: 500, endTick: 600, sectionEnd: false }
+    ];
+    var chords = [{tick:10,chord:"Re"},{tick:50,chord:"Sol"},{tick:100,chord:"La"},{tick:200,chord:"Mi"},{tick:500,chord:"Lam"}];
+    var systemTexts = [{tick:10,text:"Intro"},{tick:100,text:"Música"},{tick:500,text:"Solista"}];
+    var output = fmt.formatPerfLines(lines, ["Re","Sol","La","Mi"], null, "", chords, null, systemTexts);
+    assert.equal((output.match(/- INTRO -/g) || []).length, 1,
+        "INTRO should appear once (pre-repeat with internal split): " + output);
+});
+
 test("formatPerfLines solista label repeats on backwards tick", function() {
     // "Solista" at tick 100 (after intro chord at tick 50, before first lyric at 200).
     // On repeat (backwards tick), Solista should appear again.
