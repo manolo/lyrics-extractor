@@ -774,6 +774,21 @@ test("formatPerfLines does NOT repeat system text on repeat pass (same section)"
     assert.equal(secondIdx, -1, "should NOT repeat on second pass of same repeat: " + output);
 });
 
+test("formatPerfLines re-emits labels on repeat pass when multiple labels exist", function() {
+    // With multiple labels (Estrofa + Estribillo), each pass shows all labels
+    var lines = [
+        { text: "v0 estrofa.", sylMap: [{tick:100,pos:0,chord:"Lam"}], startTick: 100, endTick: 200, sectionEnd: true },
+        { text: "v0 estribillo.", sylMap: [{tick:500,pos:0,chord:"Re"}], startTick: 500, endTick: 600, sectionEnd: true },
+        // v1 (backwards)
+        { text: "v1 estrofa.", sylMap: [{tick:100,pos:0,chord:"Sol"}], startTick: 100, endTick: 200, sectionEnd: true },
+        { text: "v1 estribillo.", sylMap: [{tick:500,pos:0,chord:"Mi"}], startTick: 500, endTick: 600, sectionEnd: false }
+    ];
+    var systemTexts = [{tick:100, text:"Estrofa"}, {tick:500, text:"Estribillo"}];
+    var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    assert.equal((output.match(/ESTROFA/g) || []).length, 2, "ESTROFA should appear twice (one per pass): " + output);
+    assert.equal((output.match(/ESTRIBILLO/g) || []).length, 2, "ESTRIBILLO should appear twice: " + output);
+});
+
 test("formatPerfLines re-emits system text on D.S. segment boundary", function() {
     // D.S. replay: segmentBoundary marks where a new segment begins.
     // System text should re-appear after segment boundary.
