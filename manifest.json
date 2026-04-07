@@ -4,6 +4,7 @@
     "title": "Lyrics and Chords Extractor",
     "description": "Lyrics tools for vocal scores: synalepha formatting, lyrics+chords export",
     "category": "lyrics",
+    "thumbnail": "logo.png",
     "version": "1.0",
     "apiversion": 1,
 
