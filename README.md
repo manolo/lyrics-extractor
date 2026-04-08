@@ -5,6 +5,7 @@ MuseScore 4 extension and Node.js CLI that extracts lyrics with aligned chords f
 ## What it does
 
 - Extracts lyrics and chord symbols from MuseScore 4 scores
+- Renders fretboard chord diagrams in PDF header (from FBox diagrams)
 - Aligns chords above the corresponding syllables
 - Handles repeats, voltas, D.S., D.C., Coda, Fine
 - Expands multi-verse sections (verse 0, verse 1, etc.)

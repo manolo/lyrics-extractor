@@ -266,6 +266,100 @@ function durationToTicks(durationType, dots, division, measureTicks) {
     return Math.round(ticks);
 }
 
+// Convert MuseScore TPC (Tonal Pitch Class) to Spanish solfeo note name
+function tpcToSpanishRoot(tpc) {
+    var map = {
+        13: "Fa", 14: "Do", 15: "Sol", 16: "Re", 17: "La", 18: "Mi", 19: "Si",
+        20: "Fa#", 21: "Do#", 22: "Sol#", 23: "Re#", 24: "La#",
+        6: "Sib", 7: "Fab", 8: "Dob", 9: "Solb", 10: "Reb", 11: "Lab", 12: "Mib"
+    };
+    return map[tpc] || "";
+}
+
+// Extract fretboard diagrams from FBox elements in first staff
+// Returns deduplicated array of {chordName, strings, fretOffset}
+function extractFretDiagrams(score) {
+    var diagrams = [];
+    var seen = {};
+    
+    var staffElements = findChildren(score, "Staff");
+    if (staffElements.length === 0) return diagrams;
+    
+    var fboxes = findChildren(staffElements[0], "FBox");
+    
+    for (var fb = 0; fb < fboxes.length; fb++) {
+        var fretDiagrams = findChildren(fboxes[fb], "FretDiagram");
+        
+        for (var fd = 0; fd < fretDiagrams.length; fd++) {
+            var fretDiagram = fretDiagrams[fd];
+            
+            var harmony = findChild(fretDiagram, "Harmony");
+            if (!harmony) continue;
+            
+            var harmonyInfo = findChild(harmony, "harmonyInfo");
+            if (!harmonyInfo) continue;
+            
+            var rootTpc = parseInt(childText(harmonyInfo, "root"));
+            var modifier = childText(harmonyInfo, "name") || "";
+            
+            if (!rootTpc) continue;
+            
+            var rootName = tpcToSpanishRoot(rootTpc);
+            if (!rootName) continue;
+            
+            var chordName = rootName + modifier;
+            
+            var fretDiagramNode = findChild(fretDiagram, "fretDiagram");
+            if (!fretDiagramNode) continue;
+            
+            var strings = [];
+            var stringElements = findChildren(fretDiagramNode, "string");
+            var fretOffset = parseInt(childText(fretDiagramNode, "fret")) || 0;
+            
+            for (var se = 0; se < stringElements.length; se++) {
+                var stringElem = stringElements[se];
+                var stringNum = parseInt(stringElem.attrs.no);
+                if (stringNum === undefined) continue;
+                
+                var marker = childText(stringElem, "marker");
+                var dotElem = findChild(stringElem, "dot");
+                
+                var stringData = { number: stringNum };
+                
+                if (marker === "cross" || marker === "circle") {
+                    stringData.marker = marker;
+                } else if (dotElem) {
+                    var fretNum = parseInt(dotElem.attrs.fret);
+                    if (fretNum) {
+                        stringData.dot = { fret: fretNum };
+                    }
+                }
+                
+                strings.push(stringData);
+            }
+            
+            // Deduplication fingerprint: chordName + string pattern
+            var fingerprint = chordName + "|";
+            for (var si = 0; si < strings.length; si++) {
+                var s = strings[si];
+                if (s.marker) fingerprint += s.number + ":" + s.marker + ",";
+                else if (s.dot) fingerprint += s.number + ":" + s.dot.fret + ",";
+            }
+            
+            if (seen[fingerprint]) continue;
+            seen[fingerprint] = true;
+            
+            diagrams.push({
+                chordName: chordName,
+                strings: strings,
+                fretOffset: fretOffset
+            });
+        }
+    }
+    
+    return diagrams;
+}
+
 // Extract all data from .mscx XML string
 // Returns the same intermediate data structure as musescore-extractor.js
 function extractAll(xmlString) {
@@ -377,6 +471,33 @@ function extractAll(xmlString) {
                             text: lyricText.trim(), syllabic: syllabicRaw,
                             durationQ: durationQ, restAfter: false, restDurationQ: 0, gapDurationQ: 0
                         });
+                    }
+                }
+                return;
+            }
+
+            // FretDiagram elements in measures (contain nested Harmony)
+            if (elem.tag === "FretDiagram") {
+                var nestedHarmony = findChild(elem, "Harmony");
+                if (nestedHarmony) {
+                    var hInfo = findChild(nestedHarmony, "harmonyInfo") || nestedHarmony;
+                    var rootNode = findChild(hInfo, "root");
+                    var rootTpc = rootNode ? parseInt(rootNode.text) : -99;
+                    var harmonyName = "";
+                    if (rootTpc !== -99) {
+                        var quality = childText(hInfo, "name");
+                        if (quality) {
+                            harmonyName = Constants.tpcToAngloName(rootTpc) + quality;
+                        } else {
+                            harmonyName = Constants.tpcToNoteName(rootTpc);
+                        }
+                    } else {
+                        harmonyName = childText(hInfo, "name") || childText(nestedHarmony, "name") || nestedHarmony.text || "";
+                    }
+                    if (harmonyName) {
+                        if (!harmonyCounts[staffId]) harmonyCounts[staffId] = 0;
+                        harmonyCounts[staffId]++;
+                        allChords.push({ staffId: staffId, tick: voiceTick, chord: harmonyName });
                     }
                 }
                 return;
@@ -590,6 +711,9 @@ function extractAll(xmlString) {
         if (maxSylTick > lastTick) lastTick = maxSylTick + division * 4;
     }
 
+    // Extract fretboard diagrams
+    var fretDiagrams = extractFretDiagrams(score);
+
     return {
         title: title,
         nstaves: nstaves,
@@ -601,7 +725,8 @@ function extractAll(xmlString) {
         markers: markers,
         jumps: jumps,
         systemTexts: systemTexts,
-        lastTick: lastTick
+        lastTick: lastTick,
+        fretDiagrams: fretDiagrams
     };
 }
 

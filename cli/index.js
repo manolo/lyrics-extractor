@@ -137,7 +137,12 @@ function main() {
     if (pdfMode) {
         var pdfExt = path.extname(inputPath);
         var pdfPath = inputPath.replace(pdfExt, "-letra.pdf");
-        var pdfContent = pdfWriter.generatePdf(output, { header: headerName, onePage: onePage });
+        var pdfOptions = {
+            header: headerName,
+            onePage: onePage,
+            fretDiagrams: data.fretDiagrams || []
+        };
+        var pdfContent = pdfWriter.generatePdf(output, pdfOptions);
         fs.writeFileSync(pdfPath, pdfContent, "binary");
         console.error("PDF written to: " + pdfPath);
         if (!outputPath) return;
