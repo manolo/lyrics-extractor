@@ -38,7 +38,8 @@ test("formatPerfLines renders title and intro chords", function() {
         sectionEnd: false
     }];
 
-    var output = fmt.formatPerfLines(lines, ["Re", "Sol"], null, "My Song");
+    var result = fmt.formatPerfLines(lines, ["Re", "Sol"], null, "My Song");
+    var output = result.text;
     assert.ok(output.indexOf("MY SONG") >= 0);
     assert.ok(output.indexOf("Re  Sol") >= 0);
     assert.ok(output.indexOf("Lam") >= 0);
@@ -57,7 +58,8 @@ test("formatPerfLines does not suppress homeChord when late in line", function()
         startTick: 0, endTick: 480,
         sectionEnd: false
     }];
-    var output = fmt.formatPerfLines(lines, [], "Lam", "", null);
+    var result = fmt.formatPerfLines(lines, [], "Lam", "", null);
+    var output = result.text;
     // Mi7 is different from lastChord (null initially... wait, homeChord="Lam", lastChord starts null)
     // Actually let me trace: lastChord=null from introChords (empty),
     // Mi7 at pos 0: placements=0, pos<=2, homeChord="Lam", Mi7!="Lam" -> no suppress, placed
@@ -78,7 +80,8 @@ test("formatPerfLines suppresses homeChord at line start", function() {
         sectionEnd: false
     }];
     // lastChord = "Mi7" (from intro), homeChord = "Lam"
-    var output = fmt.formatPerfLines(lines, ["Mi7"], "Lam", "", null);
+    var result = fmt.formatPerfLines(lines, ["Mi7"], "Lam", "", null);
+    var output = result.text;
     // Lam at pos 0 should be suppressed (return to homeChord at line start)
     // Re at pos 6 should show
     var chordLines = output.split("\n").filter(function(l) { return l.indexOf("Re") >= 0; });
@@ -95,7 +98,8 @@ test("formatPerfLines adds blank line after sectionEnd", function() {
         { text: "line2", sylMap: [], startTick: 960, endTick: 1440, sectionEnd: false }
     ];
 
-    var output = fmt.formatPerfLines(lines, [], null, "");
+    var result = fmt.formatPerfLines(lines, [], null, "");
+    var output = result.text;
     // line1 has no chords: empty chord line + text + sectionEnd blank + line2 empty chord line + text
     assert.ok(output.indexOf("line1\n\nline2") >= 0, "should have section break: " + JSON.stringify(output));
 });
@@ -109,7 +113,8 @@ test("formatPerfLines keeps blank line between stanzas when no chord changes", f
         { text: "second verse ends here.", sylMap: [{ tick: 1440, pos: 0, chord: "Mi7" }], startTick: 1440, endTick: 1920, sectionEnd: true }
     ];
 
-    var output = fmt.formatPerfLines(lines, [], null, "", []);
+    var result = fmt.formatPerfLines(lines, [], null, "", []);
+    var output = result.text;
     // Blank line must separate the two stanzas
     assert.ok(output.indexOf("first verse line two.\n\n") >= 0,
         "should have blank line after sectionEnd: " + JSON.stringify(output));
@@ -459,7 +464,8 @@ test("formatPerfLines appends trailing chords (<4) to chord line", function() {
         { tick: 1200, chord: "Sol" },
         { tick: 1920, chord: "Lam" }
     ];
-    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var output = result.text;
     // Trailing chords (<4) should appear on the same chord line as the verse
     assert.ok(output.indexOf("Re") >= 0 && output.indexOf("Sol") >= 0, "trailing chords should appear: " + output);
     // They should be on the chord line (before the text line)
@@ -491,7 +497,8 @@ test("formatPerfLines renders 4+ trailing chords as separate melodic line", func
         { tick: 2400, chord: "La" },
         { tick: 3840, chord: "Do" }
     ];
-    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var output = result.text;
     // 4 trailing chords should appear as separate melodic line, not on chord line
     assert.ok(output.indexOf("Fa#7  Sim  Mi7  La") >= 0, "melodic line should appear: " + output);
     // The melodic line should be after the text, not above it
@@ -519,7 +526,8 @@ test("formatPerfLines no interlude when no chords in gap", function() {
         { tick: 0, chord: "Lam" },
         { tick: 960, chord: "Lam" }
     ];
-    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var output = result.text;
     // No interlude, just stanza break
     assert.ok(output.indexOf("stanza one\n\n") >= 0 || output.indexOf("stanza one\nLam\n") >= 0);
     // Count blank lines: should only be the sectionEnd one
@@ -541,7 +549,8 @@ test("formatPerfLines shows interlude chords on backwards tick (repeat pass)", f
         { tick: 480, chord: "Lam" },
         { tick: 960, chord: "Sol" }
     ];
-    var output = fmt.formatPerfLines(lines, [], null, "", chords, null, null);
+    var result = fmt.formatPerfLines(lines, [], null, "", chords, null, null);
+    var output = result.text;
     // Interlude between pass 1 end and pass 2 start should show chords from tick 0 to 480
     assert.ok(output.indexOf("Re") >= 0, "should have interlude chord Re: " + output);
     // Re and Sol should appear as interlude between the two passes
@@ -565,7 +574,8 @@ test("formatPerfLines shows trailing coda chords on chord line (< 4 chords)", fu
         { tick: 960, chord: "Re" },
         { tick: 1440, chord: "Sol" }
     ];
-    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var output = result.text;
     // Trailing chords (< 4) appear on the chord line, not as separate coda
     var chordLine = output.split("\n")[0];
     assert.ok(chordLine.indexOf("Re") >= 0, "Re on chord line: " + chordLine);
@@ -589,7 +599,8 @@ test("formatPerfLines no coda dump when no trailing chords (lastChordTick fallba
         { tick: 1000, chord: "Re7" },
         { tick: 1400, chord: "Sol" }
     ];
-    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var output = result.text;
     // Sol at 1400 is on the chord line (within last line). No chords after 1500.
     // Should NOT dump all chords from tick 0 as coda.
     var chordDump = output.indexOf("Sol  Re  Sol7");
@@ -607,7 +618,8 @@ test("formatPerfLines no duplicate coda when trailing chords cover them", functi
         { tick: 1200, chord: "Si7" },
         { tick: 1440, chord: "Mim" }
     ];
-    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var output = result.text;
     // Trailing: Lam, Si7, Mim (3 < 4) on chord line
     var chordLine = output.split("\n")[0];
     assert.ok(chordLine.indexOf("Lam") >= 0, "Lam on chord line: " + chordLine);
@@ -627,7 +639,8 @@ test("formatPerfLines no coda when no chords after last line", function() {
         }
     ];
     var chords = [{ tick: 0, chord: "Lam" }];
-    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var output = result.text;
     // Should just be the text line, no extra chord line
     assert.equal(output, "Lam\nthe end\n");
 });
@@ -700,7 +713,8 @@ test("formatPerfLines collapses consecutive blank lines to single blank", functi
         { text: "second.", sylMap: [{tick:960,pos:0,chord:"Re"}], startTick: 960, endTick: 1440, sectionEnd: true },
         { text: "third.", sylMap: [{tick:1920,pos:0,chord:"Sol"}], startTick: 1920, endTick: 2400, sectionEnd: true }
     ];
-    var output = fmt.formatPerfLines(lines, [], null, "", []);
+    var result = fmt.formatPerfLines(lines, [], null, "", []);
+    var output = result.text;
     // No triple newlines should exist
     assert.equal(output.indexOf("\n\n\n"), -1, "should not have 3+ consecutive newlines: " + JSON.stringify(output));
     // But blank lines between sections should exist
@@ -717,7 +731,8 @@ test("formatPerfLines interlude skips intro chords when they match", function() 
     ];
     var chords = [{tick:0, chord:"Re"}, {tick:50, chord:"Sol"}, {tick:200, chord:"Lam"}];
     var introChords = ["Re", "Sol"];
-    var output = fmt.formatPerfLines(lines, introChords, null, "", chords);
+    var result = fmt.formatPerfLines(lines, introChords, null, "", chords);
+    var output = result.text;
     // Intro chords at top
     assert.ok(output.indexOf("Re  Sol") >= 0, "should have intro chords at top: " + output);
     // The interlude should NOT duplicate the intro chords
@@ -729,14 +744,15 @@ test("formatPerfLines interlude skips intro chords when they match", function() 
 test("abbreviated stanza has extra blank line before it", function() {
     var lines = [
         { text: "Verse text here.", sylMap: [{ tick: 0, pos: 0, chord: "Lam" }], startTick: 0, endTick: 480, sectionEnd: true },
-        { text: "Estribillo full text here.", sylMap: [{ tick: 480, pos: 0, chord: "Re" }], startTick: 480, endTick: 960, sectionEnd: true },
+        { text: "Estribillo text here with enough words.", sylMap: [{ tick: 480, pos: 0, chord: "Re" }], startTick: 480, endTick: 960, sectionEnd: true },
         { text: "Another verse.", sylMap: [{ tick: 960, pos: 0, chord: "Sol" }], startTick: 960, endTick: 1440, sectionEnd: true },
         // Duplicate estribillo
-        { text: "Estribillo full text here.", sylMap: [{ tick: 1440, pos: 0, chord: "Re" }], startTick: 1440, endTick: 1920, sectionEnd: true }
+        { text: "Estribillo text here with enough words.", sylMap: [{ tick: 1440, pos: 0, chord: "Re" }], startTick: 1440, endTick: 1920, sectionEnd: true }
     ];
-    var output = fmt.formatPerfLines(lines, [], null, "", []);
+    var result = fmt.formatPerfLines(lines, [], null, "", []);
+    var output = result.text;
     // The abbreviated line should have a blank line before it (collapsed from multiple newlines)
-    var abbrIdx = output.indexOf("Estribillo full text here...");
+    var abbrIdx = output.indexOf("Estribillo text here with enough words...");
     assert.ok(abbrIdx >= 0, "should have abbreviated stanza: " + output);
     // There should be a blank line (at least \n\n) before the abbreviated text
     var before = output.substring(Math.max(0, abbrIdx - 5), abbrIdx);
@@ -752,7 +768,8 @@ test("formatPerfLines abbreviates repeated stanzas in output", function() {
         { text: "Estribillo text that will repeat later.", sylMap: [{ tick: 1440, pos: 0, chord: "Re" }], startTick: 1440, endTick: 1920, sectionEnd: true }
     ];
 
-    var output = fmt.formatPerfLines(lines, [], null, "", []);
+    var result = fmt.formatPerfLines(lines, [], null, "", []);
+    var output = result.text;
     // The second estribillo should be abbreviated
     assert.ok(output.indexOf("Estribillo text that will repeat later.") >= 0, "first estribillo should be full");
     assert.ok(output.indexOf("Estribillo text that will repeat later...") >= 0, "second estribillo should be abbreviated: " + output);
@@ -769,7 +786,8 @@ test("formatPerfLines renders title with ==== decoration", function() {
         startTick: 0, endTick: 480,
         sectionEnd: false
     }];
-    var output = fmt.formatPerfLines(lines, [], null, "Test Song");
+    var result = fmt.formatPerfLines(lines, [], null, "Test Song");
+    var output = result.text;
     assert.ok(output.indexOf("==== TEST SONG ====") >= 0, "title should be decorated with ====: " + output);
 });
 
@@ -781,7 +799,8 @@ test("formatPerfLines renders system text as dash-decorated label", function() {
         sectionEnd: false
     }];
     var systemTexts = [{ tick: 480, text: "Estribillo" }];
-    var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var result = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var output = result.text;
     assert.ok(output.indexOf("- ESTRIBILLO -") >= 0, "system text should be decorated with dashes: " + output);
 });
 
@@ -796,7 +815,8 @@ test("formatPerfLines renders system text after intro chords when between intro 
     }];
     var chords = [{ tick: 0, chord: "Re" }, { tick: 480, chord: "Sol" }];
     var systemTexts = [{ tick: 500, text: "Solista" }];
-    var output = fmt.formatPerfLines(lines, ["Re", "Sol"], null, "", chords, null, systemTexts);
+    var result = fmt.formatPerfLines(lines, ["Re", "Sol"], null, "", chords, null, systemTexts);
+    var output = result.text;
     var introIdx = output.indexOf("Re  Sol");
     var sysIdx = output.indexOf("- SOLISTA -");
     var textIdx = output.indexOf("hello world");
@@ -816,7 +836,8 @@ test("formatPerfLines renders system text before intro chords when at intro star
     }];
     var chords = [{ tick: 0, chord: "Re" }, { tick: 480, chord: "Sol" }];
     var systemTexts = [{ tick: 0, text: "Alborada" }];
-    var output = fmt.formatPerfLines(lines, ["Re", "Sol"], null, "", chords, null, systemTexts);
+    var result = fmt.formatPerfLines(lines, ["Re", "Sol"], null, "", chords, null, systemTexts);
+    var output = result.text;
     var sysIdx = output.indexOf("- ALBORADA -");
     var introIdx = output.indexOf("Re  Sol");
     assert.ok(sysIdx >= 0, "should have system text: " + output);
@@ -835,7 +856,8 @@ test("formatPerfLines suppresses sole label in repeat even when other labels exi
         { text: "estrib.", sylMap: [{tick:500,pos:0,chord:"Sol"}], startTick: 500, endTick: 600, sectionEnd: false }
     ];
     var systemTexts = [{tick:100, text:"Estrofa"}, {tick:500, text:"Estribillo"}];
-    var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var result = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var output = result.text;
     // Estrofa should appear once (suppressed on v1 since it's the sole label in that repeat)
     assert.equal((output.match(/ESTROFA/g) || []).length, 1,
         "ESTROFA should appear once (sole label in repeat): " + output);
@@ -869,7 +891,8 @@ test("formatPerfLines does NOT repeat system text on repeat pass (same section)"
         }
     ];
     var systemTexts = [{ tick: 0, text: "Estribillo" }];
-    var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var result = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var output = result.text;
     var firstIdx = output.indexOf("- ESTRIBILLO -");
     assert.ok(firstIdx >= 0, "should have first occurrence: " + output);
     var secondIdx = output.indexOf("- ESTRIBILLO -", firstIdx + 1);
@@ -886,7 +909,8 @@ test("formatPerfLines re-emits labels on repeat pass when multiple labels exist"
         { text: "v1 estribillo.", sylMap: [{tick:500,pos:0,chord:"Mi"}], startTick: 500, endTick: 600, sectionEnd: false }
     ];
     var systemTexts = [{tick:100, text:"Estrofa"}, {tick:500, text:"Estribillo"}];
-    var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var result = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var output = result.text;
     assert.equal((output.match(/ESTROFA/g) || []).length, 2, "ESTROFA should appear twice (one per pass): " + output);
     assert.equal((output.match(/ESTRIBILLO/g) || []).length, 2, "ESTRIBILLO should appear twice: " + output);
 });
@@ -903,7 +927,8 @@ test("formatPerfLines re-emits system text on D.S. segment boundary", function()
         { text: "v3.", sylMap: [{tick:100,pos:0,chord:"La"}], startTick: 100, endTick: 200, sectionEnd: false }
     ];
     var systemTexts = [{ tick: 100, text: "Estrofa" }];
-    var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var result = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var output = result.text;
     var first = output.indexOf("- ESTROFA -");
     assert.ok(first >= 0, "should have first: " + output);
     var second = output.indexOf("- ESTROFA -", first + 1);
@@ -928,7 +953,8 @@ test("formatPerfLines suppresses all stanzas in abbreviated labeled section", fu
     // Mark segmentBoundary on the line before the D.S. replay
     lines[2].segmentBoundary = true;
     var systemTexts = [{tick:100, text:"Estrofa"}, {tick:500, text:"Estribillo"}];
-    var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var result = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var output = result.text;
     // Second ESTROFA should show only the label (abbreviated section suppressed)
     var estrofa1 = output.indexOf("- ESTROFA -");
     var estrofa2 = output.indexOf("- ESTROFA -", estrofa1 + 1);
@@ -967,7 +993,8 @@ test("formatPerfLines sole intro label does not repeat on repeat pass", function
     ];
     var chords = [{ tick: 0, chord: "Do" }];
     var systemTexts = [{ tick: 100, text: "Solista" }];
-    var output = fmt.formatPerfLines(lines, [], null, "", chords, null, systemTexts);
+    var result = fmt.formatPerfLines(lines, [], null, "", chords, null, systemTexts);
+    var output = result.text;
     var first = output.indexOf("- SOLISTA -");
     assert.ok(first >= 0, "should have first occurrence: " + output);
     var second = output.indexOf("- SOLISTA -", first + 1);
@@ -987,7 +1014,8 @@ test("formatPerfLines intro label re-emits when multiple labels in repeat", func
     ];
     var chords = [{tick:0, chord:"Do"}];
     var systemTexts = [{tick:0, text:"Intro"}, {tick:100, text:"Solista"}, {tick:500, text:"Estribillo"}];
-    var output = fmt.formatPerfLines(lines, ["Do"], null, "", chords, null, systemTexts);
+    var result = fmt.formatPerfLines(lines, ["Do"], null, "", chords, null, systemTexts);
+    var output = result.text;
     // Intro should appear twice (multi-label repeat)
     assert.equal((output.match(/- INTRO -/g) || []).length, 2,
         "INTRO should appear twice with multiple labels: " + output);
@@ -1006,7 +1034,8 @@ test("formatPerfLines pre-intro label does NOT re-emit even with multiple labels
     // Estrofa at 500 is the only label in the main loop
     var chords = [{tick:10, chord:"Sol"}];
     var systemTexts = [{tick:10, text:"Música"}, {tick:500, text:"Estrofa"}];
-    var output = fmt.formatPerfLines(lines, ["Sol"], null, "", chords, null, systemTexts);
+    var result = fmt.formatPerfLines(lines, ["Sol"], null, "", chords, null, systemTexts);
+    var output = result.text;
     // MÚSICA should appear only once (introLabel, not re-emitted)
     assert.equal((output.match(/MÚSICA/g) || []).length, 1,
         "MÚSICA (introLabel) should appear once: " + output);
@@ -1022,7 +1051,8 @@ test("formatPerfLines D.S. interlude includes intro chords when segment goes bef
     ];
     var chords = [{tick:10, chord:"Re"}, {tick:50, chord:"Sol"}, {tick:200, chord:"Lam"}, {tick:500, chord:"Sol"}];
     var introChords = ["Re", "Sol"];
-    var output = fmt.formatPerfLines(lines, introChords, null, "", chords, null, []);
+    var result = fmt.formatPerfLines(lines, introChords, null, "", chords, null, []);
+    var output = result.text;
     // The interlude between estribillo and D.S. verse should include intro chords
     var estrIdx = output.indexOf("estribillo.");
     var verseIdx = output.indexOf("verse again.");
@@ -1041,7 +1071,8 @@ test("formatPerfLines replaces # in labels with pass number", function() {
         { text: "chorus.", sylMap: [{tick:500,pos:0,chord:"Mi"}], startTick: 500, endTick: 600, sectionEnd: false }
     ];
     var systemTexts = [{tick:100, text:"Estrofa #"}, {tick:500, text:"Estribillo"}];
-    var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var result = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var output = result.text;
     assert.ok(output.indexOf("- ESTROFA 1 -") >= 0, "should have ESTROFA 1: " + output);
     assert.ok(output.indexOf("- ESTROFA 2 -") >= 0, "should have ESTROFA 2: " + output);
     assert.equal(output.indexOf("ESTROFA #"), -1, "# should be replaced: " + output);
@@ -1054,7 +1085,8 @@ test("formatPerfLines splits intro chords at label boundaries", function() {
     ];
     var chords = [{tick:10,chord:"Re"},{tick:50,chord:"Sol"},{tick:100,chord:"La"},{tick:200,chord:"Mi"}];
     var systemTexts = [{tick:10,text:"Intro"},{tick:100,text:"Música"},{tick:500,text:"Solista"}];
-    var output = fmt.formatPerfLines(lines, ["Re","Sol","La","Mi"], null, "", chords, null, systemTexts);
+    var result = fmt.formatPerfLines(lines, ["Re","Sol","La","Mi"], null, "", chords, null, systemTexts);
+    var output = result.text;
     // INTRO should have Re Sol (before tick 100)
     var introIdx = output.indexOf("- INTRO -");
     var musicaIdx = output.indexOf("- MÚSICA -");
@@ -1075,7 +1107,8 @@ test("formatPerfLines does not split intro when label has < 2 chords after it", 
     ];
     var chords = [{tick:10,chord:"Re"},{tick:50,chord:"Sol"},{tick:100,chord:"La"},{tick:495,chord:"Mi"},{tick:500,chord:"Lam"}];
     var systemTexts = [{tick:10,text:"Intro"},{tick:490,text:"Estrofa"}];
-    var output = fmt.formatPerfLines(lines, ["Re","Sol","La","Mi"], null, "", chords, null, systemTexts);
+    var result = fmt.formatPerfLines(lines, ["Re","Sol","La","Mi"], null, "", chords, null, systemTexts);
+    var output = result.text;
     // All intro chords under INTRO (no split)
     var introIdx = output.indexOf("- INTRO -");
     var estrofaIdx = output.indexOf("- ESTROFA -");
@@ -1100,7 +1133,8 @@ test("formatPerfLines pre-repeat intro does NOT re-emit when intro has internal 
     ];
     var chords = [{tick:10,chord:"Re"},{tick:50,chord:"Sol"},{tick:100,chord:"La"},{tick:200,chord:"Mi"},{tick:500,chord:"Lam"}];
     var systemTexts = [{tick:10,text:"Intro"},{tick:100,text:"Música"},{tick:500,text:"Solista"}];
-    var output = fmt.formatPerfLines(lines, ["Re","Sol","La","Mi"], null, "", chords, null, systemTexts);
+    var result = fmt.formatPerfLines(lines, ["Re","Sol","La","Mi"], null, "", chords, null, systemTexts);
+    var output = result.text;
     assert.equal((output.match(/- INTRO -/g) || []).length, 1,
         "INTRO should appear once (pre-repeat with internal split): " + output);
 });
@@ -1116,7 +1150,8 @@ test("formatPerfLines solista label repeats on backwards tick", function() {
     ];
     var chords = [{ tick: 50, chord: "Do" }];
     var systemTexts = [{ tick: 100, text: "Solista" }];
-    var output = fmt.formatPerfLines(lines, ["Do"], null, "", chords, null, systemTexts);
+    var result = fmt.formatPerfLines(lines, ["Do"], null, "", chords, null, systemTexts);
+    var output = result.text;
 
     // Solista should appear at least once (before first verse)
     var sol1 = output.indexOf("- SOLISTA -");
@@ -1135,7 +1170,8 @@ test("formatPerfLines intro label does NOT repeat when repeat skips intro", func
     ];
     var chords = [{ tick: 50, chord: "Do" }];
     var systemTexts = [{ tick: 0, text: "Música" }];
-    var output = fmt.formatPerfLines(lines, ["Do"], null, "", chords, null, systemTexts);
+    var result = fmt.formatPerfLines(lines, ["Do"], null, "", chords, null, systemTexts);
+    var output = result.text;
 
     var mus1 = output.indexOf("- MÚSICA -");
     assert.ok(mus1 >= 0, "should have first MÚSICA: " + output);
@@ -1153,7 +1189,8 @@ test("formatPerfLines no interlude when repeat skips intro", function() {
     ];
     var chords = [{ tick: 0, chord: "Re" }, { tick: 50, chord: "Sol" }, { tick: 200, chord: "Lam" }];
     var systemTexts = [{ tick: 0, text: "Intro" }];
-    var output = fmt.formatPerfLines(lines, ["Re", "Sol"], null, "", chords, null, systemTexts);
+    var result = fmt.formatPerfLines(lines, ["Re", "Sol"], null, "", chords, null, systemTexts);
+    var output = result.text;
 
     // INTRO label appears once (at the top)
     var intro1 = output.indexOf("- INTRO -");
@@ -1172,7 +1209,8 @@ test("formatPerfLines abbreviated stanza with label shows only label", function(
         { text: "Estribillo text here with enough words.", sylMap: [{ tick: 0, pos: 0, chord: "Lam" }], startTick: 0, endTick: 480, sectionEnd: true }
     ];
     var systemTexts = [{ tick: 0, text: "Estribillo" }, { tick: 960, text: "Verso" }];
-    var output = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var result = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var output = result.text;
 
     // First estribillo: full text
     assert.ok(output.indexOf("Estribillo text here") >= 0, "first estribillo should be full: " + output);
@@ -1215,7 +1253,8 @@ test("formatPerfLines positions gap chord before next word (> 1 beat gap)", func
         { tick: 0, chord: "Sol7" },
         { tick: 720, chord: "Fa" }  // Fa plays at tick 720, before "y" at 960
     ];
-    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var output = result.text;
     // Fa should appear before "y" in the chord line, not on top of it
     var chordLine = output.split("\n")[0];
     var faIdx = chordLine.indexOf("Fa");
@@ -1324,7 +1363,8 @@ test("formatPerfLines shifts chord to space before word when gap > 960 ticks", f
         { tick: 0, chord: "Lam" },
         { tick: 960, chord: "Re" }
     ];
-    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var output = result.text;
     // "Re" chord should appear, positioned at the space before "segunda"
     assert.ok(output.indexOf("Re") >= 0, "Re should appear: " + output);
     // The chord line should show Re shifted left (before the word, not at pos 16)
@@ -1356,7 +1396,8 @@ test("formatPerfLines with fullRepeat=true does not abbreviate repeated stanzas"
         { text: "Estribillo text that will repeat later.", sylMap: [{ tick: 1440, pos: 0, chord: "Re" }], startTick: 1440, endTick: 1920, sectionEnd: true }
     ];
 
-    var output = fmt.formatPerfLines(lines, [], null, "", [], null, null, true);
+    var result = fmt.formatPerfLines(lines, [], null, "", [], null, null, true);
+    var output = result.text;
     // Both occurrences of the estribillo should be full (no "...")
     assert.ok(output.indexOf("...") < 0, "fullRepeat=true should not abbreviate: " + output);
     // Count full occurrences
@@ -1379,7 +1420,8 @@ test("formatPerfLines with fullRepeat=false abbreviates repeated stanzas", funct
         { text: "Estribillo text that will repeat later.", sylMap: [{ tick: 1440, pos: 0, chord: "Re" }], startTick: 1440, endTick: 1920, sectionEnd: true }
     ];
 
-    var output = fmt.formatPerfLines(lines, [], null, "", [], null, null, false);
+    var result = fmt.formatPerfLines(lines, [], null, "", [], null, null, false);
+    var output = result.text;
     // Second estribillo should be abbreviated
     assert.ok(output.indexOf("...") >= 0, "fullRepeat=false should abbreviate: " + output);
 });
@@ -1412,7 +1454,8 @@ test("formatPerfLines renders interlude chords on backwards tick without duplica
         { tick: 480, chord: "Lam" },
         { tick: 960, chord: "Sol" }
     ];
-    var output = fmt.formatPerfLines(lines, ["Re"], null, "", chords, null, []);
+    var result = fmt.formatPerfLines(lines, ["Re"], null, "", chords, null, []);
+    var output = result.text;
     // Interlude chords should appear between passes
     var endIdx = output.indexOf("end of first pass.");
     var startIdx = output.indexOf("start of second pass.");
@@ -1443,7 +1486,8 @@ test("formatPerfLines does not append coda chords after last abbreviated line", 
         { tick: 2400, chord: "Fa#7" },
         { tick: 2880, chord: "Sim" }
     ];
-    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var output = result.text;
     // The abbreviated line should be present
     assert.ok(output.indexOf("...") >= 0, "should have abbreviated line: " + output);
     // Coda chords Fa#7 and Sim should NOT appear after the abbreviated line
@@ -1461,7 +1505,8 @@ test("formatPerfLines trailing coda chords on chord line, not duplicated below",
         { tick: 960, chord: "Re" },
         { tick: 1440, chord: "Sol" }
     ];
-    var output = fmt.formatPerfLines(lines, [], null, "", chords);
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var output = result.text;
     var chordLine = output.split("\n")[0];
     assert.ok(chordLine.indexOf("Re") >= 0 && chordLine.indexOf("Sol") >= 0,
         "trailing chords on chord line: " + chordLine);
