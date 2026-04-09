@@ -345,7 +345,9 @@ function extractFretDiagrams(score, excerptXmls) {
             
             var strings = [];
             var stringElements = findChildren(fretDiagramNode, "string");
-            var fretOffset = parseInt(childText(fretDiagramNode, "fret")) || 0;
+            // Extract fretOffset and frets from parent FretDiagram node
+            var fretOffset = parseInt(childText(fretDiagram, "fretOffset")) || 0;
+            var numFrets = parseInt(childText(fretDiagram, "frets")) || 4;
             
             // Extract barre information
             var barreElem = findChild(fretDiagramNode, "barre");
@@ -399,6 +401,7 @@ function extractFretDiagrams(score, excerptXmls) {
                 chordName: chordName,
                 strings: strings,
                 fretOffset: fretOffset,
+                numFrets: numFrets,
                 barre: barre
             });
         }
