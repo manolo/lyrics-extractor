@@ -39,6 +39,7 @@ function main() {
         console.log("  --save              Save to <score>-letra.txt alongside the score");
         console.log("  --pdf               Generate PDF to <score>-letra.pdf");
         console.log("  --header <name>     Group name for PDF header");
+        console.log("  --line-numbers      Add line numbers in PDF output");
         console.log("  --anglo             Use anglo chord names (C, D, E) instead of solfeo");
         console.log("  --full              Write all D.S./D.C. repeats even without new lyrics");
         console.log("  --one-page          Shrink PDF font to fit on one page");
@@ -59,6 +60,7 @@ function main() {
     var pdfMode = flags.indexOf("--pdf") >= 0;
     var fullRepeat = flags.indexOf("--full") >= 0;
     var onePage = flags.indexOf("--one-page") >= 0;
+    var lineNumbers = flags.indexOf("--line-numbers") >= 0;
     var headerName = "";
     var headerIdx = flags.indexOf("--header");
     if (headerIdx >= 0 && headerIdx + 1 < flags.length) {
@@ -146,6 +148,7 @@ function main() {
         var pdfOptions = {
             header: headerName,
             onePage: onePage,
+            lineNumbers: lineNumbers,
             fretDiagrams: data.fretDiagrams || []
         };
         var pdfContent = pdfWriter.generatePdf(output, pdfOptions);
