@@ -184,10 +184,11 @@ test("extractFretDiagrams handles fretOffset > 0", function() {
               <name>#</name>
             </harmonyInfo>
           </Harmony>
+          <fretOffset>4</fretOffset>
+          <frets>4</frets>
           <fretDiagram>
-            <fret>5</fret>
             <string no="0">
-              <dot fret="7"/>
+              <dot fret="3"/>
             </string>
           </fretDiagram>
         </FretDiagram>
@@ -208,8 +209,9 @@ test("extractFretDiagrams handles fretOffset > 0", function() {
     
     var diagram = data.fretDiagrams[0];
     assert.equal(diagram.chordName, "Fa#", "should be Fa# in solfeo");
-    assert.equal(diagram.fretOffset, 5, "fretOffset should be 5");
-    assert.equal(diagram.strings[0].dot.fret, 7);
+    assert.equal(diagram.fretOffset, 4, "fretOffset should be 4");
+    assert.equal(diagram.numFrets, 4, "numFrets should be 4");
+    assert.equal(diagram.strings[0].dot.fret, 3, "dot should be at fret 3");
 });
 
 test("extractFretDiagrams returns empty array when no FBox", function() {
