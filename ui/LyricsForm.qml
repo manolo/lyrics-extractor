@@ -152,7 +152,8 @@ MuseScore {
                 var changed = false;
                 var cleanText = entry.text;
 
-                cleanText = TextUtils.replaceSynalepha(cleanText);
+                // FIRST: Convert consecutive dots/commas BEFORE replaceSynalepha
+                // This prevents "..." from being treated as multiple synalepha marks
                 // Convert consecutive dots: 3+ → ellipsis, 2 → small full stop (no-break period)
                 cleanText = cleanText.replace(/\.{3,}/g, "\u2026");
                 cleanText = cleanText.replace(/\.\./g, "\uFE52");
@@ -160,6 +161,10 @@ MuseScore {
                 cleanText = cleanText.replace(/,,/g, "\uFE50");
                 // Convert semicolons to fullwidth comma (phrase separator, stanza break)
                 cleanText = cleanText.replace(/;/g, "\uFF0C");
+                
+                // SECOND: Apply synalepha replacement (only to single dots between letters)
+                cleanText = TextUtils.replaceSynalepha(cleanText);
+                
                 if (cleanText !== entry.text) {
                     entry.lyric.text = cleanText;
                     changed = true;
