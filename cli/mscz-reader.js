@@ -44,7 +44,7 @@ function readMscz(filePath) {
     // Find the .mscx file (main score XML)
     var mscxEntry = null;
     for (var i = 0; i < entries.length; i++) {
-        if (entries[i].name.match(/\.mscx$/)) {
+        if (entries[i].name.match(/\.mscx$/) && !entries[i].name.match(/Excerpts\//)) {
             mscxEntry = entries[i];
             break;
         }
@@ -68,6 +68,35 @@ function readMscz(filePath) {
     return xmlBuffer.toString("utf8");
 }
 
+// Extract guitar excerpts from .mscz file
+// Returns array of {name, xml} for guitar/guitarra excerpts
+function readGuitarExcerpts(filePath) {
+    var buffer = fs.readFileSync(filePath);
+    var entries = readZip(buffer);
+    var excerpts = [];
+
+    for (var i = 0; i < entries.length; i++) {
+        var entry = entries[i];
+        // Look for Excerpts/*Guitar*/*.mscx or Excerpts/*guitarra*/*.mscx
+        if (entry.name.match(/Excerpts\/.*([Gg]uitar|guitarra).*\/.*\.mscx$/)) {
+            var xmlBuffer;
+            if (entry.compression === 8) {
+                xmlBuffer = zlib.inflateRawSync(entry.data);
+            } else if (entry.compression === 0) {
+                xmlBuffer = entry.data;
+            } else {
+                continue; // Skip unsupported compression
+            }
+            excerpts.push({
+                name: entry.name,
+                xml: xmlBuffer.toString("utf8")
+            });
+        }
+    }
+
+    return excerpts;
+}
+
 // Read a .mscx file directly (plain XML)
 function readMscx(filePath) {
     return fs.readFileSync(filePath, "utf8");
@@ -87,5 +116,6 @@ function readScore(filePath) {
 module.exports = {
     readMscz: readMscz,
     readMscx: readMscx,
-    readScore: readScore
+    readScore: readScore,
+    readGuitarExcerpts: readGuitarExcerpts
 };

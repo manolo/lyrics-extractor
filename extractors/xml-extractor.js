@@ -277,16 +277,47 @@ function tpcToSpanishRoot(tpc) {
 }
 
 // Extract fretboard diagrams from FBox elements in first staff
-// Returns deduplicated array of {chordName, strings, fretOffset}
-function extractFretDiagrams(score) {
+// Returns deduplicated array of {chordName, strings, fretOffset, barre}
+// excerptXmls: optional array of XML strings from guitar excerpts to search if main score has no diagrams
+function extractFretDiagrams(score, excerptXmls) {
     var diagrams = [];
     var seen = {};
     
     var staffElements = findChildren(score, "Staff");
     if (staffElements.length === 0) return diagrams;
     
+    // Try to find FBox in the first staff (main staff)
     var fboxes = findChildren(staffElements[0], "FBox");
     
+    // If no FBox found in main score, search in guitar excerpts
+    if (fboxes.length === 0 && excerptXmls && excerptXmls.length > 0) {
+        for (var ex = 0; ex < excerptXmls.length; ex++) {
+            var excerptRoot = parseXml(excerptXmls[ex]);
+            if (!excerptRoot) continue;
+            
+            // Find Score node (same logic as extractAll)
+            var excerptScore = findChild(excerptRoot, "Score") || excerptRoot;
+            if (excerptScore.tag !== "Score") {
+                excerptScore = findChild(excerptScore, "Score") || excerptScore;
+            }
+            
+            var excerptStaffs = findChildren(excerptScore, "Staff");
+            if (excerptStaffs.length === 0) continue;
+            
+            // Search in all staves of the excerpt
+            for (var es = 0; es < excerptStaffs.length; es++) {
+                var excerptFboxes = findChildren(excerptStaffs[es], "FBox");
+                if (excerptFboxes.length > 0) {
+                    fboxes = excerptFboxes;
+                    break;
+                }
+            }
+            
+            if (fboxes.length > 0) break;
+        }
+    }
+    
+    // Extract diagrams from found FBoxes
     for (var fb = 0; fb < fboxes.length; fb++) {
         var fretDiagrams = findChildren(fboxes[fb], "FretDiagram");
         
@@ -316,6 +347,18 @@ function extractFretDiagrams(score) {
             var stringElements = findChildren(fretDiagramNode, "string");
             var fretOffset = parseInt(childText(fretDiagramNode, "fret")) || 0;
             
+            // Extract barre information
+            var barreElem = findChild(fretDiagramNode, "barre");
+            var barre = null;
+            if (barreElem) {
+                var barreStart = parseInt(barreElem.attrs.start);
+                var barreEnd = parseInt(barreElem.attrs.end);
+                var barreFret = parseInt(barreElem.text);
+                if (barreStart !== undefined && barreEnd !== undefined && barreFret) {
+                    barre = { start: barreStart, end: barreEnd, fret: barreFret };
+                }
+            }
+            
             for (var se = 0; se < stringElements.length; se++) {
                 var stringElem = stringElements[se];
                 var stringNum = parseInt(stringElem.attrs.no);
@@ -338,12 +381,15 @@ function extractFretDiagrams(score) {
                 strings.push(stringData);
             }
             
-            // Deduplication fingerprint: chordName + string pattern
+            // Deduplication fingerprint: chordName + string pattern + barre
             var fingerprint = chordName + "|";
             for (var si = 0; si < strings.length; si++) {
                 var s = strings[si];
                 if (s.marker) fingerprint += s.number + ":" + s.marker + ",";
                 else if (s.dot) fingerprint += s.number + ":" + s.dot.fret + ",";
+            }
+            if (barre) {
+                fingerprint += "barre:" + barre.start + "-" + barre.end + ":" + barre.fret;
             }
             
             if (seen[fingerprint]) continue;
@@ -352,7 +398,8 @@ function extractFretDiagrams(score) {
             diagrams.push({
                 chordName: chordName,
                 strings: strings,
-                fretOffset: fretOffset
+                fretOffset: fretOffset,
+                barre: barre
             });
         }
     }
@@ -362,7 +409,7 @@ function extractFretDiagrams(score) {
 
 // Extract all data from .mscx XML string
 // Returns the same intermediate data structure as musescore-extractor.js
-function extractAll(xmlString) {
+function extractAll(xmlString, excerptXmls) {
     var root = parseXml(xmlString);
     if (!root) throw new Error("Failed to parse XML");
 
@@ -712,7 +759,7 @@ function extractAll(xmlString) {
     }
 
     // Extract fretboard diagrams
-    var fretDiagrams = extractFretDiagrams(score);
+    var fretDiagrams = extractFretDiagrams(score, excerptXmls);
 
     return {
         title: title,

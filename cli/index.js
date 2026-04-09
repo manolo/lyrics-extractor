@@ -90,8 +90,14 @@ function main() {
 
     // Read and parse the score
     var xmlString;
+    var guitarExcerpts = [];
     try {
         xmlString = msczReader.readScore(inputPath);
+        // Read guitar excerpts if available (for fretboard diagrams)
+        if (inputPath.match(/\.mscz$/)) {
+            var excerpts = msczReader.readGuitarExcerpts(inputPath);
+            guitarExcerpts = excerpts.map(function(e) { return e.xml; });
+        }
     } catch (e) {
         console.error("Error reading score: " + e.message);
         process.exit(1);
@@ -100,7 +106,7 @@ function main() {
     // Extract data from XML
     var data;
     try {
-        data = xmlExtractor.extractAll(xmlString);
+        data = xmlExtractor.extractAll(xmlString, guitarExcerpts);
     } catch (e) {
         console.error("Error extracting data: " + e.message);
         process.exit(1);
