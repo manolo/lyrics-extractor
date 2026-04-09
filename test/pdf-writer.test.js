@@ -117,3 +117,57 @@ test("generatePdf with onePage tries gap reduction before font reduction", funct
         assert.equal(parseFloat(fontMatch[1]), 9, "font should stay at 9pt when gap reduction is enough");
     }
 });
+
+test("generatePdf with lineNumbers renders numbers in gray", function() {
+    var result = pdf.generatePdf("TITLE\n\nLam\nFirst line.\nSecond line.\n", { lineNumbers: true });
+    // Should contain gray color for line numbers
+    assert.ok(result.indexOf("0.6 0.6 0.6 rg") >= 0, "should have gray color (0.6 0.6 0.6) for line numbers");
+});
+
+test("generatePdf with lineNumbers includes sequential numbers", function() {
+    var result = pdf.generatePdf("TITLE\n\nLam\nFirst line.\nMi7\nSecond line.\nThird line.\n", { lineNumbers: true });
+    // Should contain line numbers 1, 2, 3 (as PDF text commands)
+    assert.ok(result.indexOf("(1)") >= 0, "should contain number 1");
+    assert.ok(result.indexOf("(2)") >= 0, "should contain number 2");
+    assert.ok(result.indexOf("(3)") >= 0, "should contain number 3");
+});
+
+test("generatePdf with lineNumbers only numbers lyric lines", function() {
+    var input = "TITLE\n\n- SECTION -\n\nLam  Mi7\nFirst lyric line.\nSol\nSecond lyric line.\n";
+    var result = pdf.generatePdf(input, { lineNumbers: true });
+    
+    // Count occurrences of gray color (0.6 0.6 0.6 rg) which is used for line numbers
+    var grayMatches = result.match(/0\.6 0\.6 0\.6 rg/g);
+    assert.ok(grayMatches, "should have gray color commands");
+    // Should have exactly 2 gray colors (for 2 lyric lines, not chords/title/section)
+    assert.equal(grayMatches.length, 2, "should only number lyric lines (not chords, title, or section)");
+});
+
+test("generatePdf without lineNumbers has no gray numbers", function() {
+    var result = pdf.generatePdf("TITLE\n\nLam\nFirst line.\nSecond line.\n", { lineNumbers: false });
+    // Should not contain gray color for line numbers
+    var grayMatches = result.match(/0\.6 0\.6 0\.6 rg/g);
+    assert.ok(!grayMatches, "should not have gray color when lineNumbers is false");
+});
+
+test("generatePdf lineNumbers positioned in left margin", function() {
+    var result = pdf.generatePdf("TITLE\n\nLam\nFirst line.\n", { lineNumbers: true });
+    // Line numbers should be positioned at MARGIN_L - 15 = 50 - 15 = 35pt
+    // Look for text positioning command near 35pt
+    assert.ok(result.indexOf("35") >= 0, "should position numbers in left margin (around 35pt)");
+});
+
+test("generatePdf lineNumbers use smaller font than lyrics", function() {
+    var result = pdf.generatePdf("TITLE\n\nFirst line.\n", { lineNumbers: true });
+    // Line numbers should use fontSize - 2 = 9 - 2 = 7pt
+    // Lyrics use 9pt (/F1 9 Tf), numbers use 7pt (/F1 7 Tf)
+    assert.ok(result.indexOf("/F1 7") >= 0, "should use 7pt font for line numbers (fontSize - 2)");
+    assert.ok(result.indexOf("/F1 9") >= 0, "should use 9pt font for lyrics");
+});
+
+test("generatePdf lineNumbers default off when not specified", function() {
+    var result = pdf.generatePdf("TITLE\n\nLam\nFirst line.\nSecond line.\n", {});
+    // Should not contain gray color for line numbers
+    var grayMatches = result.match(/0\.6 0\.6 0\.6 rg/g);
+    assert.ok(!grayMatches, "line numbers should be off by default");
+});
