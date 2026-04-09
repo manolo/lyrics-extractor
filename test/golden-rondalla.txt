@@ -2,17 +2,17 @@
 
 - INTRO -
 Rem  Sol7  DoM  Fa  Mi  Mi7  Lam  La7  Rem  Sol7  DoM  Fa  Mi  Mi7
-Lam.5
+Lam
 
 - ESTROFA -
-              Lam.5'     Mi7       Lam      Rem        Lam       Mi7       Lam
+                         Mi7       Lam      Rem        Lam       Mi7       Lam
 En esta noche clara de inquietos luceros lo que yo más quiero te vengo a decir,
-Mi              Lam.5' Mi7          Lam      Rem    Lam     Mi7        Lam  Mi
+Mi              Lam    Mi7          Lam      Rem    Lam     Mi7        Lam  Mi
 en tanto que la luna extiende en el cielo su pálido velo de plata y jazmin.
 
-Lam         Sol7          Do       Sol7              Do
+            Sol7          Do       Sol7              Do
 Y en mi corazón siempre estás y no puedo olvidarte jamás,
-Lam         Sol7    Do       Sol7    Fa      Mi7
+            Sol7    Do       Sol7    Fa      Mi7
 porque yo nací para tí de mi alma la reina serás.
 
               Lam        Mi7       Lam      Rem        Lam       Mi7       La
@@ -28,7 +28,7 @@ para que estés cerca de mi te bajaré las estrellas,
 Rem             La               Mi7             Lam
 en esta noche callada de toda mi vida serás la mejor.
 
-Rem  Sol7  DoM  Fa  Mi  Mi7  Lam  La7  Lam.5
+Rem  Sol7  DoM  Fa  Mi  Mi7  Lam  La7  Lam
 
 - ESTROFA -
 
