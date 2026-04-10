@@ -128,9 +128,12 @@ function main() {
         data.syllables = [];
     }
 
-    if (!chordsOnly && (!data.syllables || data.syllables.length === 0)) {
-        console.error("No lyrics found in the score");
-        process.exit(1);
+    // No lyrics: auto-fallback to chord-only if chords exist
+    if (!data.syllables || data.syllables.length === 0) {
+        if (!data.chords || data.chords.length === 0) {
+            console.error("No lyrics or chords found in the score");
+            process.exit(1);
+        }
     }
 
     // Debug mode: export raw data as JSON
