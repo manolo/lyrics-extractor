@@ -1,41 +1,32 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var fs = require("fs");
 var path = require("path");
 var msczReader = require("../cli/mscz-reader");
 var xmlExtractor = require("../extractors/xml-extractor");
 var orchestrator = require("../lib/orchestrator");
 
-var RONDALLA_PATH = path.join(process.env.HOME, "Music/TunaAlcala/Rondalla/Rondalla.mscz");
-var GOLDEN_PATH = path.join(__dirname, "golden-rondalla.txt");
+var FIXTURE_PATH = path.join(__dirname, "fixture.mscz");
 
-test("integration: Rondalla.mscz produces golden output", function() {
-    if (!fs.existsSync(RONDALLA_PATH)) {
-        console.log("Skipping: Rondalla.mscz not found at " + RONDALLA_PATH);
-        return;
-    }
-
-    var xml = msczReader.readScore(RONDALLA_PATH);
-    var data = xmlExtractor.extractAll(xml);
-    var output = orchestrator.processExtraction(data);
-
-    var golden = fs.readFileSync(GOLDEN_PATH, "utf8");
-    assert.equal(output, golden, "Output should match golden file");
+test("integration: fixture.mscz reads and extracts correctly", function() {
+    var xml = msczReader.readScore(FIXTURE_PATH);
+    assert.ok(xml.length > 100, "XML should be substantial");
+    assert.ok(xml.indexOf("<museScore") >= 0, "Should contain museScore root element");
+    assert.ok(xml.indexOf("<Score") >= 0, "Should contain Score element");
 });
 
-test("integration: Rondalla.mscz data structure integrity", function() {
-    if (!fs.existsSync(RONDALLA_PATH)) {
-        console.log("Skipping: Rondalla.mscz not found");
-        return;
-    }
+test("integration: fixture.mscz spelling detection", function() {
+    var spelling = msczReader.readSpelling(FIXTURE_PATH);
+    assert.equal(spelling, "solfeggio", "fixture has solfeo spelling in score_style.mss");
+});
 
-    var xml = msczReader.readScore(RONDALLA_PATH);
-    var data = xmlExtractor.extractAll(xml);
+test("integration: fixture.mscz data structure integrity", function() {
+    var xml = msczReader.readScore(FIXTURE_PATH);
+    var spelling = msczReader.readSpelling(FIXTURE_PATH);
+    var data = xmlExtractor.extractAll(xml, [], spelling);
 
-    assert.ok(data.syllables.length > 100, "Should have many syllables");
-    assert.ok(data.chords.length > 20, "Should have many chords");
-    assert.equal(data.repeats.length, 3, "Should have 3 repeats");
-    assert.equal(data.voltas.length, 3, "Should have 3 voltas");
+    assert.ok(data.syllables.length >= 3, "Should have syllables");
+    assert.ok(data.chords.length >= 2, "Should have chords");
+    assert.equal(data.repeats.length, 1, "Should have 1 repeat");
 
     // All syllables should have required fields
     for (var i = 0; i < data.syllables.length; i++) {
@@ -54,14 +45,34 @@ test("integration: Rondalla.mscz data structure integrity", function() {
     }
 });
 
-test("integration: mscz-reader reads ZIP correctly", function() {
-    if (!fs.existsSync(RONDALLA_PATH)) {
-        console.log("Skipping: Rondalla.mscz not found");
-        return;
-    }
+test("integration: fixture.mscz produces solfeo chord names", function() {
+    var xml = msczReader.readScore(FIXTURE_PATH);
+    var spelling = msczReader.readSpelling(FIXTURE_PATH);
+    var data = xmlExtractor.extractAll(xml, [], spelling);
 
-    var xml = msczReader.readScore(RONDALLA_PATH);
-    assert.ok(xml.length > 1000, "XML should be substantial");
-    assert.ok(xml.indexOf("<museScore") >= 0, "Should contain museScore root element");
-    assert.ok(xml.indexOf("<Score") >= 0, "Should contain Score element");
+    // With solfeo spelling, chords should use solfeo names
+    assert.equal(data.chords[0].chord, "Lam", "first chord should be Lam (solfeo)");
+    assert.equal(data.chords[1].chord, "Mi7", "second chord should be Mi7 (solfeo)");
+    assert.equal(data.chords[2].chord, "La", "third chord should be La (solfeo)");
+});
+
+test("integration: fixture.mscz produces anglo chord names with standard spelling", function() {
+    var xml = msczReader.readScore(FIXTURE_PATH);
+    var data = xmlExtractor.extractAll(xml, [], "standard");
+
+    assert.equal(data.chords[0].chord, "Am", "first chord should be Am (anglo)");
+    assert.equal(data.chords[1].chord, "E7", "second chord should be E7 (anglo)");
+    assert.equal(data.chords[2].chord, "A", "third chord should be A (anglo)");
+});
+
+test("integration: fixture.mscz orchestrator produces output", function() {
+    var xml = msczReader.readScore(FIXTURE_PATH);
+    var spelling = msczReader.readSpelling(FIXTURE_PATH);
+    var data = xmlExtractor.extractAll(xml, [], spelling);
+    var output = orchestrator.processExtraction(data);
+
+    assert.ok(output, "Should produce output");
+    assert.ok(output.indexOf("TEST FIXTURE") >= 0, "Should contain title");
+    assert.ok(output.indexOf("Mi7") >= 0, "Should contain solfeo chord Mi7");
+    assert.ok(output.indexOf("Hel") >= 0, "Should contain lyrics");
 });
