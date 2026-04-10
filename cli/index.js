@@ -118,29 +118,19 @@ function main() {
         process.exit(1);
     }
 
-    if (!data || (!chordsOnly && (!data.syllables || data.syllables.length === 0))) {
-        console.error("No lyrics found in the score");
+    if (!data) {
+        console.error("No data found in the score");
         process.exit(1);
     }
 
-    // --chords-only: list chords and exit (no lyrics needed)
+    // --chords-only: force chord-only mode regardless of lyrics
     if (chordsOnly) {
-        if (!data.chords || data.chords.length === 0) {
-            console.error("No chords found in the score");
-            process.exit(1);
-        }
-        var ChordUtils = require("../lib/chord-utils");
-        if (angloMode) {
-            ChordUtils.convertChordsToAnglo(data.chords);
-        } else {
-            ChordUtils.convertChordsToSolfeo(data.chords);
-        }
-        var chordSeq = [];
-        for (var ci = 0; ci < data.chords.length; ci++) {
-            chordSeq.push(data.chords[ci].chord);
-        }
-        process.stdout.write(chordSeq.join("  ") + "\n");
-        return;
+        data.syllables = [];
+    }
+
+    if (!chordsOnly && (!data.syllables || data.syllables.length === 0)) {
+        console.error("No lyrics found in the score");
+        process.exit(1);
     }
 
     // Debug mode: export raw data as JSON

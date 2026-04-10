@@ -15,6 +15,7 @@ import "../lib/intro-chords.js" as IntroChords
 import "../lib/formatter.js" as Formatter
 import "../lib/navigation.js" as Navigation
 import "../lib/orchestrator.js" as Orchestrator
+import "../lib/chord-formatter.js" as ChordFormatter
 import "../lib/pdf-writer.js" as PdfWriter
 import "../lib/fretboard-renderer.js" as FretboardRenderer
 import "../extractors/musescore-extractor.js" as Extractor
@@ -70,7 +71,8 @@ MuseScore {
         PerfStream: PerfStream,
         IntroChords: IntroChords,
         Formatter: Formatter,
-        Navigation: Navigation
+        Navigation: Navigation,
+        ChordFormatter: ChordFormatter
     })
 
     // ========================================
@@ -447,18 +449,6 @@ MuseScore {
         data.solfeo = settings.useSolfeo;
         data.fullRepeat = settings.fullRepeat;
         var output = Orchestrator.processExtraction(data, mods);
-
-        // If no lyrics but chords exist, show chord sequence (chords-only mode)
-        if (!output && data.chords && data.chords.length > 0) {
-            if (settings.useSolfeo) {
-                mods.ChordUtils.convertChordsToSolfeo(data.chords);
-            }
-            var chordSeq = [];
-            for (var ci = 0; ci < data.chords.length; ci++) {
-                chordSeq.push(data.chords[ci].chord);
-            }
-            output = chordSeq.join("  ") + "\n";
-        }
 
         if (!output) {
             statusText.text = tr("No se encontraron letras ni acordes", "No lyrics or chords found");

@@ -617,8 +617,8 @@ function extractAll(xmlString, excerptXmls) {
                 return;
             }
 
-            // System text / Staff text (staff 0 only)
-            if ((elem.tag === "SystemText" || elem.tag === "StaffText") && staffId === 0) {
+            // System text / Staff text / Rehearsal mark (staff 0 only)
+            if ((elem.tag === "SystemText" || elem.tag === "StaffText" || elem.tag === "RehearsalMark") && staffId === 0) {
                 var sysText = childText(elem, "text");
                 if (sysText) systemTexts.push({ tick: voiceTick, text: sysText });
             }
@@ -640,11 +640,13 @@ function extractAll(xmlString, excerptXmls) {
                 repeatStartTick = -1;
                 sectionBarTicks[endTick] = "endRepeat";
             }
-            // Detect section barlines (double, final, etc.)
+            // Detect section barlines (double, final, heavy, etc.)
             var barline = findChild(measure, "BarLine");
             if (barline) {
                 var barSubtype = childText(barline, "subtype");
-                if (barSubtype === "double" || barSubtype === "final" || barSubtype === "end-repeat") {
+                if (barSubtype === "double" || barSubtype === "final" ||
+                    barSubtype === "end-repeat" || barSubtype === "heavy" ||
+                    barSubtype === "double-heavy") {
                     sectionBarTicks[endTick] = barSubtype;
                 }
             }
@@ -764,6 +766,13 @@ function extractAll(xmlString, excerptXmls) {
     // Extract fretboard diagrams
     var fretDiagrams = extractFretDiagrams(score, excerptXmls);
 
+    // Convert sectionBarTicks to sorted array
+    var barlines = [];
+    for (var bt in sectionBarTicks) {
+        barlines.push({ tick: parseInt(bt), type: sectionBarTicks[bt] });
+    }
+    barlines.sort(function(a, b) { return a.tick - b.tick; });
+
     return {
         title: title,
         nstaves: nstaves,
@@ -775,6 +784,7 @@ function extractAll(xmlString, excerptXmls) {
         markers: markers,
         jumps: jumps,
         systemTexts: systemTexts,
+        barlines: barlines,
         lastTick: lastTick,
         fretDiagrams: fretDiagrams
     };

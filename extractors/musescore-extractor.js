@@ -482,7 +482,8 @@ function extractSystemTexts() {
             for (var a = 0; a < annotations.length; a++) {
                 var ann = annotations[a];
                 if (!ann) continue;
-                if (ann.type === Element.STAFF_TEXT || ann.type === Element.SYSTEM_TEXT) {
+                // REHEARSAL_MARK = 60, include alongside staff/system text
+                if (ann.type === Element.STAFF_TEXT || ann.type === Element.SYSTEM_TEXT || ann.type === 60) {
                     var txt = ann.text || "";
                     if (txt) {
                         texts.push({ tick: segment.tick, text: txt });
@@ -496,6 +497,55 @@ function extractSystemTexts() {
     return texts;
 }
 
+// Extract section barlines (double, final, etc.)
+// Returns: array of { tick, type } sorted by tick
+function extractBarlines() {
+    var barlines = [];
+    var measure = curScore.firstMeasure;
+    while (measure) {
+        var seg = measure.firstSegment;
+        var tick = seg ? seg.tick : 0;
+
+        // Check for endRepeat (already handled in extractRepeats, but mark as barline too)
+        if (measure.repeatEnd) {
+            var endMeasure = measure.nextMeasure;
+            var endTick;
+            if (endMeasure && endMeasure.firstSegment) {
+                endTick = endMeasure.firstSegment.tick;
+            } else {
+                var lastSeg = measure.lastSegment;
+                endTick = lastSeg ? lastSeg.tick + 480 : tick + 1920;
+            }
+            barlines.push({ tick: endTick, type: "endRepeat" });
+        }
+
+        // Check annotations for BarLine elements with special subtypes
+        // BAR_LINE element type = 10 in MuseScore 4
+        if (seg) {
+            var annotations = seg.annotations;
+            if (annotations) {
+                for (var a = 0; a < annotations.length; a++) {
+                    var ann = annotations[a];
+                    if (ann && ann.type === 10) { // BAR_LINE
+                        try {
+                            var sub = ann.subtype;
+                            // BarLineType: DOUBLE=2, END/FINAL=0x20=32, HEAVY=0x200=512, DOUBLE_HEAVY=0x400=1024
+                            if (sub === 2) barlines.push({ tick: tick, type: "double" });
+                            else if (sub === 32) barlines.push({ tick: tick, type: "final" });
+                            else if (sub === 512) barlines.push({ tick: tick, type: "heavy" });
+                            else if (sub === 1024) barlines.push({ tick: tick, type: "double-heavy" });
+                        } catch (e) { /* subtype not accessible */ }
+                    }
+                }
+            }
+        }
+
+        measure = measure.nextMeasure;
+    }
+    barlines.sort(function(a, b) { return a.tick - b.tick; });
+    return barlines;
+}
+
 // Extract all data from the current score
 // Returns the intermediate data structure consumed by the orchestrator
 function extractAll() {
@@ -507,6 +557,7 @@ function extractAll() {
     var voltas = extractVoltas();
     var navigation = extractNavigation();
     var systemTexts = extractSystemTexts();
+    var barlines = extractBarlines();
 
     // Compute lastTick from the last measure
     var lastTick = 0;
@@ -547,6 +598,7 @@ function extractAll() {
         markers: navigation.markers,
         jumps: navigation.jumps,
         systemTexts: systemTexts,
+        barlines: barlines,
         lastTick: lastTick,
         _debug: {
             voiceStaff: staves.voiceStaff,
