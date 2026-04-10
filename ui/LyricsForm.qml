@@ -447,8 +447,21 @@ MuseScore {
         data.solfeo = settings.useSolfeo;
         data.fullRepeat = settings.fullRepeat;
         var output = Orchestrator.processExtraction(data, mods);
+
+        // If no lyrics but chords exist, show chord sequence (chords-only mode)
+        if (!output && data.chords && data.chords.length > 0) {
+            if (settings.useSolfeo) {
+                mods.ChordUtils.convertChordsToSolfeo(data.chords);
+            }
+            var chordSeq = [];
+            for (var ci = 0; ci < data.chords.length; ci++) {
+                chordSeq.push(data.chords[ci].chord);
+            }
+            output = chordSeq.join("  ") + "\n";
+        }
+
         if (!output) {
-            statusText.text = tr("No se encontraron letras", "No lyrics found");
+            statusText.text = tr("No se encontraron letras ni acordes", "No lyrics or chords found");
             return;
         }
 
@@ -456,9 +469,11 @@ MuseScore {
         extractedFretDiagrams = data.fretDiagrams || [];
 
         lyricsPreview.text = output;
+        var sylCount = data.syllables ? data.syllables.length : 0;
+        var chordCount = data.chords ? data.chords.length : 0;
         statusText.text = tr(
-            data.syllables.length + " silabas, " + data.chords.length + " acordes extraidos",
-            data.syllables.length + " syllables, " + data.chords.length + " chords extracted");
+            sylCount + " silabas, " + chordCount + " acordes extraidos",
+            sylCount + " syllables, " + chordCount + " chords extracted");
     }
 
     // Export raw extracted data as JSON for debugging (compare plugin vs CLI)

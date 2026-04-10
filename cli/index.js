@@ -129,19 +129,17 @@ function main() {
             console.error("No chords found in the score");
             process.exit(1);
         }
+        var ChordUtils = require("../lib/chord-utils");
         if (angloMode) {
-            var ChordUtils = require("../lib/chord-utils");
             ChordUtils.convertChordsToAnglo(data.chords);
         } else {
-            var ChordUtils2 = require("../lib/chord-utils");
-            ChordUtils2.convertChordsToSolfeo(data.chords);
+            ChordUtils.convertChordsToSolfeo(data.chords);
         }
-        var chordNames = [];
+        var chordSeq = [];
         for (var ci = 0; ci < data.chords.length; ci++) {
-            var name = data.chords[ci].chord;
-            if (chordNames.indexOf(name) < 0) chordNames.push(name);
+            chordSeq.push(data.chords[ci].chord);
         }
-        process.stdout.write(chordNames.join("  ") + "\n");
+        process.stdout.write(chordSeq.join("  ") + "\n");
         return;
     }
 

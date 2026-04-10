@@ -500,9 +500,8 @@ function extractSystemTexts() {
 // Returns the intermediate data structure consumed by the orchestrator
 function extractAll() {
     var staves = findStaves();
-    if (staves.voiceStaff === -1) return null;
 
-    var syllables = extractSyllables(staves.voiceStaff);
+    var syllables = staves.voiceStaff >= 0 ? extractSyllables(staves.voiceStaff) : [];
     var chords = extractChords(staves.harmonyStaff);
     var repeats = extractRepeats();
     var voltas = extractVoltas();
