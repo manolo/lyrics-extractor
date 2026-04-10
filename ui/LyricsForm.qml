@@ -53,6 +53,7 @@ MuseScore {
         property bool fullRepeat: false
         property bool onePage: false
         property bool lineNumbers: false
+        property bool noDiagrams: false
         property string pdfHeader: ""
     }
 
@@ -536,7 +537,7 @@ MuseScore {
             header: settings.pdfHeader,
             onePage: settings.onePage,
             lineNumbers: settings.lineNumbers,
-            fretDiagrams: extractedFretDiagrams
+            fretDiagrams: settings.noDiagrams ? [] : extractedFretDiagrams
         };
         var pdfContent = PdfWriter.generatePdf(content, pdfOptions);
 
@@ -674,6 +675,7 @@ MuseScore {
                         }
                     }
 
+                    // Extraction options
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 10
@@ -692,37 +694,10 @@ MuseScore {
                             onCheckedChanged: settings.fullRepeat = checked
                         }
 
-                        CheckBox {
-                            id: onePageCheck
-                            text: tr("PDF 1 pag.", "PDF 1 page")
-                            checked: settings.onePage
-                            onCheckedChanged: settings.onePage = checked
-                        }
-
-                        CheckBox {
-                            id: lineNumbersCheck
-                            text: tr("Núm. línea", "Line num.")
-                            checked: settings.lineNumbers
-                            onCheckedChanged: settings.lineNumbers = checked
-                        }
-
                         Item { Layout.fillWidth: true }
-
-                        Text {
-                            text: tr("Cabecera PDF:", "PDF header:")
-                            color: systemPalette.windowText
-                            font.pixelSize: 11
-                        }
-
-                        TextField {
-                            id: headerField
-                            Layout.preferredWidth: 200
-                            placeholderText: tr("Nombre del grupo", "Group name")
-                            font.pixelSize: 11
-                            onTextChanged: settings.pdfHeader = text
-                        }
                     }
 
+                    // Action buttons
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 10
@@ -750,6 +725,7 @@ MuseScore {
                         }
 
                         Button {
+                            id: pdfButton
                             text: tr("Guardar PDF", "Save PDF")
                             enabled: lyricsPreview.text.indexOf("(") !== 0
                             onClicked: savePdfFile(lyricsPreview.text)
@@ -758,6 +734,57 @@ MuseScore {
                         Button {
                             text: "Debug"
                             onClicked: exportDebugData()
+                        }
+                    }
+
+                    // PDF options (visible when PDF button is available)
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        visible: pdfButton.enabled
+
+                        Text {
+                            text: "PDF:"
+                            color: systemPalette.windowText
+                            font.pixelSize: 11
+                            font.bold: true
+                        }
+
+                        CheckBox {
+                            id: onePageCheck
+                            text: tr("1 pagina", "1 page")
+                            checked: settings.onePage
+                            onCheckedChanged: settings.onePage = checked
+                        }
+
+                        CheckBox {
+                            id: lineNumbersCheck
+                            text: tr("Num. linea", "Line num.")
+                            checked: settings.lineNumbers
+                            onCheckedChanged: settings.lineNumbers = checked
+                        }
+
+                        CheckBox {
+                            id: noDiagramsCheck
+                            text: tr("Sin diagramas", "No diagrams")
+                            checked: settings.noDiagrams
+                            onCheckedChanged: settings.noDiagrams = checked
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        Text {
+                            text: tr("Cabecera:", "Header:")
+                            color: systemPalette.windowText
+                            font.pixelSize: 11
+                        }
+
+                        TextField {
+                            id: headerField
+                            Layout.preferredWidth: 180
+                            placeholderText: tr("Nombre del grupo", "Group name")
+                            font.pixelSize: 11
+                            onTextChanged: settings.pdfHeader = text
                         }
                     }
                 }
@@ -837,6 +864,7 @@ MuseScore {
         fullRepeatCheck.checked = settings.fullRepeat;
         onePageCheck.checked = settings.onePage;
         lineNumbersCheck.checked = settings.lineNumbers;
+        noDiagramsCheck.checked = settings.noDiagrams;
         headerField.text = settings.pdfHeader;
     }
 }
