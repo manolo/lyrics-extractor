@@ -16,6 +16,7 @@ import "../lib/formatter.js" as Formatter
 import "../lib/navigation.js" as Navigation
 import "../lib/orchestrator.js" as Orchestrator
 import "../lib/pdf-writer.js" as PdfWriter
+import "../lib/fretboard-renderer.js" as FretboardRenderer
 import "../extractors/musescore-extractor.js" as Extractor
 // FretDiagram fallback: remove these 3 imports when MuseScore exposes FretDiagram.harmony
 import "../extractors/fretdiagram-fallback.js" as FretFallback
@@ -823,6 +824,7 @@ MuseScore {
 
     Component.onCompleted: {
         hasSelection = checkSelection();
+        PdfWriter.setFretboardRenderer(FretboardRenderer);
     }
 
     onRun: {
