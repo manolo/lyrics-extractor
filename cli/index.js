@@ -39,10 +39,12 @@ function main() {
         console.log("  --save              Save to <score>-letra.txt alongside the score");
         console.log("  --pdf               Generate PDF to <score>-letra.pdf");
         console.log("  --header <name>     Group name for PDF header");
-        console.log("  --line-numbers      Add line numbers in PDF output");
+        console.log("  --numbers           Add line numbers in PDF output");
         console.log("  --anglo             Use anglo chord names (C, D, E) instead of solfeo");
         console.log("  --full              Write all D.S./D.C. repeats even without new lyrics");
-        console.log("  --one-page          Shrink PDF font to fit on one page");
+        console.log("  --single            Shrink PDF font to fit on one page");
+        console.log("  --no-diagrams       Omit fretboard diagrams from PDF");
+        console.log("  --chords-only       List chords even if the score has no lyrics");
         console.log("  --debug             Export raw extracted data as JSON");
         console.log("");
         console.log("Examples:");
@@ -59,8 +61,10 @@ function main() {
     var angloMode = flags.indexOf("--anglo") >= 0;
     var pdfMode = flags.indexOf("--pdf") >= 0;
     var fullRepeat = flags.indexOf("--full") >= 0;
-    var onePage = flags.indexOf("--one-page") >= 0;
-    var lineNumbers = flags.indexOf("--line-numbers") >= 0;
+    var onePage = flags.indexOf("--single") >= 0 || flags.indexOf("--one-page") >= 0;
+    var lineNumbers = flags.indexOf("--numbers") >= 0 || flags.indexOf("--line-numbers") >= 0;
+    var noDiagrams = flags.indexOf("--no-diagrams") >= 0;
+    var chordsOnly = flags.indexOf("--chords-only") >= 0;
     var headerName = "";
     var headerIdx = flags.indexOf("--header");
     if (headerIdx >= 0 && headerIdx + 1 < flags.length) {
@@ -114,9 +118,31 @@ function main() {
         process.exit(1);
     }
 
-    if (!data || !data.syllables || data.syllables.length === 0) {
+    if (!data || (!chordsOnly && (!data.syllables || data.syllables.length === 0))) {
         console.error("No lyrics found in the score");
         process.exit(1);
+    }
+
+    // --chords-only: list chords and exit (no lyrics needed)
+    if (chordsOnly) {
+        if (!data.chords || data.chords.length === 0) {
+            console.error("No chords found in the score");
+            process.exit(1);
+        }
+        if (angloMode) {
+            var ChordUtils = require("../lib/chord-utils");
+            ChordUtils.convertChordsToAnglo(data.chords);
+        } else {
+            var ChordUtils2 = require("../lib/chord-utils");
+            ChordUtils2.convertChordsToSolfeo(data.chords);
+        }
+        var chordNames = [];
+        for (var ci = 0; ci < data.chords.length; ci++) {
+            var name = data.chords[ci].chord;
+            if (chordNames.indexOf(name) < 0) chordNames.push(name);
+        }
+        process.stdout.write(chordNames.join("  ") + "\n");
+        return;
     }
 
     // Debug mode: export raw data as JSON
@@ -149,7 +175,7 @@ function main() {
             header: headerName,
             onePage: onePage,
             lineNumbers: lineNumbers,
-            fretDiagrams: data.fretDiagrams || []
+            fretDiagrams: noDiagrams ? [] : (data.fretDiagrams || [])
         };
         var pdfContent = pdfWriter.generatePdf(output, pdfOptions);
         fs.writeFileSync(pdfPath, pdfContent, "binary");
