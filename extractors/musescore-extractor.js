@@ -287,6 +287,17 @@ function extractChords(harmonyStaffIdx) {
                         }
                     }
                 }
+                // Staff text (52) / Expression (42) -> inline text in chord line
+                // STAFF_TEXT=52, EXPRESSION=42 in MS4 element types
+                if (ann && (ann.type === 52 || ann.type === 42)) {
+                    var inlineStaff = Math.floor(ann.track / 4);
+                    if (inlineStaff === harmonyStaffIdx || harmonyStaffIdx === -1) {
+                        var inlineText = _stripHtml(ann.text || "");
+                        if (inlineText) {
+                            chords.push({ tick: segment.tick, chord: inlineText });
+                        }
+                    }
+                }
                 // FretDiagram annotations: QML API does not expose nested Harmony.
                 // Record their presence so the QProcess fallback can be triggered.
                 if (ann && ann.type === 63) { // Type 63 = FRET_DIAGRAM

@@ -223,11 +223,14 @@ test("extractAll extracts SystemText and StaffText elements", function() {
     ].join("\n");
 
     var data = xmlExt.extractAll(xml);
-    assert.equal(data.systemTexts.length, 2, "should have 2 system texts");
+    // SystemText goes to systemTexts, StaffText goes to chords (inline text)
+    assert.equal(data.systemTexts.length, 1, "should have 1 system text (SystemText only)");
     assert.equal(data.systemTexts[0].text, "ALBORADA");
     assert.equal(data.systemTexts[0].tick, 0);
-    assert.equal(data.systemTexts[1].text, "Solo");
-    assert.equal(data.systemTexts[1].tick, 960);
+    // StaffText "Solo" is now an inline chord-like text
+    assert.equal(data.chords.length, 1, "should have 1 chord (StaffText as inline)");
+    assert.equal(data.chords[0].chord, "Solo");
+    assert.equal(data.chords[0].tick, 960);
 });
 
 test("extractAll computes ticks correctly with irregular measure len attribute", function() {

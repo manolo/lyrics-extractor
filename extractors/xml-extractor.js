@@ -617,10 +617,20 @@ function extractAll(xmlString, excerptXmls) {
                 return;
             }
 
-            // System text / Staff text / Rehearsal mark (staff 0 only)
-            if ((elem.tag === "SystemText" || elem.tag === "StaffText" || elem.tag === "RehearsalMark") && staffId === 0) {
+            // System text / Rehearsal mark (staff 0 only) -> section labels
+            if ((elem.tag === "SystemText" || elem.tag === "RehearsalMark") && staffId === 0) {
                 var sysText = childText(elem, "text");
                 if (sysText) systemTexts.push({ tick: voiceTick, text: sysText });
+            }
+
+            // Staff text / Expression -> inline text shown in chord line
+            if (elem.tag === "StaffText" || elem.tag === "Expression") {
+                var inlineText = childText(elem, "text");
+                if (inlineText) {
+                    if (!harmonyCounts[staffId]) harmonyCounts[staffId] = 0;
+                    harmonyCounts[staffId]++;
+                    allChords.push({ staffId: staffId, tick: voiceTick, chord: inlineText });
+                }
             }
         });
     }
