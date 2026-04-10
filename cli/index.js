@@ -40,7 +40,8 @@ function main() {
         console.log("  --pdf               Generate PDF to <score>-letra.pdf");
         console.log("  --header <name>     Group name for PDF header");
         console.log("  --numbers           Add line numbers in PDF output");
-        console.log("  --anglo             Use anglo chord names (C, D, E) instead of solfeo");
+        console.log("  --anglo             Force anglo chord names (C, D, E)");
+        console.log("  --solfeo            Force solfeo chord names (Do, Re, Mi)");
         console.log("  --full              Write all D.S./D.C. repeats even without new lyrics");
         console.log("  --single            Shrink PDF font to fit on one page");
         console.log("  --no-diagrams       Omit fretboard diagrams from PDF");
@@ -59,6 +60,7 @@ function main() {
     var inputPath = path.resolve(positional[0]);
     var debugMode = flags.indexOf("--debug") >= 0;
     var angloMode = flags.indexOf("--anglo") >= 0;
+    var solfeoMode = flags.indexOf("--solfeo") >= 0;
     var pdfMode = flags.indexOf("--pdf") >= 0;
     var fullRepeat = flags.indexOf("--full") >= 0;
     var onePage = flags.indexOf("--single") >= 0 || flags.indexOf("--one-page") >= 0;
@@ -109,10 +111,16 @@ function main() {
         process.exit(1);
     }
 
+    // Determine chord spelling: flag overrides, then score style, then default
+    var spelling = "standard";
+    try { spelling = msczReader.readSpelling(inputPath); } catch (e) { /* use default */ }
+    if (angloMode) spelling = "standard";
+    if (solfeoMode) spelling = "solfeggio";
+
     // Extract data from XML
     var data;
     try {
-        data = xmlExtractor.extractAll(xmlString, guitarExcerpts);
+        data = xmlExtractor.extractAll(xmlString, guitarExcerpts, spelling);
     } catch (e) {
         console.error("Error extracting data: " + e.message);
         process.exit(1);
@@ -149,7 +157,6 @@ function main() {
     }
 
     // Process through the orchestrator pipeline
-    if (angloMode) data.solfeo = false;
     if (fullRepeat) data.fullRepeat = true;
     var output = orchestrator.processExtraction(data);
 

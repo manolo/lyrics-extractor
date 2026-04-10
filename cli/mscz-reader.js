@@ -113,9 +113,51 @@ function readScore(filePath) {
     }
 }
 
+// Read chordSymbolSpelling from the score style sheet (.mss) or excerpts.
+// Returns: "solfeggio", "standard", "german", "french", or "standard" (default).
+function readSpelling(filePath) {
+    if (!filePath.match(/\.mscz$/i)) return "standard";
+
+    var buffer = fs.readFileSync(filePath);
+    var entries = readZip(buffer);
+
+    // Try score_style.mss first
+    for (var i = 0; i < entries.length; i++) {
+        if (entries[i].name === "score_style.mss") {
+            var xmlBuffer;
+            if (entries[i].compression === 8) {
+                xmlBuffer = zlib.inflateRawSync(entries[i].data);
+            } else {
+                xmlBuffer = entries[i].data;
+            }
+            var xml = xmlBuffer.toString("utf8");
+            var match = xml.match(/<chordSymbolSpelling>([^<]+)<\/chordSymbolSpelling>/);
+            if (match) return match[1];
+        }
+    }
+
+    // Fallback: check first excerpt
+    for (var j = 0; j < entries.length; j++) {
+        if (entries[j].name.match(/Excerpts\/.*\.mscx$/)) {
+            var exBuffer;
+            if (entries[j].compression === 8) {
+                exBuffer = zlib.inflateRawSync(entries[j].data);
+            } else {
+                exBuffer = entries[j].data;
+            }
+            var exXml = exBuffer.toString("utf8");
+            var exMatch = exXml.match(/<chordSymbolSpelling>([^<]+)<\/chordSymbolSpelling>/);
+            if (exMatch) return exMatch[1];
+        }
+    }
+
+    return "standard";
+}
+
 module.exports = {
     readMscz: readMscz,
     readMscx: readMscx,
     readScore: readScore,
-    readGuitarExcerpts: readGuitarExcerpts
+    readGuitarExcerpts: readGuitarExcerpts,
+    readSpelling: readSpelling
 };

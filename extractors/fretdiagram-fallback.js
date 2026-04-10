@@ -57,7 +57,7 @@ function extractChords(opts) {
         var xml = tarOutput ? tarOutput.toString() : "";
 
         if (xml.length > 100 && xml.indexOf("<museScore") > -1) {
-            var xmlChords = opts.XmlChordReader.extractChords(xml, opts.Constants);
+            var xmlChords = opts.XmlChordReader.extractChords(xml, opts.Constants, opts.spelling);
             if (xmlChords.length > 0) {
                 // Also extract fretDiagrams for PDF rendering
                 if (opts.data) {

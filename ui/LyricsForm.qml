@@ -423,7 +423,8 @@ MuseScore {
             XmlChordReader: XmlChordReader,
             Constants: Constants,
             cliPath: cliPath,
-            data: data
+            data: data,
+            spelling: settings.useSolfeo ? "solfeggio" : "standard"
         });
 
         return chords || data.chords;
@@ -446,7 +447,6 @@ MuseScore {
         // use CLI to read .mscz file and extract chords from XML
         data.chords = extractChordsWithFallback(data);
 
-        data.solfeo = settings.useSolfeo;
         data.fullRepeat = settings.fullRepeat;
         var output = Orchestrator.processExtraction(data, mods);
 

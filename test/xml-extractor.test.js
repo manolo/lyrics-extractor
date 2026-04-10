@@ -81,10 +81,10 @@ test("extractAll extracts correct syllable data", function() {
 test("extractAll extracts harmonies with harmonyInfo wrapper", function() {
     var data = xmlExt.extractAll(SIMPLE_SCORE);
 
-    assert.equal(data.chords[0].chord, "Em");  // root=18 (E) + name=m -> Anglo, solfeo conversion later
+    assert.equal(data.chords[0].chord, "Em");  // root=18 (E) + name=m, default spelling=standard
     assert.equal(data.chords[0].tick, 0);
 
-    assert.equal(data.chords[1].chord, "La");    // root=17 (La) no name -> solfeo from TPC
+    assert.equal(data.chords[1].chord, "A");   // root=17 (A) no name, default spelling=standard
     assert.equal(data.chords[1].tick, 960);
 });
 
@@ -314,7 +314,7 @@ test("extractAll excludes linked staves from harmony selection", function() {
     // Staff 1 has 1 harmony, Staff 2 has 2 harmonies
     // Without linked exclusion, staff 2 would win. With exclusion, staff 1 wins.
     assert.equal(data.chords.length, 1, "should only have chords from non-linked staff");
-    assert.equal(data.chords[0].chord, "Do");  // root=14 = Do
+    assert.equal(data.chords[0].chord, "C");  // root=14 = C (default spelling=standard)
 });
 
 test("extractAll: TimeSig 3/4 updates current measure ticks for measure rest", function() {

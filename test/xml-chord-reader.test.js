@@ -82,14 +82,14 @@ test("extractChords extracts chords from FretDiagram elements", function() {
     assert.equal(chords.length, 2);
     assert.equal(chords[0].chord, "Em");  // root=18 (E) + name=m
     assert.equal(chords[0].tick, 0);
-    assert.equal(chords[1].chord, "La");  // root=17 (La), no name
+    assert.equal(chords[1].chord, "A");  // root=17 (A), no name, default=standard
     assert.equal(chords[1].tick, 960);    // after quarter + quarter = 480+480
 });
 
 test("extractChords extracts standalone Harmony elements", function() {
     var chords = reader.extractChords(HARMONY_SCORE, Constants);
     assert.equal(chords.length, 2);
-    assert.equal(chords[0].chord, "Do");   // root=14 (C -> Do), no name
+    assert.equal(chords[0].chord, "C");   // root=14 (C), no name, default=standard
     assert.equal(chords[0].tick, 0);
     assert.equal(chords[1].chord, "G7");   // root=15 (G) + name=7
     assert.equal(chords[1].tick, 960);     // after half = 960
@@ -100,7 +100,7 @@ test("extractChords handles mixed FretDiagram and Harmony", function() {
     assert.equal(chords.length, 2);
     assert.equal(chords[0].chord, "Cm");   // root=14 (C) + name=m -> FretDiagram
     assert.equal(chords[0].tick, 0);
-    assert.equal(chords[1].chord, "Sol");  // root=15 (Sol), standalone Harmony
+    assert.equal(chords[1].chord, "G");  // root=15 (G), standalone Harmony, default=standard
     assert.equal(chords[1].tick, 480);
 });
 
@@ -133,7 +133,7 @@ test("extractChords excludes linked staves", function() {
 
     var chords = reader.extractChords(xml, Constants);
     assert.equal(chords.length, 1, "should only have chords from non-linked staff");
-    assert.equal(chords[0].chord, "Do");
+    assert.equal(chords[0].chord, "C");
 });
 
 test("extractChords handles time signature changes", function() {

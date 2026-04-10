@@ -412,7 +412,8 @@ function extractFretDiagrams(score, excerptXmls) {
 
 // Extract all data from .mscx XML string
 // Returns the same intermediate data structure as musescore-extractor.js
-function extractAll(xmlString, excerptXmls) {
+// spelling: "solfeggio", "standard", etc. Controls chord name language.
+function extractAll(xmlString, excerptXmls, spelling) {
     var root = parseXml(xmlString);
     if (!root) throw new Error("Failed to parse XML");
 
@@ -533,17 +534,8 @@ function extractAll(xmlString, excerptXmls) {
                     var hInfo = findChild(nestedHarmony, "harmonyInfo") || nestedHarmony;
                     var rootNode = findChild(hInfo, "root");
                     var rootTpc = rootNode ? parseInt(rootNode.text) : -99;
-                    var harmonyName = "";
-                    if (rootTpc !== -99) {
-                        var quality = childText(hInfo, "name");
-                        if (quality) {
-                            harmonyName = Constants.tpcToAngloName(rootTpc) + quality;
-                        } else {
-                            harmonyName = Constants.tpcToNoteName(rootTpc);
-                        }
-                    } else {
-                        harmonyName = childText(hInfo, "name") || childText(nestedHarmony, "name") || nestedHarmony.text || "";
-                    }
+                    var quality = childText(hInfo, "name") || "";
+                    var harmonyName = Constants.tpcToChordName(rootTpc, quality, spelling);
                     if (harmonyName) {
                         if (!harmonyCounts[staffId]) harmonyCounts[staffId] = 0;
                         harmonyCounts[staffId]++;
@@ -557,21 +549,8 @@ function extractAll(xmlString, excerptXmls) {
                 var hInfo = findChild(elem, "harmonyInfo") || elem;
                 var rootNode = findChild(hInfo, "root");
                 var rootTpc = rootNode ? parseInt(rootNode.text) : -99;
-                var harmonyName = "";
-                if (rootTpc !== -99) {
-                    var quality = childText(hInfo, "name");
-                    if (quality) {
-                        // When name suffix exists, it comes from solfeo display decomposition.
-                        // Use Anglo root letter + suffix to reconstruct the displayed name.
-                        // e.g. TPC=16(D) + "o" = "Do", TPC=13(F) + "a#7" = "Fa#7"
-                        // The solfeo conversion later will handle it correctly.
-                        harmonyName = Constants.tpcToAngloName(rootTpc) + quality;
-                    } else {
-                        harmonyName = Constants.tpcToNoteName(rootTpc);
-                    }
-                } else {
-                    harmonyName = childText(hInfo, "name") || childText(elem, "name") || elem.text || "";
-                }
+                var quality = childText(hInfo, "name") || "";
+                var harmonyName = Constants.tpcToChordName(rootTpc, quality, spelling);
                 if (harmonyName) {
                     if (!harmonyCounts[staffId]) harmonyCounts[staffId] = 0;
                     harmonyCounts[staffId]++;

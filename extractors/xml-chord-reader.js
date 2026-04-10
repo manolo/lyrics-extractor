@@ -118,21 +118,19 @@ function _durToTicks(type, dots, div, mTicks, C) {
 
 // --- Harmony name extraction ---
 
-function _harmonyName(hNode, C) {
+function _harmonyName(hNode, C, spelling) {
     var hi = _fc(hNode, "harmonyInfo") || hNode;
     var rn = _fc(hi, "root");
     var tpc = rn ? parseInt(rn.text) : -99;
-    if (tpc !== -99) {
-        var q = _ct(hi, "name");
-        return q ? C.tpcToAngloName(tpc) + q : C.tpcToNoteName(tpc);
-    }
-    return _ct(hi, "name") || _ct(hNode, "name") || hNode.text || "";
+    var quality = _ct(hi, "name") || "";
+    return C.tpcToChordName(tpc, quality, spelling);
 }
 
 // --- Main extraction ---
 // Extracts all chords (from both standalone Harmony and nested Harmony in FretDiagram)
 // Returns: [{tick, chord}] sorted by tick
-function extractChords(xmlString, C) {
+// spelling: "solfeggio", "standard", etc. Controls chord name language.
+function extractChords(xmlString, C, spelling) {
     var root = _parseXml(xmlString);
     if (!root) return [];
 
@@ -202,7 +200,7 @@ function extractChords(xmlString, C) {
                     if (e.tag === "FretDiagram") {
                         var nh = _fc(e, "Harmony");
                         if (nh) {
-                            var fname = _harmonyName(nh, C);
+                            var fname = _harmonyName(nh, C, spelling);
                             if (fname) {
                                 if (!counts[sid]) counts[sid] = 0;
                                 counts[sid]++;
@@ -210,7 +208,7 @@ function extractChords(xmlString, C) {
                             }
                         }
                     } else if (e.tag === "Harmony") {
-                        var hname = _harmonyName(e, C);
+                        var hname = _harmonyName(e, C, spelling);
                         if (hname) {
                             if (!counts[sid]) counts[sid] = 0;
                             counts[sid]++;
