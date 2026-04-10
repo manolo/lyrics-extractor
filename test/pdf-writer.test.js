@@ -1,32 +1,24 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
 var pdf = require("../lib/pdf-writer");
+var fmt = require("../lib/formatter");
 
-test("isChordLine detects solfeo chord lines", function() {
-    assert.equal(pdf.isChordLine("Lam  Mi7  Lam"), true);
-    assert.equal(pdf.isChordLine("     Fa#7  Sim"), true);
-    assert.equal(pdf.isChordLine("Do"), true);
-    assert.equal(pdf.isChordLine("Sol7"), true);
-    assert.equal(pdf.isChordLine("Re  La7  Sol"), true);
+// Chord lines are identified by a zero-width space marker prefix (added by formatter)
+var M = fmt.CHORD_LINE_MARKER;
+
+test("isChordLine detects marked chord lines", function() {
+    assert.equal(pdf.isChordLine(M + "Lam  Mi7  Lam"), true);
+    assert.equal(pdf.isChordLine(M + "Do"), true);
+    assert.equal(pdf.isChordLine(M + "C  G  Am  F"), true);
+    assert.equal(pdf.isChordLine(M + "Lam.5  Lam.5'"), true, "custom chord names work with marker");
 });
 
-test("isChordLine detects anglo chord lines", function() {
-    assert.equal(pdf.isChordLine("Am  E7  Am"), true);
-    assert.equal(pdf.isChordLine("F#7  Bm"), true);
-    assert.equal(pdf.isChordLine("C  G  Am  F"), true);
-});
-
-test("isChordLine rejects lyric lines", function() {
+test("isChordLine rejects unmarked lines", function() {
+    assert.equal(pdf.isChordLine("Lam  Mi7  Lam"), false, "no marker = not a chord line");
     assert.equal(pdf.isChordLine("Mocita dame el clavel"), false);
-    assert.equal(pdf.isChordLine("yo te traigo clavelitos"), false);
-    assert.equal(pdf.isChordLine("En esta noche clara"), false);
-    assert.equal(pdf.isChordLine(""), false);
-});
-
-test("isChordLine rejects title lines (ALL CAPS text)", function() {
-    // "CLAVELITOS" has no chord pattern, just uppercase word
     assert.equal(pdf.isChordLine("CLAVELITOS"), false);
     assert.equal(pdf.isChordLine("EN ESTA NOCHE CLARA"), false);
+    assert.equal(pdf.isChordLine(""), false);
 });
 
 test("escPdfString escapes parentheses and backslash", function() {
@@ -42,7 +34,7 @@ test("escPdfString encodes accented characters", function() {
 });
 
 test("generatePdf produces valid PDF header", function() {
-    var result = pdf.generatePdf("TITLE\n\nLam\nHello world.\n");
+    var result = pdf.generatePdf("TITLE\n\n" + M + "Lam\nHello world.\n");
     assert.ok(result.indexOf("%PDF-1.4") === 0, "should start with PDF header");
     assert.ok(result.indexOf("%%EOF") >= 0, "should end with EOF marker");
     assert.ok(result.indexOf("/Courier") >= 0, "should reference Courier font");
@@ -50,7 +42,7 @@ test("generatePdf produces valid PDF header", function() {
 });
 
 test("generatePdf renders chord lines in green", function() {
-    var result = pdf.generatePdf("TITLE\n\nLam  Mi7\nHello world.\n");
+    var result = pdf.generatePdf("TITLE\n\n" + M + "Lam  Mi7\nHello world.\n");
     // Green color command: 0.298 0.686 0.314 rg
     assert.ok(result.indexOf("0.298 0.686 0.314 rg") >= 0, "should have green color for chords");
     // Black color command: 0 0 0 rg
@@ -58,7 +50,7 @@ test("generatePdf renders chord lines in green", function() {
 });
 
 test("generatePdf includes group header", function() {
-    var result = pdf.generatePdf("TITLE\n\nLam\nHello.\n", { header: "Tuna de Alcala" });
+    var result = pdf.generatePdf("TITLE\n\n" + M + "Lam\nHello.\n", { header: "Tuna de Alcala" });
     assert.ok(result.indexOf("Tuna de Alcala") >= 0, "should contain group name");
 });
 
@@ -71,7 +63,7 @@ test("generatePdf handles empty input", function() {
 test("generatePdf with onePage auto-fits moderate content to one page", function() {
     var lines = "TITLE\n\n";
     for (var i = 0; i < 40; i++) {
-        lines += "Lam\nLine " + i + " text.\n";
+        lines += M + "Lam\nLine " + i + " text.\n";
     }
     var result = pdf.generatePdf(lines, { onePage: true });
     var countMatch = result.match(/\/Count\s+(\d+)/);
@@ -82,7 +74,7 @@ test("generatePdf with onePage auto-fits moderate content to one page", function
 test("generatePdf without onePage uses multiple pages", function() {
     var lines = "TITLE\n\n";
     for (var i = 0; i < 40; i++) {
-        lines += "Lam\nLine " + i + " text.\n";
+        lines += M + "Lam\nLine " + i + " text.\n";
     }
     var result = pdf.generatePdf(lines, { onePage: false });
     var countMatch = result.match(/\/Count\s+(\d+)/);
@@ -93,7 +85,7 @@ test("generatePdf without onePage uses multiple pages", function() {
 test("generatePdf with onePage falls back to multi-page when too long for min font", function() {
     var lines = "TITLE\n\n";
     for (var i = 0; i < 200; i++) {
-        lines += "Lam\nLine number " + i + " of the song text here.\n";
+        lines += M + "Lam\nLine number " + i + " of the song text here.\n";
     }
     var result = pdf.generatePdf(lines, { onePage: true });
     var countMatch = result.match(/\/Count\s+(\d+)/);
@@ -106,7 +98,7 @@ test("generatePdf with onePage tries gap reduction before font reduction", funct
     var lines = "TITLE\n\n";
     // ~55 lines: overflows at 9pt but fits with reduced gaps
     for (var i = 0; i < 27; i++) {
-        lines += "Lam\nLine " + i + " text.\n\n"; // extra blank line = stanza gap
+        lines += M + "Lam\nLine " + i + " text.\n\n"; // extra blank line = stanza gap
     }
     var result = pdf.generatePdf(lines, { onePage: true });
     var countMatch = result.match(/\/Count\s+(\d+)/);
@@ -119,13 +111,13 @@ test("generatePdf with onePage tries gap reduction before font reduction", funct
 });
 
 test("generatePdf with lineNumbers renders numbers in gray", function() {
-    var result = pdf.generatePdf("TITLE\n\nLam\nFirst line.\nSecond line.\n", { lineNumbers: true });
+    var result = pdf.generatePdf("TITLE\n\n" + M + "Lam\nFirst line.\nSecond line.\n", { lineNumbers: true });
     // Should contain gray color for line numbers
     assert.ok(result.indexOf("0.6 0.6 0.6 rg") >= 0, "should have gray color (0.6 0.6 0.6) for line numbers");
 });
 
 test("generatePdf with lineNumbers includes sequential numbers", function() {
-    var result = pdf.generatePdf("TITLE\n\nLam\nFirst line.\nMi7\nSecond line.\nThird line.\n", { lineNumbers: true });
+    var result = pdf.generatePdf("TITLE\n\n" + M + "Lam\nFirst line.\n" + M + "Mi7\nSecond line.\nThird line.\n", { lineNumbers: true });
     // Should contain line numbers 1, 2, 3 (as PDF text commands)
     assert.ok(result.indexOf("(1)") >= 0, "should contain number 1");
     assert.ok(result.indexOf("(2)") >= 0, "should contain number 2");
@@ -133,7 +125,7 @@ test("generatePdf with lineNumbers includes sequential numbers", function() {
 });
 
 test("generatePdf with lineNumbers only numbers lyric lines", function() {
-    var input = "TITLE\n\n- SECTION -\n\nLam  Mi7\nFirst lyric line.\nSol\nSecond lyric line.\n";
+    var input = "TITLE\n\n- SECTION -\n\n" + M + "Lam  Mi7\nFirst lyric line.\n" + M + "Sol\nSecond lyric line.\n";
     var result = pdf.generatePdf(input, { lineNumbers: true });
     
     // Count occurrences of gray color (0.6 0.6 0.6 rg) which is used for line numbers
@@ -144,14 +136,14 @@ test("generatePdf with lineNumbers only numbers lyric lines", function() {
 });
 
 test("generatePdf without lineNumbers has no gray numbers", function() {
-    var result = pdf.generatePdf("TITLE\n\nLam\nFirst line.\nSecond line.\n", { lineNumbers: false });
+    var result = pdf.generatePdf("TITLE\n\n" + M + "Lam\nFirst line.\nSecond line.\n", { lineNumbers: false });
     // Should not contain gray color for line numbers
     var grayMatches = result.match(/0\.6 0\.6 0\.6 rg/g);
     assert.ok(!grayMatches, "should not have gray color when lineNumbers is false");
 });
 
 test("generatePdf lineNumbers positioned in left margin", function() {
-    var result = pdf.generatePdf("TITLE\n\nLam\nFirst line.\n", { lineNumbers: true });
+    var result = pdf.generatePdf("TITLE\n\n" + M + "Lam\nFirst line.\n", { lineNumbers: true });
     // Line numbers should be positioned at MARGIN_L - 15 = 50 - 15 = 35pt
     // Look for text positioning command near 35pt
     assert.ok(result.indexOf("35") >= 0, "should position numbers in left margin (around 35pt)");
@@ -166,7 +158,7 @@ test("generatePdf lineNumbers use smaller font than lyrics", function() {
 });
 
 test("generatePdf lineNumbers default off when not specified", function() {
-    var result = pdf.generatePdf("TITLE\n\nLam\nFirst line.\nSecond line.\n", {});
+    var result = pdf.generatePdf("TITLE\n\n" + M + "Lam\nFirst line.\nSecond line.\n", {});
     // Should not contain gray color for line numbers
     var grayMatches = result.match(/0\.6 0\.6 0\.6 rg/g);
     assert.ok(!grayMatches, "line numbers should be off by default");

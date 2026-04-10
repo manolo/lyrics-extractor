@@ -745,7 +745,7 @@ MuseScore {
                         Button {
                             text: tr("Guardar TXT", "Save TXT")
                             enabled: lyricsPreview.text.indexOf("(") !== 0
-                            onClicked: saveLyricsToFile(lyricsPreview.text)
+                            onClicked: saveLyricsToFile(Formatter.stripChordMarkers(lyricsPreview.text))
                         }
 
                         Button {

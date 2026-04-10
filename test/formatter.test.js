@@ -1,6 +1,7 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
 var fmt = require("../lib/formatter");
+var M = fmt.CHORD_LINE_MARKER; // zero-width space prefix on chord lines
 
 test("formatLines renders chord line above text", function() {
     var lines = [{
@@ -12,7 +13,7 @@ test("formatLines renders chord line above text", function() {
     var chords = [{ tick: 0, chord: "Lam" }, { tick: 480, chord: "Re" }];
 
     var result = fmt.formatLines(lines, chords, null, -1);
-    assert.equal(result.output, "Lam   Re\nhello world\n");
+    assert.equal(result.output, M + "Lam   Re\nhello world\n");
     assert.equal(result.lastChord, "Re");
 });
 
@@ -129,7 +130,7 @@ test("expandTextForChords no expansion when chords fit", function() {
         { pos: 0, chord: "Lam" },
         { pos: 6, chord: "Re" }
     ]);
-    assert.equal(result.chordLine, "Lam   Re");
+    assert.equal(result.chordLine, M + "Lam   Re");
     assert.equal(result.text, "hello world foo");
 });
 
@@ -140,13 +141,13 @@ test("expandTextForChords inserts spaces when chord too long", function() {
         { pos: 0, chord: "Sol#m7" },
         { pos: 3, chord: "Re" }
     ]);
-    assert.equal(result.chordLine, "Sol#m7 Re");
+    assert.equal(result.chordLine, M + "Sol#m7 Re");
     assert.equal(result.text, "ab     cd");
 });
 
 test("expandTextForChords handles empty placements", function() {
     var result = fmt.expandTextForChords("hello", []);
-    assert.equal(result.chordLine, "");
+    assert.equal(result.chordLine, ""); // no placements = no marker
     assert.equal(result.text, "hello");
 });
 
@@ -243,8 +244,9 @@ test("formatLines expands text for long chords", function() {
     var result = fmt.formatLines(lines, chords, null, -1);
     var resultLines = result.output.split("\n");
     // Chord line and text line should be aligned
-    assert.ok(resultLines[0].indexOf("Sol#m7") === 0);
-    assert.ok(resultLines[0].indexOf("Re") > 6);
+    var cl = fmt.stripChordMarkers(resultLines[0]);
+    assert.ok(cl.indexOf("Sol#m7") === 0);
+    assert.ok(cl.indexOf("Re") > 6);
     // Text should be expanded
     assert.ok(resultLines[1].length > 5);
 });
@@ -642,7 +644,7 @@ test("formatPerfLines no coda when no chords after last line", function() {
     var result = fmt.formatPerfLines(lines, [], null, "", chords);
     var output = result.text;
     // Should just be the text line, no extra chord line
-    assert.equal(output, "Lam\nthe end\n");
+    assert.equal(output, M + "Lam\nthe end\n");
 });
 
 // ========================================
@@ -1256,7 +1258,7 @@ test("formatPerfLines positions gap chord before next word (> 1 beat gap)", func
     var result = fmt.formatPerfLines(lines, [], null, "", chords);
     var output = result.text;
     // Fa should appear before "y" in the chord line, not on top of it
-    var chordLine = output.split("\n")[0];
+    var chordLine = fmt.stripChordMarkers(output.split("\n")[0]);
     var faIdx = chordLine.indexOf("Fa");
     assert.ok(faIdx >= 0, "Fa should appear: " + output);
     assert.ok(faIdx < 6, "Fa should be before pos 6 (y): pos=" + faIdx + " line: " + chordLine);
@@ -1282,7 +1284,7 @@ test("formatLines adjusts snapped chord to not overlap word", function() {
         { tick: 960, chord: "Sol7" }
     ];
     var result = fmt.formatLines(lines, chords, null, -1);
-    var chordLine = result.output.split("\n")[0];
+    var chordLine = fmt.stripChordMarkers(result.output.split("\n")[0]);
     var textLine = result.output.split("\n")[1];
     // "Fa" should end before "y" in the text
     var faEnd = chordLine.indexOf("Fa") + 2;
@@ -1296,7 +1298,7 @@ test("formatLines adjusts snapped chord to not overlap word", function() {
 
 test("wrapChordLine returns short line unchanged", function() {
     var line = "Lam  Re  Sol";
-    assert.equal(fmt.wrapChordLine(line, 70), line);
+    assert.equal(fmt.wrapChordLine(line, 70), M + line);
 });
 
 test("wrapChordLine splits long line at double-space boundary", function() {
@@ -1378,7 +1380,7 @@ test("formatPerfLines shifts chord to space before word when gap > 960 ticks", f
     }
     assert.ok(chordLine.length > 0, "should find chord line with Re: " + output);
     // Re should appear before position 16 (shifted to space before word)
-    var rePos = chordLine.indexOf("Re");
+    var rePos = fmt.stripChordMarkers(chordLine).indexOf("Re");
     assert.ok(rePos < 16, "Re should be shifted before pos 16: pos=" + rePos + " line=" + chordLine);
 });
 
