@@ -1,0 +1,388 @@
+var test = require("node:test");
+var assert = require("node:assert/strict");
+var reader = require("../extractors/xml-chord-reader");
+var Constants = require("../lib/constants");
+
+// Score with FretDiagram chords (the case the plugin can't handle via QML API)
+var FRETDIAGRAM_SCORE = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<museScore version="4.40">',
+    '<Score>',
+    '<Division>480</Division>',
+    '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+    '<Staff id="1">',
+    '<Measure>',
+    '<voice>',
+    '<FretDiagram>',
+    '<Harmony><harmonyInfo><root>18</root><name>m</name></harmonyInfo></Harmony>',
+    '<fretDiagram><string no="0"><marker>cross</marker></string></fretDiagram>',
+    '</FretDiagram>',
+    '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch></Note></Chord>',
+    '<Chord><durationType>quarter</durationType><Note><pitch>62</pitch></Note></Chord>',
+    '<FretDiagram>',
+    '<Harmony><harmonyInfo><root>17</root></harmonyInfo></Harmony>',
+    '<fretDiagram><string no="0"><marker>circle</marker></string></fretDiagram>',
+    '</FretDiagram>',
+    '<Chord><durationType>half</durationType><Note><pitch>64</pitch></Note></Chord>',
+    '</voice>',
+    '</Measure>',
+    '</Staff>',
+    '</Score>',
+    '</museScore>'
+].join("\n");
+
+// Score with standalone Harmony
+var HARMONY_SCORE = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<museScore version="4.40">',
+    '<Score>',
+    '<Division>480</Division>',
+    '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+    '<Staff id="1">',
+    '<Measure>',
+    '<voice>',
+    '<Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony>',
+    '<Chord><durationType>half</durationType><Note><pitch>60</pitch></Note></Chord>',
+    '<Harmony><harmonyInfo><root>15</root><name>7</name></harmonyInfo></Harmony>',
+    '<Chord><durationType>half</durationType><Note><pitch>64</pitch></Note></Chord>',
+    '</voice>',
+    '</Measure>',
+    '</Staff>',
+    '</Score>',
+    '</museScore>'
+].join("\n");
+
+// Score with both FretDiagram and standalone Harmony
+var MIXED_SCORE = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<museScore version="4.40">',
+    '<Score>',
+    '<Division>480</Division>',
+    '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+    '<Staff id="1">',
+    '<Measure>',
+    '<voice>',
+    '<FretDiagram>',
+    '<Harmony><harmonyInfo><root>14</root><name>m</name></harmonyInfo></Harmony>',
+    '<fretDiagram></fretDiagram>',
+    '</FretDiagram>',
+    '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch></Note></Chord>',
+    '<Harmony><harmonyInfo><root>15</root></harmonyInfo></Harmony>',
+    '<Chord><durationType>quarter</durationType><Note><pitch>62</pitch></Note></Chord>',
+    '<Chord><durationType>half</durationType><Note><pitch>64</pitch></Note></Chord>',
+    '</voice>',
+    '</Measure>',
+    '</Staff>',
+    '</Score>',
+    '</museScore>'
+].join("\n");
+
+test("extractChords extracts chords from FretDiagram elements", function() {
+    var chords = reader.extractChords(FRETDIAGRAM_SCORE, Constants);
+    assert.equal(chords.length, 2);
+    assert.equal(chords[0].chord, "Em");  // root=18 (E) + name=m
+    assert.equal(chords[0].tick, 0);
+    assert.equal(chords[1].chord, "La");  // root=17 (La), no name
+    assert.equal(chords[1].tick, 960);    // after quarter + quarter = 480+480
+});
+
+test("extractChords extracts standalone Harmony elements", function() {
+    var chords = reader.extractChords(HARMONY_SCORE, Constants);
+    assert.equal(chords.length, 2);
+    assert.equal(chords[0].chord, "Do");   // root=14 (C -> Do), no name
+    assert.equal(chords[0].tick, 0);
+    assert.equal(chords[1].chord, "G7");   // root=15 (G) + name=7
+    assert.equal(chords[1].tick, 960);     // after half = 960
+});
+
+test("extractChords handles mixed FretDiagram and Harmony", function() {
+    var chords = reader.extractChords(MIXED_SCORE, Constants);
+    assert.equal(chords.length, 2);
+    assert.equal(chords[0].chord, "Cm");   // root=14 (C) + name=m -> FretDiagram
+    assert.equal(chords[0].tick, 0);
+    assert.equal(chords[1].chord, "Sol");  // root=15 (Sol), standalone Harmony
+    assert.equal(chords[1].tick, 480);
+});
+
+test("extractChords excludes linked staves", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part>',
+        '<Staff id="1"><StaffType group="pitched"/></Staff>',
+        '<Staff id="2"><linkedTo>1</linkedTo><StaffType group="tablature"/></Staff>',
+        '</Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<FretDiagram><Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony><fretDiagram></fretDiagram></FretDiagram>',
+        '<Chord><durationType>whole</durationType><Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '<Staff id="2">',
+        '<Measure><voice>',
+        '<FretDiagram><Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony><fretDiagram></fretDiagram></FretDiagram>',
+        '<FretDiagram><Harmony><harmonyInfo><root>18</root><name>m</name></harmonyInfo></Harmony><fretDiagram></fretDiagram></FretDiagram>',
+        '<Chord><durationType>whole</durationType><Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var chords = reader.extractChords(xml, Constants);
+    assert.equal(chords.length, 1, "should only have chords from non-linked staff");
+    assert.equal(chords[0].chord, "Do");
+});
+
+test("extractChords handles time signature changes", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure>',
+        '<voice>',
+        '<TimeSig><sigN>3</sigN><sigD>4</sigD></TimeSig>',
+        '<FretDiagram><Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony><fretDiagram></fretDiagram></FretDiagram>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch></Note></Chord>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>62</pitch></Note></Chord>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>64</pitch></Note></Chord>',
+        '</voice>',
+        '</Measure>',
+        '<Measure>',
+        '<voice>',
+        '<FretDiagram><Harmony><harmonyInfo><root>15</root></harmonyInfo></Harmony><fretDiagram></fretDiagram></FretDiagram>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>65</pitch></Note></Chord>',
+        '<Chord><durationType>half</durationType><Note><pitch>67</pitch></Note></Chord>',
+        '</voice>',
+        '</Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var chords = reader.extractChords(xml, Constants);
+    assert.equal(chords.length, 2);
+    assert.equal(chords[0].tick, 0);
+    assert.equal(chords[1].tick, 1440, "second chord at tick 1440 (3 quarters in 3/4)");
+});
+
+test("extractChords handles tuplets correctly", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure>',
+        '<voice>',
+        '<FretDiagram><Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony><fretDiagram></fretDiagram></FretDiagram>',
+        '<Tuplet><normalNotes>2</normalNotes><actualNotes>3</actualNotes></Tuplet>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch></Note></Chord>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>62</pitch></Note></Chord>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>64</pitch></Note></Chord>',
+        '<endTuplet/>',
+        '<FretDiagram><Harmony><harmonyInfo><root>15</root></harmonyInfo></Harmony><fretDiagram></fretDiagram></FretDiagram>',
+        '<Chord><durationType>half</durationType><Note><pitch>65</pitch></Note></Chord>',
+        '</voice>',
+        '</Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var chords = reader.extractChords(xml, Constants);
+    assert.equal(chords.length, 2);
+    assert.equal(chords[0].tick, 0);
+    assert.equal(chords[1].tick, 960, "chord after triplet at 960");
+});
+
+test("extractChords skips grace notes in tick calculation", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure>',
+        '<voice>',
+        '<FretDiagram><Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony><fretDiagram></fretDiagram></FretDiagram>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch></Note></Chord>',
+        '<Chord><durationType>eighth</durationType><acciaccatura/><Note><pitch>61</pitch></Note></Chord>',
+        '<FretDiagram><Harmony><harmonyInfo><root>15</root></harmonyInfo></Harmony><fretDiagram></fretDiagram></FretDiagram>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>62</pitch></Note></Chord>',
+        '</voice>',
+        '</Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var chords = reader.extractChords(xml, Constants);
+    assert.equal(chords.length, 2);
+    assert.equal(chords[1].tick, 480, "grace note should not shift tick");
+});
+
+test("extractChords returns empty array for invalid XML", function() {
+    assert.equal(reader.extractChords("not xml", Constants).length, 0);
+});
+
+test("extractChords handles irregular measure len", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure len="1/4">',
+        '<voice>',
+        '<Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch></Note></Chord>',
+        '</voice>',
+        '</Measure>',
+        '<Measure>',
+        '<voice>',
+        '<Harmony><harmonyInfo><root>15</root></harmonyInfo></Harmony>',
+        '<Chord><durationType>whole</durationType><Note><pitch>62</pitch></Note></Chord>',
+        '</voice>',
+        '</Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var chords = reader.extractChords(xml, Constants);
+    assert.equal(chords.length, 2);
+    assert.equal(chords[1].tick, 480, "second measure starts at 480 (after 1/4 pickup)");
+});
+
+test("extractChords TPC Anglo reconstruction for solfeo chords", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure>',
+        '<voice>',
+        '<FretDiagram>',
+        '<Harmony><harmonyInfo><root>16</root><name>o</name></harmonyInfo></Harmony>',
+        '<fretDiagram></fretDiagram>',
+        '</FretDiagram>',
+        '<Chord><durationType>half</durationType><Note><pitch>60</pitch></Note></Chord>',
+        '<FretDiagram>',
+        '<Harmony><harmonyInfo><root>13</root><name>a#7</name></harmonyInfo></Harmony>',
+        '<fretDiagram></fretDiagram>',
+        '</FretDiagram>',
+        '<Chord><durationType>half</durationType><Note><pitch>65</pitch></Note></Chord>',
+        '</voice>',
+        '</Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var chords = reader.extractChords(xml, Constants);
+    assert.equal(chords.length, 2);
+    assert.equal(chords[0].chord, "Do", "TPC 16 (D) + name 'o' = 'Do'");
+    assert.equal(chords[1].chord, "Fa#7", "TPC 13 (F) + name 'a#7' = 'Fa#7'");
+});
+
+// --- extractFretDiagrams tests ---
+
+test("extractFretDiagrams extracts diagrams from FBox", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<FBox>',
+        '<FretDiagram>',
+        '<Harmony><harmonyInfo><root>16</root><name>o</name></harmonyInfo></Harmony>',
+        '<fretDiagram>',
+        '<string no="0"><marker>cross</marker></string>',
+        '<string no="2"><dot fret="2"/></string>',
+        '<string no="4"><marker>circle</marker></string>',
+        '</fretDiagram>',
+        '</FretDiagram>',
+        '<FretDiagram>',
+        '<fretOffset>3</fretOffset>',
+        '<frets>5</frets>',
+        '<Harmony><harmonyInfo><root>17</root><name>m</name></harmonyInfo></Harmony>',
+        '<fretDiagram>',
+        '<string no="1"><dot fret="1"/></string>',
+        '<barre start="0" end="5">1</barre>',
+        '</fretDiagram>',
+        '</FretDiagram>',
+        '</FBox>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var diagrams = reader.extractFretDiagrams(xml);
+    assert.equal(diagrams.length, 2);
+
+    assert.equal(diagrams[0].chordName, "Reo"); // TPC 16 = Re (Spanish) + "o" = "Reo"
+    assert.equal(diagrams[0].fretOffset, 0);
+    assert.equal(diagrams[0].numFrets, 4); // default
+    assert.equal(diagrams[0].strings.length, 3);
+    assert.equal(diagrams[0].strings[0].marker, "cross");
+    assert.equal(diagrams[0].strings[1].dot.fret, 2);
+    assert.equal(diagrams[0].strings[2].marker, "circle");
+
+    assert.equal(diagrams[1].chordName, "Lam");
+    assert.equal(diagrams[1].fretOffset, 3);
+    assert.equal(diagrams[1].numFrets, 5);
+    assert.equal(diagrams[1].barre.start, 0);
+    assert.equal(diagrams[1].barre.end, 5);
+    assert.equal(diagrams[1].barre.fret, 1);
+});
+
+test("extractFretDiagrams returns empty when no FBox", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score><Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<Chord><durationType>whole</durationType><Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    assert.equal(reader.extractFretDiagrams(xml).length, 0);
+});
+
+test("extractFretDiagrams deduplicates identical diagrams", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score><Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<FBox>',
+        '<FretDiagram>',
+        '<Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony>',
+        '<fretDiagram><string no="0"><marker>cross</marker></string></fretDiagram>',
+        '</FretDiagram>',
+        '<FretDiagram>',
+        '<Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony>',
+        '<fretDiagram><string no="0"><marker>cross</marker></string></fretDiagram>',
+        '</FretDiagram>',
+        '</FBox>',
+        '</Staff></Score></museScore>'
+    ].join("\n");
+
+    assert.equal(reader.extractFretDiagrams(xml).length, 1, "duplicate diagrams should be deduplicated");
+});

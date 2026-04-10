@@ -2,6 +2,9 @@
 // from the current score using the MuseScore plugin API (curScore global)
 // Used in the MuseScore extension context (apiversion 1)
 
+// --- Global debug variables ---
+var _fretDiagramDebug = null;
+
 // --- Internal helpers ---
 
 function _stripHtml(text) {
@@ -85,6 +88,7 @@ function findLinkedStaves() {
 function findStaves() {
     var voiceStaves = [];
     var harmonyStaves = [];
+    var allHarmonyFound = []; // DEBUG: track all harmony elements found
     var linkedStaves = {};
     var hiddenStaves = {};
 
@@ -138,8 +142,16 @@ function findStaves() {
         if (annotations) {
             for (var a = 0; a < annotations.length; a++) {
                 var ann = annotations[a];
-                if (ann && ann.type === Element.HARMONY) {
+                if (ann && (ann.type === Element.HARMONY)) {
                     var hStaff = Math.floor(ann.track / 4);
+                    // DEBUG: record all harmony found
+                    allHarmonyFound.push({
+                        staff: hStaff,
+                        tick: segment.tick,
+                        text: ann.text || "",
+                        linked: linkedStaves[hStaff] || false,
+                        hidden: hiddenStaves[hStaff] || false
+                    });
                     // Skip linked and hidden staves for harmony selection
                     if (linkedStaves[hStaff] || hiddenStaves[hStaff]) continue;
                     var hFound = false;
@@ -162,7 +174,8 @@ function findStaves() {
 
     return {
         voiceStaff: voiceStaves.length > 0 ? voiceStaves[0].idx : -1,
-        harmonyStaff: harmonyStaves.length > 0 ? harmonyStaves[0].idx : -1
+        harmonyStaff: harmonyStaves.length > 0 ? harmonyStaves[0].idx : -1,
+        _allHarmonyFound: allHarmonyFound // DEBUG
     };
 }
 
@@ -251,8 +264,12 @@ function extractSyllables(staffIdx) {
 // Returns: array of { tick, chord }
 function extractChords(harmonyStaffIdx) {
     var chords = [];
-    var segment = curScore.firstSegment();
+    var debugInfo = {
+        fretDiagramsFound: [],
+        fretDiagramErrors: []
+    };
 
+    var segment = curScore.firstSegment();
     while (segment) {
         var annotations = segment.annotations;
         if (annotations) {
@@ -270,12 +287,24 @@ function extractChords(harmonyStaffIdx) {
                         }
                     }
                 }
+                // FretDiagram annotations: QML API does not expose nested Harmony.
+                // Record their presence so the QProcess fallback can be triggered.
+                if (ann && ann.type === 63) { // Type 63 = FRET_DIAGRAM
+                    debugInfo.fretDiagramsFound.push({
+                        tick: segment.tick,
+                        staff: Math.floor(ann.track / 4)
+                    });
+                }
             }
         }
         segment = segment.next;
     }
 
     chords.sort(function(a, b) { return a.tick - b.tick; });
+
+    // Store debug info globally so we can return it
+    _fretDiagramDebug = debugInfo;
+
     return chords;
 }
 
@@ -527,7 +556,9 @@ function extractAll() {
             parts: _staffDebug,
             annotationTypes: navigation._annTypes || {},
             elementMarker: typeof Element !== "undefined" ? Element.MARKER : "N/A",
-            elementJump: typeof Element !== "undefined" ? Element.JUMP : "N/A"
+            elementJump: typeof Element !== "undefined" ? Element.JUMP : "N/A",
+            allHarmonyFound: staves._allHarmonyFound || [],
+            fretDiagramDebug: _fretDiagramDebug
         }
     };
 }

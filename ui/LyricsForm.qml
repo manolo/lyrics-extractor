@@ -17,6 +17,10 @@ import "../lib/navigation.js" as Navigation
 import "../lib/orchestrator.js" as Orchestrator
 import "../lib/pdf-writer.js" as PdfWriter
 import "../extractors/musescore-extractor.js" as Extractor
+// FretDiagram fallback: remove these 3 imports when MuseScore exposes FretDiagram.harmony
+import "../extractors/fretdiagram-fallback.js" as FretFallback
+import "../extractors/xml-chord-reader.js" as XmlChordReader
+import "../lib/constants.js" as Constants
 
 MuseScore {
     id: plugin
@@ -33,10 +37,13 @@ MuseScore {
     property string savedFilePath: ""
     property int selectionStartTick: 0
     property int selectionEndTick: 0
+    property var extractedFretDiagrams: []
 
     SystemPalette { id: systemPalette }
 
     FileIO { id: fileIO }
+
+    QProcess { id: chordProcess }
 
     Settings {
         id: settings
@@ -44,6 +51,7 @@ MuseScore {
         property bool useSolfeo: true
         property bool fullRepeat: false
         property bool onePage: false
+        property bool lineNumbers: false
         property string pdfHeader: ""
     }
 
@@ -268,7 +276,7 @@ MuseScore {
             if (annotations) {
                 for (var a = 0; a < annotations.length; a++) {
                     var ann = annotations[a];
-                    if (ann && ann.type === Element.HARMONY) {
+                    if (ann && (ann.type === Element.HARMONY)) {
                         var hStaff = Math.floor(ann.track / 4);
                         var found = false;
                         for (var h = 0; h < harmonyStaves.length; h++) {
@@ -336,7 +344,7 @@ MuseScore {
             if (anns) {
                 for (var ai = 0; ai < anns.length; ai++) {
                     var an = anns[ai];
-                    if (an && an.type === Element.HARMONY && Math.floor(an.track / 4) === principalStaff) {
+                    if (an && (an.type === Element.HARMONY) && Math.floor(an.track / 4) === principalStaff) {
                         principalChords.push({ tick: segment.tick, text: an.text || "" });
                     }
                 }
@@ -357,7 +365,7 @@ MuseScore {
                 if (lanns) {
                     for (var la = 0; la < lanns.length; la++) {
                         var lan = lanns[la];
-                        if (lan && lan.type === Element.HARMONY && Math.floor(lan.track / 4) === linkedIdx) {
+                        if (lan && (lan.type === Element.HARMONY) && Math.floor(lan.track / 4) === linkedIdx) {
                             toRemove.push(lan);
                         }
                     }
@@ -397,6 +405,26 @@ MuseScore {
     // EXTRACT (read-only, uses shared modules)
     // ========================================
 
+    // FretDiagram fallback: remove this function when MuseScore exposes FretDiagram.harmony
+    function extractChordsWithFallback(data) {
+        if (!FretFallback.needsFallback(data._debug)) return data.chords;
+
+        cmd("file-save");
+
+        var cliPath = Qt.resolvedUrl("../cli/extract-chords.js").toString().replace(/^file:\/\//, "");
+        var chords = FretFallback.extractChords({
+            scoreName: curScore.scoreName || "",
+            fileIO: fileIO,
+            process: chordProcess,
+            XmlChordReader: XmlChordReader,
+            Constants: Constants,
+            cliPath: cliPath,
+            data: data
+        });
+
+        return chords || data.chords;
+    }
+
     function extractLyricsWithChords() {
         if (!curScore) {
             statusText.text = tr("Error: No hay partitura abierta", "Error: No score open");
@@ -410,6 +438,10 @@ MuseScore {
             return;
         }
 
+        // Fallback: if FretDiagram annotations found but chords not extracted,
+        // use CLI to read .mscz file and extract chords from XML
+        data.chords = extractChordsWithFallback(data);
+
         data.solfeo = settings.useSolfeo;
         data.fullRepeat = settings.fullRepeat;
         var output = Orchestrator.processExtraction(data, mods);
@@ -417,6 +449,9 @@ MuseScore {
             statusText.text = tr("No se encontraron letras", "No lyrics found");
             return;
         }
+
+        // Store fretDiagrams for PDF generation
+        extractedFretDiagrams = data.fretDiagrams || [];
 
         lyricsPreview.text = output;
         statusText.text = tr(
@@ -496,7 +531,13 @@ MuseScore {
     function savePdfFile(content) {
         if (!content) return;
 
-        var pdfContent = PdfWriter.generatePdf(content, { header: settings.pdfHeader, onePage: settings.onePage });
+        var pdfOptions = {
+            header: settings.pdfHeader,
+            onePage: settings.onePage,
+            lineNumbers: settings.lineNumbers,
+            fretDiagrams: extractedFretDiagrams
+        };
+        var pdfContent = PdfWriter.generatePdf(content, pdfOptions);
 
         var scorePath = curScore.path || "";
         var filePath;
@@ -657,6 +698,13 @@ MuseScore {
                             onCheckedChanged: settings.onePage = checked
                         }
 
+                        CheckBox {
+                            id: lineNumbersCheck
+                            text: tr("Núm. línea", "Line num.")
+                            checked: settings.lineNumbers
+                            onCheckedChanged: settings.lineNumbers = checked
+                        }
+
                         Item { Layout.fillWidth: true }
 
                         Text {
@@ -786,6 +834,7 @@ MuseScore {
         solfeoCheck.checked = settings.useSolfeo;
         fullRepeatCheck.checked = settings.fullRepeat;
         onePageCheck.checked = settings.onePage;
+        lineNumbersCheck.checked = settings.lineNumbers;
         headerField.text = settings.pdfHeader;
     }
 }
