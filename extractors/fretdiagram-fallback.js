@@ -10,15 +10,23 @@
 //   - cli/extract-chords.js
 // And remove the import + call from ui/LyricsForm.qml
 
-// Check if the extracted data has FretDiagram annotations with unextracted chords
+// Check if fallback is needed:
+// 1. FretDiagram annotations in measures with unextracted chords (QML API limitation)
+// 2. FBox frame with fret diagrams detected (need to extract diagram data for PDF)
 function needsFallback(debugData) {
-    var fd = debugData && debugData.fretDiagramDebug;
-    if (!fd || !fd.fretDiagramsFound || fd.fretDiagramsFound.length === 0) {
-        return false;
+    if (!debugData) return false;
+
+    // Case 1: FretDiagram chord annotations that QML API could not read
+    var fd = debugData.fretDiagramDebug;
+    if (fd && fd.fretDiagramsFound && fd.fretDiagramsFound.length > 0) {
+        for (var i = 0; i < fd.fretDiagramsFound.length; i++) {
+            if (!fd.fretDiagramsFound[i].extracted) return true;
+        }
     }
-    for (var i = 0; i < fd.fretDiagramsFound.length; i++) {
-        if (!fd.fretDiagramsFound[i].extracted) return true;
-    }
+
+    // Case 2: FBox with fret diagrams (need diagram data for PDF rendering)
+    if (debugData.hasFretBox) return true;
+
     return false;
 }
 

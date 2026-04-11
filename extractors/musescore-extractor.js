@@ -557,6 +557,30 @@ function extractBarlines() {
     return barlines;
 }
 
+// Detect if the score has an FBox frame with FretDiagram elements.
+// Uses MeasureBase.next (MS4.6+) to iterate measures and frames.
+function hasFretDiagramBox() {
+    try {
+        var mb = curScore.firstMeasure;
+        if (!mb) return false;
+        // Go back to the first MeasureBase (frames before first measure)
+        while (mb.prev) mb = mb.prev;
+        // Iterate forward through all MeasureBases
+        while (mb) {
+            try {
+                var elems = mb.elements;
+                if (elems) {
+                    for (var i = 0; i < elems.length; i++) {
+                        if (elems[i] && elems[i].type === 63) return true; // FRET_DIAGRAM
+                    }
+                }
+            } catch (e) { /* elements not accessible on this MeasureBase */ }
+            mb = mb.next;
+        }
+    } catch (e) { /* .prev/.next not available */ }
+    return false;
+}
+
 // Extract all data from the current score
 // Returns the intermediate data structure consumed by the orchestrator
 function extractAll() {
@@ -620,7 +644,8 @@ function extractAll() {
             elementMarker: typeof Element !== "undefined" ? Element.MARKER : "N/A",
             elementJump: typeof Element !== "undefined" ? Element.JUMP : "N/A",
             allHarmonyFound: staves._allHarmonyFound || [],
-            fretDiagramDebug: _fretDiagramDebug
+            fretDiagramDebug: _fretDiagramDebug,
+            hasFretBox: hasFretDiagramBox()
         }
     };
 }
