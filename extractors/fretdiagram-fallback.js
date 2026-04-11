@@ -56,6 +56,8 @@ function extractChords(opts) {
         return null;
     }
 
+    var chords = null;
+
     // Strategy 1: tar extracts .mscx to stdout, parse in QML (no external dependencies)
     try {
         var mscxName = opts.scoreName + ".mscx";
@@ -67,13 +69,12 @@ function extractChords(opts) {
         if (xml.length > 100 && xml.indexOf("<museScore") > -1) {
             var xmlChords = opts.XmlChordReader.extractChords(xml, opts.Constants, opts.spelling);
             if (xmlChords.length > 0) {
-                // Also extract fretDiagrams for PDF rendering
+                chords = xmlChords;
                 if (opts.data) {
                     opts.data.fretDiagrams = opts.XmlChordReader.extractFretDiagrams(xml);
                 }
-                console.log("fretdiagram-fallback: tar: " + xmlChords.length + " chords, " +
+                console.log("fretdiagram-fallback: tar: " + chords.length + " chords, " +
                     (opts.data && opts.data.fretDiagrams ? opts.data.fretDiagrams.length : 0) + " fretDiagrams");
-                return xmlChords;
             }
         }
     } catch (e) {
@@ -81,7 +82,9 @@ function extractChords(opts) {
     }
 
     // Strategy 2: node extract-chords.js (requires Node.js installed)
-    if (opts.cliPath) {
+    // Used when tar failed, or tar found no fretDiagrams (they may be in excerpts)
+    var needNode = !chords || (opts.data && (!opts.data.fretDiagrams || opts.data.fretDiagrams.length === 0));
+    if (opts.cliPath && needNode) {
         try {
             opts.process.startWithArgs("node", [opts.cliPath, scorePath]);
             opts.process.waitForFinished(10000);
@@ -90,12 +93,16 @@ function extractChords(opts) {
 
             if (output.length > 2) {
                 var result = JSON.parse(output);
-                if (result && result.chords && result.chords.length > 0) {
-                    if (opts.data && result.fretDiagrams) {
+                if (result) {
+                    if (!chords && result.chords && result.chords.length > 0) {
+                        chords = result.chords;
+                    }
+                    if (opts.data && result.fretDiagrams && result.fretDiagrams.length > 0) {
                         opts.data.fretDiagrams = result.fretDiagrams;
                     }
-                    console.log("fretdiagram-fallback: node: " + result.chords.length + " chords");
-                    return result.chords;
+                    console.log("fretdiagram-fallback: node: " +
+                        (result.chords ? result.chords.length : 0) + " chords, " +
+                        (result.fretDiagrams ? result.fretDiagrams.length : 0) + " fretDiagrams");
                 }
             }
         } catch (e) {
@@ -103,8 +110,10 @@ function extractChords(opts) {
         }
     }
 
-    console.log("fretdiagram-fallback: all strategies failed");
-    return null;
+    if (!chords) {
+        console.log("fretdiagram-fallback: all strategies failed");
+    }
+    return chords;
 }
 
 if (typeof exports !== "undefined") {
