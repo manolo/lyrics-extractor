@@ -411,7 +411,11 @@ MuseScore {
 
     // FretDiagram fallback: remove this function when MuseScore exposes FretDiagram.harmony
     function extractChordsWithFallback(data) {
-        if (!FretFallback.needsFallback(data._debug)) return data.chords;
+        var needed = FretFallback.needsFallback(data._debug);
+        console.log("extractChordsWithFallback: needsFallback=" + needed +
+            " hasFretBox=" + (data._debug && data._debug.hasFretBox) +
+            " fretDiagramsFound=" + (data._debug && data._debug.fretDiagramDebug ? data._debug.fretDiagramDebug.fretDiagramsFound.length : "?"));
+        if (!needed) return data.chords;
 
         cmd("file-save");
 

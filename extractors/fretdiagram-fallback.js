@@ -33,9 +33,14 @@ function needsFallback(debugData) {
 // Find the .mscz file on disk by scoreName
 function _findScorePath(scoreName, fileIO) {
     var home = fileIO.homePath();
+    // Base name: strip trailing -number suffix (e.g. "EspañaCañi-41" -> "EspañaCañi")
+    var baseName = scoreName.replace(/-\d+$/, "");
+
     var candidates = [
         home + "/Music/TunaAlcala/" + scoreName + "/" + scoreName + ".mscz",
+        home + "/Music/TunaAlcala/" + baseName + "/" + scoreName + ".mscz",
         home + "/Music/" + scoreName + "/" + scoreName + ".mscz",
+        home + "/Music/" + baseName + "/" + scoreName + ".mscz",
         home + "/Documents/" + scoreName + ".mscz"
     ];
     for (var i = 0; i < candidates.length; i++) {
