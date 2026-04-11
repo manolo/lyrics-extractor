@@ -559,14 +559,14 @@ function extractBarlines() {
 
 // Detect if the score has an FBox frame with FretDiagram elements.
 // Uses MeasureBase.next (MS4.6+) to iterate measures and frames.
-function hasFretDiagramBox() {
+// Search a score for FBox frames containing FretDiagram elements
+function _scorHasFretBox(score) {
     try {
-        var mb = curScore.firstMeasure;
+        var mb = score.firstMeasure;
         if (!mb) return false;
-        // Go back to the first MeasureBase (frames before first measure)
-        while (mb.prev) mb = mb.prev;
-        // Iterate forward through all MeasureBases
-        while (mb) {
+        try { while (mb.prev) mb = mb.prev; } catch (e) { return false; }
+        var limit = 300;
+        while (mb && limit-- > 0) {
             try {
                 var elems = mb.elements;
                 if (elems) {
@@ -574,10 +574,33 @@ function hasFretDiagramBox() {
                         if (elems[i] && elems[i].type === 63) return true; // FRET_DIAGRAM
                     }
                 }
-            } catch (e) { /* elements not accessible on this MeasureBase */ }
-            mb = mb.next;
+            } catch (e) { /* skip */ }
+            try { mb = mb.next; } catch (e) { break; }
         }
-    } catch (e) { /* .prev/.next not available */ }
+    } catch (e) { /* skip */ }
+    return false;
+}
+
+function hasFretDiagramBox() {
+    // Check main score first
+    if (_scorHasFretBox(curScore)) return true;
+
+    // Check guitar excerpts (partScore)
+    try {
+        var excerpts = curScore.excerpts;
+        if (excerpts) {
+            for (var i = 0; i < excerpts.length; i++) {
+                var title = (excerpts[i].title || "").toLowerCase();
+                if (title.indexOf("guitar") >= 0 || title.indexOf("guitarra") >= 0) {
+                    try {
+                        var partScore = excerpts[i].partScore;
+                        if (partScore && _scorHasFretBox(partScore)) return true;
+                    } catch (e) { /* partScore not accessible */ }
+                }
+            }
+        }
+    } catch (e) { /* excerpts not accessible */ }
+
     return false;
 }
 
