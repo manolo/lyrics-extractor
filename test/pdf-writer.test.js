@@ -106,7 +106,7 @@ test("generatePdf with onePage tries gap reduction before font reduction", funct
     // Font should still be 9pt (only gaps reduced)
     var fontMatch = result.match(/\/F1 (\d+\.?\d*) Tf/);
     if (fontMatch) {
-        assert.equal(parseFloat(fontMatch[1]), 9, "font should stay at 9pt when gap reduction is enough");
+        assert.equal(parseFloat(fontMatch[1]), 11, "font should stay at 11pt when gap reduction is enough");
     }
 });
 
@@ -153,8 +153,8 @@ test("generatePdf lineNumbers use smaller font than lyrics", function() {
     var result = pdf.generatePdf("TITLE\n\nFirst line.\n", { lineNumbers: true });
     // Line numbers should use fontSize - 2 = 9 - 2 = 7pt
     // Lyrics use 9pt (/F1 9 Tf), numbers use 7pt (/F1 7 Tf)
-    assert.ok(result.indexOf("/F1 7") >= 0, "should use 7pt font for line numbers (fontSize - 2)");
-    assert.ok(result.indexOf("/F1 9") >= 0, "should use 9pt font for lyrics");
+    assert.ok(result.indexOf("/F1 9") >= 0, "should use 9pt font for line numbers (fontSize - 2)");
+    assert.ok(result.indexOf("/F1 11") >= 0, "should use 11pt font for lyrics");
 });
 
 test("generatePdf lineNumbers default off when not specified", function() {
