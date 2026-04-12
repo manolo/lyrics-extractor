@@ -31,26 +31,52 @@ function needsFallback(debugData) {
 }
 
 // Find the .mscz file on disk by scoreName.
-// Searches the user's home directory (portable, no hardcoded paths).
-// macOS/Linux: find, Windows: where /r
+// Strategy: after cmd("file-save"), find the most recently modified .mscz
+// matching the score name. Falls back to broader search if exact name fails.
 function _findScorePath(scoreName, fileIO, process) {
     if (!process) return "";
     var home = fileIO.homePath();
     var fileName = scoreName + ".mscz";
 
+    // Strategy 1: find recently saved .mscz by exact name
+    var found = _searchFile(process, home, fileName);
+    if (found) return found;
+
+    // Strategy 2: strip spaces and try again (scoreName "España Cañi" -> "EspañaCañi")
+    var compactName = scoreName.replace(/\s+/g, "") + ".mscz";
+    if (compactName !== fileName) {
+        found = _searchFile(process, home, compactName);
+        if (found) return found;
+    }
+
+    // Strategy 3: find most recently modified .mscz (just saved by cmd("file-save"))
+    try {
+        process.startWithArgs("find", [
+            home, "-name", "*.mscz", "-mmin", "-1", "-maxdepth", "5",
+            "-not", "-path", "*/.*", "-not", "-path", "*/.Trash/*"
+        ]);
+        process.waitForFinished(5000);
+        var output = process.readAllStandardOutput();
+        var recent = output ? output.toString().trim().split("\n")[0] : "";
+        if (recent) return recent;
+    } catch (e) { /* find not available */ }
+
+    return "";
+}
+
+function _searchFile(process, home, fileName) {
     // Try mdfind (macOS Spotlight, instant, exact name match)
     try {
         process.startWithArgs("mdfind", ["kMDItemFSName == '" + fileName + "'"]);
         process.waitForFinished(3000);
         var mOutput = process.readAllStandardOutput();
         var mLines = mOutput ? mOutput.toString().trim().split("\n") : [];
-        // Prefer paths under Music/ or Documents/, skip Templates
         for (var mi = 0; mi < mLines.length; mi++) {
             if (mLines[mi] && mLines[mi].indexOf("/Templates/") < 0) return mLines[mi];
         }
-    } catch (e) { /* mdfind not available (not macOS) */ }
+    } catch (e) { /* mdfind not available */ }
 
-    // Try find (Linux, also macOS fallback)
+    // Try find (Linux, macOS fallback)
     try {
         process.startWithArgs("find", [
             home, "-name", fileName, "-maxdepth", "5", "-not", "-path", "*/.*"
