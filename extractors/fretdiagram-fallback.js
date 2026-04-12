@@ -31,22 +31,40 @@ function needsFallback(debugData) {
 }
 
 // Find the .mscz file on disk by scoreName
-function _findScorePath(scoreName, fileIO) {
+function _findScorePath(scoreName, fileIO, process) {
     var home = fileIO.homePath();
-    // Base name: strip trailing -number suffix (e.g. "EspañaCañi-41" -> "EspañaCañi")
     var baseName = scoreName.replace(/-\d+$/, "");
+    var fileName = scoreName + ".mscz";
 
+    // Try direct paths first (fast)
     var candidates = [
-        home + "/Music/TunaAlcala/" + scoreName + "/" + scoreName + ".mscz",
-        home + "/Music/TunaAlcala/" + baseName + "/" + scoreName + ".mscz",
-        home + "/Music/" + scoreName + "/" + scoreName + ".mscz",
-        home + "/Music/" + baseName + "/" + scoreName + ".mscz",
-        home + "/Documents/" + scoreName + ".mscz"
+        home + "/Music/TunaAlcala/" + scoreName + "/" + fileName,
+        home + "/Music/TunaAlcala/" + baseName + "/" + fileName,
+        home + "/Music/" + scoreName + "/" + fileName,
+        home + "/Music/" + baseName + "/" + fileName,
+        home + "/Documents/" + fileName
     ];
     for (var i = 0; i < candidates.length; i++) {
         fileIO.source = candidates[i];
         if (fileIO.exists()) return candidates[i];
     }
+
+    // Fallback: search with find command (handles mismatched dir names)
+    if (process) {
+        try {
+            process.startWithArgs("find", [
+                home + "/Music/TunaAlcala", "-name", fileName, "-maxdepth", "2"
+            ]);
+            process.waitForFinished(5000);
+            var output = process.readAllStandardOutput();
+            var found = output ? output.toString().trim().split("\n")[0] : "";
+            if (found) {
+                fileIO.source = found;
+                if (fileIO.exists()) return found;
+            }
+        } catch (e) { /* find not available */ }
+    }
+
     return "";
 }
 
@@ -55,7 +73,7 @@ function _findScorePath(scoreName, fileIO) {
 // Returns: array of {tick, chord} or null if fallback failed/not needed.
 // Side effect: sets opts.data.fretDiagrams when available.
 function extractChords(opts) {
-    var scorePath = _findScorePath(opts.scoreName, opts.fileIO);
+    var scorePath = _findScorePath(opts.scoreName, opts.fileIO, opts.process);
     if (!scorePath) {
         console.log("fretdiagram-fallback: score not found for '" + opts.scoreName + "'");
         return null;
