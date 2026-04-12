@@ -1,5 +1,7 @@
 # Lyrics and Chords Extractor
 
+[Leer en Espanol](README.es.md)
+
 MuseScore 4 extension that extracts lyrics with aligned chords from scores, generating text and PDF output for songbooks, rehearsal sheets, and chord charts. Also available as a Node.js CLI.
 
 ## Installation
