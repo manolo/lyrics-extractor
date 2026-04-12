@@ -1,185 +1,153 @@
 # Lyrics and Chords Extractor
 
-MuseScore 4 extension and Node.js CLI that extracts lyrics with aligned chords from .mscz scores. Generates plain text and PDF output suitable for songbooks, rehearsal sheets, and chord charts.
-
-## What it does
-
-- Extracts lyrics and chord symbols from MuseScore 4 scores
-- Renders fretboard chord diagrams in PDF header (from FBox diagrams)
-- Aligns chords above the corresponding syllables
-- Handles repeats, voltas, D.S., D.C., Coda, Fine
-- Expands multi-verse sections (verse 0, verse 1, etc.)
-- Abbreviates repeated sections (estribillos) with "..." or section labels
-- Detects system text labels (INTRO, SOLISTA, ESTRIBILLO, etc.) as section markers
-- Converts chord names to solfeo (Do, Re, Mi) or anglo (C, D, E)
-- Generates PDF with formatted output (optional auto-fit to one page)
+MuseScore 4 extension that extracts lyrics with aligned chords from scores, generating text and PDF output for songbooks, rehearsal sheets, and chord charts. Also available as a Node.js CLI.
 
 ## Installation
-
-### MuseScore 4 Extension (recommended)
 
 1. Download `lyrics-extractor.mext` from the [latest release](https://github.com/manolo/lyrics-extractor/releases/latest)
 2. Drag the `.mext` file onto MuseScore 4 (or double click it)
 3. The extension appears in the toolbar and under **Extensions**
 
-### Manual installation
+## Features
 
-Clone or copy this repository to the extensions directory:
+### Score health check
+When the plugin opens, it analyzes the score and shows a status indicator:
+- **Green**: score is correct, ready to extract
+- **Orange**: issues detected with specific counts (synalepha, hyphens, syllabic chains, chord sync)
 
-| OS | Path |
-|----|------|
-| macOS | `~/Library/Application Support/MuseScore/MuseScore4/extensions/lyrics-extractor/` |
-| Linux | `~/.local/share/MuseScore/MuseScore4/extensions/lyrics-extractor/` |
-| Windows | `%LOCALAPPDATA%\MuseScore\MuseScore4\extensions\lyrics-extractor\` |
+The **Fix** button corrects all issues automatically:
+- Formats synalepha dots between vowels (da.es -> da&#x203F;es)
+- Removes manual hyphens from syllables
+- Repairs broken syllabic chains (begin/middle/end)
+- Syncs chords from the principal staff to linked tab staves
 
-Restart MuseScore after copying.
+### Lyrics and chords extraction
+- Extracts lyrics with chord symbols aligned above the corresponding syllables
+- Handles repeats, voltas, D.S., D.C., Coda, Fine
+- Expands multi-verse sections (verse 0, verse 1, etc.)
+- Abbreviates repeated sections with "..." or section labels
+- Detects system text labels (INTRO, SOLISTA, ESTRIBILLO) and rehearsal marks as section markers
+- Chord names follow the score's spelling setting (solfeo or anglo), no manual conversion needed
+- Works from any tab, including excerpt/part views (uses masterScore automatically)
 
-### CLI
+### Chord-only mode
+For scores without lyrics (instrumentals), the plugin automatically shows the chord progression structured by sections, barlines, and repeat markers.
 
-Only requires Node.js (no additional dependencies).
+### Fretboard diagrams
+Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) and renders them graphically in the PDF header.
 
-```bash
-node cli/index.js song.mscz
-```
+### PDF output
+- Compact layout optimized for printing (A4, safe margins)
+- Chords in green, lyrics in black, monospace alignment
+- Optional: auto-fit to one page, line numbers, group header
+- Fretboard diagrams in header with barres, markers, and fret numbers
+- Open generated file directly from the plugin
 
-## CLI Usage
+### Plugin controls
 
-```bash
-# Output to stdout
-node cli/index.js song.mscz
+| Control | Description |
+|---------|-------------|
+| **Fix** | Correct synalepha, hyphens, syllabic chains, chord sync |
+| **Extract** | Extract lyrics with chords, show preview |
+| **Copy** | Copy to clipboard |
+| **Save TXT** | Save text file alongside the score |
+| **Save PDF** | Save PDF alongside the score |
+| **Debug** | Export raw data as JSON |
 
-# Save text file alongside the score
-node cli/index.js song.mscz --save
+### Settings (persisted)
 
-# Generate PDF
-node cli/index.js song.mscz --pdf
+| Setting | Description |
+|---------|-------------|
+| Solfeo | Controls chord spelling for the fallback extractor |
+| Full repeat | Expand all D.S./D.C. repeats even without new lyrics |
 
-# PDF with header and auto-fit to one page
-node cli/index.js song.mscz --pdf --single --header "My Band"
+### PDF options (visible after extraction)
 
-# List chords only (no lyrics needed)
-node cli/index.js song.mscz --chords-only
-```
-
-### Flags
-
-| Flag | Description |
-|------|-------------|
-| `--save` | Save to `<score>-letra.txt` alongside the score |
-| `--pdf` | Generate PDF to `<score>-letra.pdf` |
-| `--single` | Shrink PDF to fit on one page (reduces gaps, margins, then font) |
-| `--header <name>` | Group/band name for PDF header (right-aligned) |
-| `--numbers` | Add line numbers in PDF output |
-| `--no-diagrams` | Omit fretboard diagrams from PDF |
-| `--chords-only` | Output chord sequence only (no lyrics needed) |
-| `--anglo` | Force anglo chord names (C, D, E) |
-| `--solfeo` | Force solfeo chord names (Do, Re, Mi) |
-| `--full` | Write all D.S./D.C. repeats even without new lyrics |
-| `--debug` | Export raw extracted data as JSON |
-
-By default, chord names use the score's own spelling setting (from Format > Style > Chord Symbols). Use `--anglo` or `--solfeo` to override.
-
-### Examples
-
-```bash
-# Text to stdout
-node cli/index.js ~/Music/Clavelitos.mscz
-
-# Save text + PDF with header
-node cli/index.js ~/Music/Clavelitos.mscz --save --pdf --header "Tuna de Madrid"
-
-# PDF auto-fit to one page with line numbers
-node cli/index.js ~/Music/HorasDeRonda.mscz --pdf --single --numbers
-
-# Generate PDF from an existing text file
-node cli/index.js lyrics.txt --pdf --header "My Band"
-
-# Chord progression for a score without lyrics
-node cli/index.js ~/Music/EspanaCani.mscz
-```
+| Option | Description |
+|--------|-------------|
+| 1 page | Shrink to fit on one page (gaps, margins, then font) |
+| Line numbers | Sequential numbers on lyric lines |
+| No diagrams | Omit fretboard diagrams |
+| Header | Group/band name (subtle, right-aligned) |
 
 ## Writing lyrics for best results
-
-The extractor works with any MuseScore score that has lyrics and chord symbols, but following these conventions produces the best output:
 
 ### Entering lyrics in MuseScore
 
 | Action | Shortcut | Effect |
 |--------|----------|--------|
 | Enter lyrics mode | `Cmd+L` | Start typing lyrics on the selected note |
-| Next note (same word) | `-` (hyphen) | Advance to the next note within the same word (syllable separator) |
-| Next note (new word) | `Space` | Complete the current word and move to the next note |
-| Melisma (extend syllable) | `_` (underscore) | Extend the syllable over the next note without new text |
-| Synalepha (vowel linking) | `.` between letters | `da.es` renders as `da es` (two syllables sung as one) |
+| Next note (same word) | `-` (hyphen) | Advance within the same word |
+| Next note (new word) | `Space` | Complete the word and move on |
+| Synalepha (vowel linking) | `.` between letters | `da.es` renders as `da es` |
 | Add chord symbol | `Cmd+K` | Add a chord symbol above the staff |
 | Add system text | `Cmd+Shift+T` | Add a section label (Intro, Estrofa, etc.) |
 
 ### Line breaks and punctuation
 
-The extractor automatically detects line breaks based on the musical structure. You can also control line breaks explicitly:
+| In the score | After Fix | Output | Line break? |
+|-------------|-----------|--------|-------------|
+| `;` (semicolon) | `,` (fullwidth comma) | `,` | YES |
+| `,,` (double comma) | `,` (small comma) | `,` | NO |
+| `..` (double period) | `.` (small full stop) | `.` | NO |
+| `...` (triple period) | `...` (ellipsis) | `...` | NO |
+| `.` `!` `?` (single) | unchanged | unchanged | YES |
 
-| In the score | After Fix button | Output | Line break? |
-|-------------|-----------------|--------|-------------|
-| `;` (semicolon) | `，` (fullwidth comma) | `,` | YES (new line, same stanza) |
-| `,,` (double comma) | `﹐` (small comma) | `,` | NO (same line) |
-| `..` (double period) | `﹒` (small full stop) | `.` | NO (same line) |
-| `...` (triple period) | `…` (ellipsis) | `…` | NO (same line) |
-| `.` `!` `?` (single) | unchanged | unchanged | YES (end of sentence) |
-
-**Automatic line breaks** are triggered by sentence-ending punctuation (`.` `!` `?`), long rests (>= 4 beats), and section barlines (end repeat `:|`, double barline, final barline).
-
-**Stanza breaks** (blank line between sections) are determined by system text labels when present. Without labels, heuristic breaks occur at sentence ends followed by rests and uppercase starts.
-
-**Principle:** When in doubt, the extractor does NOT break. Use `;` to force a break where needed.
-
-### Synalepha (vowel linking)
-
-Use a dot between vowels to indicate synalepha: `da.es` renders as `da es` (two syllables sung as one). The **Fix** button converts these to the undertie character (U+203F) for visual clarity in the score.
-
-### Verse numbering
-
-For songs with repeat bars and different lyrics per pass, add lyrics to verse 0 (first pass) and verse 1 (second pass) using MuseScore's verse number feature. The extractor automatically expands repeats with the correct verse for each pass. With 4 verses (0,1,2,3), a D.S. with playRepeats uses verses 2,3 on the second execution.
+Automatic line breaks are triggered by sentence-ending punctuation, long rests (>= 4 beats), and section barlines. When in doubt, the extractor does NOT break. Use `;` to force a break.
 
 ### Section labels
 
-Add System Text (`Cmd+Shift+T`) to mark sections: "Intro", "Estrofa", "Estribillo", "Solista", "Subida", etc. Labels control the output structure:
+Add System Text (`Cmd+Shift+T`) to mark sections. Labels control the output structure:
+- **With labels:** breaks occur only at label boundaries
+- **Single label in `|: :|`:** appears once (same section both passes)
+- **Multiple labels in `|: :|`:** all re-emit on each pass
+- **Numbered labels:** use `#` (e.g. `Estrofa #`) for `ESTROFA 1`, `ESTROFA 2`
 
-- **With labels:** stanza breaks occur only at label boundaries (no heuristic breaks). Add more labels for more divisions.
-- **Single label in `|: :|`:** appears once (both passes are the same section).
-- **Multiple labels in `|: :|`:** all labels re-emit on each pass (sub-sections).
-- **Repeated sections:** if a labeled section repeats identically (D.S./D.C.), only the label is shown (content abbreviated).
-- **Numbered labels:** use `#` in the label text (e.g. `Estrofa #`) to get automatic numbering: `ESTROFA 1`, `ESTROFA 2`, etc. on each pass.
+### Verse numbering
+
+For songs with repeat bars and different lyrics per pass, use MuseScore's verse number feature (verse 0, verse 1). The extractor expands repeats with the correct verse for each pass.
 
 ### Chord symbols
 
-Add chord symbols (`Cmd+K`) to the staff used for chord extraction. The extractor auto-detects the staff with the most chord symbols. Linked/tab staves and hidden staves are automatically excluded.
+Add chords (`Cmd+K`) to any staff. The extractor auto-detects the staff with the most chord symbols. Linked/tab staves and hidden staves are excluded automatically. Chord names use the score's spelling setting (Format > Style > Chord Symbols).
 
-### Navigation markers
+## CLI Usage
 
-D.S., D.C., Coda, Fine, Segno markers are automatically detected and used to build the correct playback order. The `playRepeats` property on D.S./D.C. jumps controls whether repeat bars are honored in the replay. When all verses are consumed, the replay wraps to verse 0 (song repeats with the same lyrics).
+The same extraction engine is available as a Node.js CLI (no additional dependencies).
 
-## Plugin UI
+```bash
+node cli/index.js song.mscz                          # stdout
+node cli/index.js song.mscz --save                   # save text file
+node cli/index.js song.mscz --pdf --header "My Band" # generate PDF
+node cli/index.js song.mscz --pdf --single --numbers  # PDF, one page, numbered
+node cli/index.js song.mscz --chords-only             # chord progression only
+```
 
-The MuseScore extension provides:
+### CLI Flags
 
-- **Score health indicator**: green (OK) or orange (issues detected) with specific counts
-- **Fix**: Fixes synalepha dots, hyphens, syllabic chains, syncs chords to linked staves
-- **Extract**: Extracts lyrics with chords and shows preview (works from any tab, including excerpts)
-- **Copy**: Copies to clipboard
-- **Save TXT / Save PDF**: Saves alongside the score, with open and copy-path buttons
-- **Debug**: Exports raw extracted data as JSON
+| Flag | Description |
+|------|-------------|
+| `--save` | Save to `<score>-letra.txt` alongside the score |
+| `--pdf` | Generate PDF to `<score>-letra.pdf` |
+| `--single` | Shrink PDF to fit on one page |
+| `--header <name>` | Group/band name for PDF header |
+| `--numbers` | Add line numbers in PDF |
+| `--no-diagrams` | Omit fretboard diagrams from PDF |
+| `--chords-only` | Force chord-only mode (ignore lyrics) |
+| `--anglo` | Force anglo chord names (C, D, E) |
+| `--solfeo` | Force solfeo chord names (Do, Re, Mi) |
+| `--full` | Write all D.S./D.C. repeats |
+| `--debug` | Export raw extracted data as JSON |
 
-### Settings (persisted)
+By default, chord names use the score's own spelling setting. Use `--anglo` or `--solfeo` to override.
 
-- **Solfeo**: Use solfeo chord names (controls fallback spelling)
-- **Full repeat**: Write all repeats even without new lyrics
+## Manual installation
 
-### PDF options (visible after extraction)
-
-- **1 page**: Auto-fit PDF to one page
-- **Line numbers**: Add sequential numbers to lyric lines
-- **No diagrams**: Omit fretboard diagrams
-- **Header**: Group/band name (right-aligned, subtle)
+| OS | Path |
+|----|------|
+| macOS | `~/Library/Application Support/MuseScore/MuseScore4/extensions/lyrics-extractor/` |
+| Linux | `~/.local/share/MuseScore/MuseScore4/extensions/lyrics-extractor/` |
+| Windows | `%LOCALAPPDATA%\MuseScore\MuseScore4\extensions\lyrics-extractor\` |
 
 ## Running tests
 
@@ -188,42 +156,6 @@ node --test test/*.test.js
 ```
 
 260 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, and integration.
-
-## Project structure
-
-```
-lyrics-extractor/
-  manifest.json                # MuseScore 4 extension manifest
-  ui/LyricsForm.qml            # Plugin UI (QML)
-  lib/                         # Shared modules (QML + Node.js)
-    constants.js               # Note names, TPC maps, tpcToChordName
-    orchestrator.js            # Main pipeline coordinator
-    formatter.js               # Chord+text rendering, chord line marker
-    chord-formatter.js         # Chord-only mode (scores without lyrics)
-    pdf-writer.js              # PDF generation (no dependencies)
-    fretboard-renderer.js      # [Fretboard] PDF diagram rendering
-    chord-utils.js             # Chord lookup functions
-    word-builder.js            # Syllables to words, phrase breaks
-    line-builder.js            # Words to lines, splitting, merging
-    repeat-structure.js        # Repeat/volta section pairing
-    performance-stream.js      # Flat syllable stream in singing order
-    intro-chords.js            # Intro chord expansion with repeats
-    navigation.js              # D.S./D.C./Coda playback plan
-    text-utils.js              # HTML strip, synalepha, vowels
-  extractors/
-    musescore-extractor.js     # MuseScore QML API extractor
-    xml-extractor.js           # XML parser extractor (CLI)
-    fretdiagram-fallback.js    # [Fretboard] QML API workaround
-    xml-chord-reader.js        # [Fretboard] XML parser for fallback
-  cli/
-    index.js                   # CLI entry point
-    mscz-reader.js             # ZIP reader for .mscz files
-    extract-chords.js          # [Fretboard] Node.js fallback helper
-  test/                        # Unit and integration tests
-    fixture.mscz               # Self-contained test score
-```
-
-Files tagged `[Fretboard]` are workarounds for MuseScore 4 QML API not exposing FretDiagram.harmony. They can be removed when the API is fixed.
 
 ## License
 
