@@ -1023,6 +1023,23 @@ test("formatPerfLines intro label re-emits when multiple labels in repeat", func
         "INTRO should appear twice with multiple labels: " + output);
 });
 
+test("formatPerfLines pre-intro label does NOT re-emit on repeat when outside repeat range", function() {
+    // Compostelana-like: Alborada(tick 10) labels the intro.
+    // Repeat range is 500-700. Alborada is far before the repeat.
+    // On backwards tick (second pass), Alborada should NOT re-appear.
+    var lines = [
+        { text: "verse one.", sylMap: [{tick:500,pos:0,chord:"Lam"}], startTick: 500, endTick: 700, sectionEnd: true },
+        // Backwards (second pass of repeat starting at 500)
+        { text: "verse two.", sylMap: [{tick:500,pos:0,chord:"Re"}], startTick: 500, endTick: 700, sectionEnd: false }
+    ];
+    var chords = [{tick:10, chord:"Re"}, {tick:20, chord:"Sol"}];
+    var systemTexts = [{tick:10, text:"Alborada"}, {tick:500, text:"Solista"}];
+    var result = fmt.formatPerfLines(lines, ["Re", "Sol"], null, "", chords, null, systemTexts);
+    var output = result.text;
+    assert.equal((output.match(/ALBORADA/g) || []).length, 1,
+        "ALBORADA (pre-intro) should appear only once, not on repeat: " + output);
+});
+
 test("formatPerfLines pre-intro label does NOT re-emit even with multiple labels", function() {
     // MÚSICA labels the intro section before the repeat.
     // Even with other labels (Estrofa, Estribillo), MÚSICA is an introLabel
