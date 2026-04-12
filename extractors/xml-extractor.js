@@ -326,19 +326,24 @@ function extractFretDiagrams(score, excerptXmls) {
             
             var harmony = findChild(fretDiagram, "Harmony");
             if (!harmony) continue;
-            
+
             var harmonyInfo = findChild(harmony, "harmonyInfo");
             if (!harmonyInfo) continue;
-            
+
             var rootTpc = parseInt(childText(harmonyInfo, "root"));
             var modifier = childText(harmonyInfo, "name") || "";
-            
-            if (!rootTpc) continue;
-            
-            var rootName = tpcToSpanishRoot(rootTpc);
-            if (!rootName) continue;
-            
-            var chordName = rootName + modifier;
+
+            var chordName;
+            if (!isNaN(rootTpc)) {
+                var rootName = tpcToSpanishRoot(rootTpc);
+                if (!rootName) continue;
+                chordName = rootName + modifier;
+            } else if (modifier) {
+                // No root TPC: use name as literal chord name (e.g. "Rem", "Solm")
+                chordName = modifier;
+            } else {
+                continue;
+            }
             
             var fretDiagramNode = findChild(fretDiagram, "fretDiagram");
             if (!fretDiagramNode) continue;

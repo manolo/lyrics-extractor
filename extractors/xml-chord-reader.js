@@ -298,11 +298,17 @@ function extractFretDiagrams(xmlString) {
             if (!hInfo) continue;
 
             var rootTpc = parseInt(_ct(hInfo, "root"));
-            if (!rootTpc) continue;
-            var rootName = _tpcToSpanish(rootTpc);
-            if (!rootName) continue;
-
-            var chordName = rootName + (_ct(hInfo, "name") || "");
+            var modifier = _ct(hInfo, "name") || "";
+            var chordName;
+            if (!isNaN(rootTpc)) {
+                var rootName = _tpcToSpanish(rootTpc);
+                if (!rootName) continue;
+                chordName = rootName + modifier;
+            } else if (modifier) {
+                chordName = modifier;
+            } else {
+                continue;
+            }
 
             var fdNode = _fc(fd, "fretDiagram");
             if (!fdNode) continue;
