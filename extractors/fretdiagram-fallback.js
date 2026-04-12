@@ -31,13 +31,14 @@ function needsFallback(debugData) {
 }
 
 // Find the .mscz file on disk by scoreName.
-// Uses find to search in the user's home directory (portable, no hardcoded paths).
+// Searches the user's home directory (portable, no hardcoded paths).
+// macOS/Linux: find, Windows: where /r
 function _findScorePath(scoreName, fileIO, process) {
     if (!process) return "";
     var home = fileIO.homePath();
     var fileName = scoreName + ".mscz";
 
-    // Use find to search in HOME with reasonable depth
+    // Try find (macOS/Linux)
     try {
         process.startWithArgs("find", [
             home, "-name", fileName, "-maxdepth", "5", "-not", "-path", "*/.*"
@@ -47,6 +48,15 @@ function _findScorePath(scoreName, fileIO, process) {
         var found = output ? output.toString().trim().split("\n")[0] : "";
         if (found) return found;
     } catch (e) { /* find not available */ }
+
+    // Try where (Windows)
+    try {
+        process.startWithArgs("where", ["/r", home, fileName]);
+        process.waitForFinished(5000);
+        var wOutput = process.readAllStandardOutput();
+        var wFound = wOutput ? wOutput.toString().trim().split("\r\n")[0] : "";
+        if (wFound) return wFound;
+    } catch (e) { /* where not available */ }
 
     return "";
 }
