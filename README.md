@@ -16,41 +16,49 @@ MuseScore 4 extension and Node.js CLI that extracts lyrics with aligned chords f
 
 ## Installation
 
-### As MuseScore 4 Extension
+### MuseScore 4 Extension (recommended)
 
-Copy or symlink this directory to:
+1. Download `lyrics-extractor.mext` from the [latest release](https://github.com/manolo/lyrics-extractor/releases/latest)
+2. Drag the `.mext` file onto MuseScore 4 (or double click it)
+3. The extension appears in the toolbar and under **Extensions**
 
-```
-~/Library/Application Support/MuseScore/MuseScore4/extensions/lyrics-extractor/
-```
+### Manual installation
 
-Restart MuseScore. The extension appears under **Plugins > Lyrics > Lyrics and Chords**.
+Clone or copy this repository to the extensions directory:
+
+| OS | Path |
+|----|------|
+| macOS | `~/Library/Application Support/MuseScore/MuseScore4/extensions/lyrics-extractor/` |
+| Linux | `~/.local/share/MuseScore/MuseScore4/extensions/lyrics-extractor/` |
+| Windows | `%LOCALAPPDATA%\MuseScore\MuseScore4\extensions\lyrics-extractor\` |
+
+Restart MuseScore after copying.
 
 ### CLI
 
 Only requires Node.js (no additional dependencies).
 
 ```bash
-chmod +x cli/index.js
+node cli/index.js song.mscz
 ```
 
 ## CLI Usage
 
 ```bash
 # Output to stdout
-cli/index.js song.mscz
+node cli/index.js song.mscz
 
 # Save text file alongside the score
-cli/index.js song.mscz --save
+node cli/index.js song.mscz --save
 
 # Generate PDF
-cli/index.js song.mscz --pdf
+node cli/index.js song.mscz --pdf
 
 # PDF with header and auto-fit to one page
-cli/index.js song.mscz --pdf --one-page --header "My Band"
+node cli/index.js song.mscz --pdf --single --header "My Band"
 
-# All flags work in any position
-cli/index.js --pdf --one-page --save song.mscz
+# List chords only (no lyrics needed)
+node cli/index.js song.mscz --chords-only
 ```
 
 ### Flags
@@ -59,26 +67,35 @@ cli/index.js --pdf --one-page --save song.mscz
 |------|-------------|
 | `--save` | Save to `<score>-letra.txt` alongside the score |
 | `--pdf` | Generate PDF to `<score>-letra.pdf` |
-| `--one-page` | Shrink PDF to fit on one page (reduces gaps, margins, then font) |
+| `--single` | Shrink PDF to fit on one page (reduces gaps, margins, then font) |
 | `--header <name>` | Group/band name for PDF header (right-aligned) |
-| `--anglo` | Use anglo chord names (C, D, E) instead of solfeo |
+| `--numbers` | Add line numbers in PDF output |
+| `--no-diagrams` | Omit fretboard diagrams from PDF |
+| `--chords-only` | Output chord sequence only (no lyrics needed) |
+| `--anglo` | Force anglo chord names (C, D, E) |
+| `--solfeo` | Force solfeo chord names (Do, Re, Mi) |
 | `--full` | Write all D.S./D.C. repeats even without new lyrics |
 | `--debug` | Export raw extracted data as JSON |
+
+By default, chord names use the score's own spelling setting (from Format > Style > Chord Symbols). Use `--anglo` or `--solfeo` to override.
 
 ### Examples
 
 ```bash
 # Text to stdout
-cli/index.js ~/Music/Clavelitos.mscz
+node cli/index.js ~/Music/Clavelitos.mscz
 
 # Save text + PDF with header
-cli/index.js ~/Music/Clavelitos.mscz --save --pdf --header "Tuna de Madrid"
+node cli/index.js ~/Music/Clavelitos.mscz --save --pdf --header "Tuna de Madrid"
 
-# PDF auto-fit to one page
-cli/index.js ~/Music/HorasDeRonda.mscz --pdf --one-page
+# PDF auto-fit to one page with line numbers
+node cli/index.js ~/Music/HorasDeRonda.mscz --pdf --single --numbers
 
 # Generate PDF from an existing text file
-cli/index.js lyrics.txt --pdf --header "My Band"
+node cli/index.js lyrics.txt --pdf --header "My Band"
+
+# Chord progression for a score without lyrics
+node cli/index.js ~/Music/EspanaCani.mscz
 ```
 
 ## Writing lyrics for best results
@@ -145,55 +162,68 @@ D.S., D.C., Coda, Fine, Segno markers are automatically detected and used to bui
 
 The MuseScore extension provides:
 
-- **Fix**: Fixes synalepha dots, hyphens, syllabic chains, semicolons, suspension points, and syncs chords to linked staves
-- **Extract**: Extracts lyrics with chords and shows preview
+- **Score health indicator**: green (OK) or orange (issues detected) with specific counts
+- **Fix**: Fixes synalepha dots, hyphens, syllabic chains, syncs chords to linked staves
+- **Extract**: Extracts lyrics with chords and shows preview (works from any tab, including excerpts)
 - **Copy**: Copies to clipboard
-- **Save TXT**: Saves text file alongside the score
-- **Save PDF**: Saves PDF alongside the score
-- **Debug**: Exports raw extracted data as JSON for troubleshooting
+- **Save TXT / Save PDF**: Saves alongside the score, with open and copy-path buttons
+- **Debug**: Exports raw extracted data as JSON
 
 ### Settings (persisted)
 
-- **Solfeo checkbox**: Use solfeo chord names (default on)
-- **Full repeat checkbox**: Write all repeats even without new lyrics
-- **PDF 1 page checkbox**: Auto-fit PDF to one page
-- **PDF header field**: Group/band name for PDF header
+- **Solfeo**: Use solfeo chord names (controls fallback spelling)
+- **Full repeat**: Write all repeats even without new lyrics
+
+### PDF options (visible after extraction)
+
+- **1 page**: Auto-fit PDF to one page
+- **Line numbers**: Add sequential numbers to lyric lines
+- **No diagrams**: Omit fretboard diagrams
+- **Header**: Group/band name (right-aligned, subtle)
 
 ## Running tests
 
 ```bash
-node --test
+node --test test/*.test.js
 ```
 
-216 tests covering all modules: extractors, performance stream, word builder, line builder, formatter, navigation, PDF writer, orchestrator, and integration tests.
+260 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, and integration.
 
 ## Project structure
 
 ```
 lyrics-extractor/
-  manifest.json              # MuseScore 4 extension manifest
-  ui/LyricsForm.qml          # Plugin UI
-  lib/                        # Shared modules (QML + Node.js)
-    constants.js              # Note names, duration maps
-    text-utils.js             # HTML strip, synalepha, vowels
-    chord-utils.js            # Chord lookup, solfeo/anglo conversion
-    word-builder.js           # Syllables to words, phrase breaks
-    line-builder.js           # Words to lines, splitting, merging
-    repeat-structure.js       # Repeat/volta section pairing
-    performance-stream.js     # Flat syllable stream in singing order
-    intro-chords.js           # Intro chord expansion with repeats
-    navigation.js             # D.S./D.C./Coda playback plan
-    formatter.js              # Chord+text rendering, abbreviation
-    orchestrator.js           # Main pipeline
-    pdf-writer.js             # PDF generation (no dependencies)
+  manifest.json                # MuseScore 4 extension manifest
+  ui/LyricsForm.qml            # Plugin UI (QML)
+  lib/                         # Shared modules (QML + Node.js)
+    constants.js               # Note names, TPC maps, tpcToChordName
+    orchestrator.js            # Main pipeline coordinator
+    formatter.js               # Chord+text rendering, chord line marker
+    chord-formatter.js         # Chord-only mode (scores without lyrics)
+    pdf-writer.js              # PDF generation (no dependencies)
+    fretboard-renderer.js      # [Fretboard] PDF diagram rendering
+    chord-utils.js             # Chord lookup functions
+    word-builder.js            # Syllables to words, phrase breaks
+    line-builder.js            # Words to lines, splitting, merging
+    repeat-structure.js        # Repeat/volta section pairing
+    performance-stream.js      # Flat syllable stream in singing order
+    intro-chords.js            # Intro chord expansion with repeats
+    navigation.js              # D.S./D.C./Coda playback plan
+    text-utils.js              # HTML strip, synalepha, vowels
   extractors/
-    musescore-extractor.js    # MuseScore plugin API extractor
-    xml-extractor.js          # XML parser extractor (CLI)
+    musescore-extractor.js     # MuseScore QML API extractor
+    xml-extractor.js           # XML parser extractor (CLI)
+    fretdiagram-fallback.js    # [Fretboard] QML API workaround
+    xml-chord-reader.js        # [Fretboard] XML parser for fallback
   cli/
-    index.js                  # CLI entry point
-    mscz-reader.js            # ZIP reader for .mscz files
-  test/                       # Unit and integration tests
+    index.js                   # CLI entry point
+    mscz-reader.js             # ZIP reader for .mscz files
+    extract-chords.js          # [Fretboard] Node.js fallback helper
+  test/                        # Unit and integration tests
+    fixture.mscz               # Self-contained test score
 ```
+
+Files tagged `[Fretboard]` are workarounds for MuseScore 4 QML API not exposing FretDiagram.harmony. They can be removed when the API is fixed.
 
 ## License
 
