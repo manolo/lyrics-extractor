@@ -721,7 +721,7 @@ MuseScore {
                                 ? tr("Analizando...", "Checking...")
                                 : (issueCount === 0
                                     ? tr("Partitura correcta", "Score is correct")
-                                    : tr(issueCount + " problema(s) detectado(s)", issueCount + " issue(s) detected"))
+                                    : tr(issueCount + " problemas detectados", issueCount + " issues detected"))
                             color: systemPalette.windowText
                             font.pixelSize: 12
                             font.bold: issueCount > 0
@@ -734,20 +734,20 @@ MuseScore {
                         text: {
                             var lines = [];
                             if (issueSynalepha > 0) lines.push(
-                                tr(issueSynalepha + " sinalefa(s): punto entre vocales \u2192 \u203F",
-                                   issueSynalepha + " synalepha(s): dot between vowels \u2192 \u203F"));
+                                tr(issueSynalepha + " sinalefas: punto entre vocales \u2192 \u203F",
+                                   issueSynalepha + " synalepha: dot between vowels \u2192 \u203F"));
                             if (issueHyphens > 0) lines.push(
-                                tr(issueHyphens + " guion(es) manual(es) en silabas",
-                                   issueHyphens + " manual hyphen(s) in syllables"));
+                                tr(issueHyphens + " guiones manuales en silabas",
+                                   issueHyphens + " manual hyphens in syllables"));
                             if (issueSyllabic > 0) lines.push(
-                                tr(issueSyllabic + " cadena(s) silabica(s) rota(s)",
-                                   issueSyllabic + " broken syllabic chain(s)"));
+                                tr(issueSyllabic + " cadenas silabicas rotas",
+                                   issueSyllabic + " broken syllabic chains"));
                             if (issuePunctuation > 0) lines.push(
                                 tr(issuePunctuation + " puntuacion pendiente (; .. ,,)",
                                    issuePunctuation + " pending punctuation (; .. ,,)"));
                             if (issueChordSync > 0) lines.push(
-                                tr(issueChordSync + " acorde(s) sin sincronizar (tab)",
-                                   issueChordSync + " unsynchronized chord(s) (tab)"));
+                                tr(issueChordSync + " acordes sin sincronizar (tab)",
+                                   issueChordSync + " unsynchronized chords (tab)"));
                             return lines.map(function(l) { return "\u2022 " + l; }).join("\n");
                         }
                         color: "#E65100"
