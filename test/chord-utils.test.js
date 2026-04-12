@@ -46,6 +46,39 @@ test("getChordsInRange returns unique chords in range", function() {
 // Anglo to solfeo conversion
 // ========================================
 
-// Note: solfeo/anglo conversion tests removed.
-// Chord names are now extracted directly in the correct language
-// using Constants.tpcToChordName() with the score's spelling setting.
+// ========================================
+// tpcToChordName (direct extraction in target language)
+// ========================================
+var Constants = require("../lib/constants");
+
+test("tpcToChordName produces solfeo names with solfeggio spelling", function() {
+    assert.equal(Constants.tpcToChordName(17, "m", "solfeggio"), "Lam");
+    assert.equal(Constants.tpcToChordName(18, "7", "solfeggio"), "Mi7");
+    assert.equal(Constants.tpcToChordName(14, "M", "solfeggio"), "DoM");
+    assert.equal(Constants.tpcToChordName(13, "", "solfeggio"), "Fa");
+    assert.equal(Constants.tpcToChordName(15, "", "solfeggio"), "Sol");
+});
+
+test("tpcToChordName produces anglo names with standard spelling", function() {
+    assert.equal(Constants.tpcToChordName(17, "m", "standard"), "Am");
+    assert.equal(Constants.tpcToChordName(18, "7", "standard"), "E7");
+    assert.equal(Constants.tpcToChordName(14, "M", "standard"), "CM");
+    assert.equal(Constants.tpcToChordName(13, "", "standard"), "F");
+    assert.equal(Constants.tpcToChordName(15, "", "standard"), "G");
+});
+
+test("tpcToChordName defaults to standard (anglo) when no spelling", function() {
+    assert.equal(Constants.tpcToChordName(17, "m"), "Am");
+    assert.equal(Constants.tpcToChordName(14, ""), "C");
+});
+
+test("tpcToChordName returns literal text when no root TPC", function() {
+    assert.equal(Constants.tpcToChordName(-99, "Bajos", "solfeggio"), "Bajos");
+    assert.equal(Constants.tpcToChordName(-99, "A", "standard"), "A");
+    assert.equal(Constants.tpcToChordName(-99, "", "solfeggio"), "");
+});
+
+test("tpcToChordName handles french spelling same as solfeggio", function() {
+    assert.equal(Constants.tpcToChordName(17, "m", "french"), "Lam");
+    assert.equal(Constants.tpcToChordName(14, "", "french"), "Do");
+});
