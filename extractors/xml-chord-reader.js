@@ -292,6 +292,8 @@ function extractFretDiagrams(xmlString) {
         for (var fi = 0; fi < fds.length; fi++) {
             var fd = fds[fi];
 
+            if (_ct(fd, "visible") === "0") continue;
+
             var harmony = _fc(fd, "Harmony");
             if (!harmony) continue;
             var hInfo = _fc(harmony, "harmonyInfo");

@@ -324,6 +324,9 @@ function extractFretDiagrams(score, excerptXmls) {
         for (var fd = 0; fd < fretDiagrams.length; fd++) {
             var fretDiagram = fretDiagrams[fd];
             
+            // Skip hidden diagrams (visible=0)
+            if (childText(fretDiagram, "visible") === "0") continue;
+
             var harmony = findChild(fretDiagram, "Harmony");
             if (!harmony) continue;
 
