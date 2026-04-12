@@ -46,6 +46,7 @@ MuseScore {
     FileIO { id: fileIO }
 
     QProcess { id: chordProcess }
+    QProcess { id: openProcess }
 
     Settings {
         id: settings
@@ -942,6 +943,36 @@ MuseScore {
                     font.italic: true
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
+                }
+
+                Text {
+                    id: openFileLink
+                    text: "\uD83D\uDD17"
+                    visible: savedFilePath !== ""
+                    font.pixelSize: 14
+                    opacity: openFileMouse.containsMouse ? 1.0 : 0.6
+
+                    MouseArea {
+                        id: openFileMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            // Try platform openers: open (macOS), xdg-open (Linux), start (Windows)
+                            var openers = [
+                                ["open", [savedFilePath]],
+                                ["xdg-open", [savedFilePath]],
+                                ["cmd", ["/c", "start", "", savedFilePath]]
+                            ];
+                            for (var oi = 0; oi < openers.length; oi++) {
+                                try {
+                                    openProcess.startWithArgs(openers[oi][0], openers[oi][1]);
+                                    openProcess.waitForFinished(3000);
+                                    break;
+                                } catch (e) { /* try next */ }
+                            }
+                        }
+                    }
                 }
 
                 Text {
