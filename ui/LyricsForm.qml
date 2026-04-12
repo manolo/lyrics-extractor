@@ -103,11 +103,16 @@ MuseScore {
     // ========================================
 
     property int issueCount: -1 // -1 = not checked yet, 0 = OK, >0 = issues found
+    property int issueSynalepha: 0
+    property int issueHyphens: 0
+    property int issueSyllabic: 0
+    property int issuePunctuation: 0
+    property int issueChordSync: 0
 
     function checkScore() {
         if (!curScore) { issueCount = 0; return; }
 
-        var issues = 0;
+        var synalepha = 0, hyphens = 0, syllabic = 0, punctuation = 0, chordSync = 0;
 
         // Check lyrics: synalepha, hyphens, syllabic chains
         var segment = curScore.firstSegment();
@@ -124,26 +129,16 @@ MuseScore {
                         var text = TextUtils.stripHtml(lyric.text || "");
                         if (!text) continue;
 
-                        // Check synalepha: dots between letters not yet converted
-                        if (TextUtils.replaceSynalepha(text) !== text) issues++;
+                        if (TextUtils.replaceSynalepha(text) !== text) synalepha++;
+                        if (text.charAt(0) === '-' || text.charAt(text.length - 1) === '-') hyphens++;
+                        if (text.indexOf(';') >= 0 || text.match(/\.{2,}/) || text.match(/,,/)) punctuation++;
 
-                        // Check manual hyphens
-                        if (text.charAt(0) === '-' || text.charAt(text.length - 1) === '-') issues++;
-
-                        // Check semicolons not converted
-                        if (text.indexOf(';') >= 0) issues++;
-
-                        // Check consecutive dots not converted
-                        if (text.match(/\.{2,}/)) issues++;
-
-                        // Check broken syllabic chains
                         var verse = lyric.verse || 0;
                         var key = staff + "_" + voice + "_" + verse;
-                        var currSyllabic = lyric.syllabic || 0;
+                        var currSyl = lyric.syllabic || 0;
                         var prev = prevSyllabic[key] || 0;
-                        // begin/middle (1/3) must be followed by middle/end (3/2)
-                        if ((prev === 1 || prev === 3) && (currSyllabic === 0 || currSyllabic === 1)) issues++;
-                        prevSyllabic[key] = currSyllabic;
+                        if ((prev === 1 || prev === 3) && (currSyl === 0 || currSyl === 1)) syllabic++;
+                        prevSyllabic[key] = currSyl;
                     }
                 }
             }
@@ -177,18 +172,22 @@ MuseScore {
                     seg2 = seg2.next;
                 }
 
-                // Count mismatches
                 var principalTicks = Object.keys(principalHarmony);
                 for (var pt = 0; pt < principalTicks.length; pt++) {
                     var tick = principalTicks[pt];
                     if (linkedChords[tick] === undefined || linkedChords[tick] !== principalHarmony[tick]) {
-                        issues++;
+                        chordSync++;
                     }
                 }
             }
         } catch (e) { /* chord sync check failed, ignore */ }
 
-        issueCount = issues;
+        issueSynalepha = synalepha;
+        issueHyphens = hyphens;
+        issueSyllabic = syllabic;
+        issuePunctuation = punctuation;
+        issueChordSync = chordSync;
+        issueCount = synalepha + hyphens + syllabic + punctuation + chordSync;
     }
 
     // ========================================
@@ -732,13 +731,28 @@ MuseScore {
                     Text {
                         Layout.fillWidth: true
                         wrapMode: Text.WordWrap
-                        text: tr(
-                            "\u2022 Formatea sinalefas: punto entre vocales \u2192 \u203F (da.es \u2192 da\u203Fes)\n\u2022 Elimina guiones manuales de las silabas\n\u2022 Repara la separacion silabica (begin/middle/end)\n\u2022 Sincroniza acordes del pentagrama principal a pentagramas enlazados (tab)",
-                            "\u2022 Formats synalepha: dot between vowels \u2192 \u203F (da.es \u2192 da\u203Fes)\n\u2022 Removes manual hyphens from syllables\n\u2022 Repairs syllabic separation (begin/middle/end)\n\u2022 Syncs chords from principal staff to linked staves (tab)"
-                        )
-                        color: systemPalette.windowText
+                        text: {
+                            var lines = [];
+                            if (issueSynalepha > 0) lines.push(
+                                tr(issueSynalepha + " sinalefa(s): punto entre vocales \u2192 \u203F",
+                                   issueSynalepha + " synalepha(s): dot between vowels \u2192 \u203F"));
+                            if (issueHyphens > 0) lines.push(
+                                tr(issueHyphens + " guion(es) manual(es) en silabas",
+                                   issueHyphens + " manual hyphen(s) in syllables"));
+                            if (issueSyllabic > 0) lines.push(
+                                tr(issueSyllabic + " cadena(s) silabica(s) rota(s)",
+                                   issueSyllabic + " broken syllabic chain(s)"));
+                            if (issuePunctuation > 0) lines.push(
+                                tr(issuePunctuation + " puntuacion pendiente (; .. ,,)",
+                                   issuePunctuation + " pending punctuation (; .. ,,)"));
+                            if (issueChordSync > 0) lines.push(
+                                tr(issueChordSync + " acorde(s) sin sincronizar (tab)",
+                                   issueChordSync + " unsynchronized chord(s) (tab)"));
+                            return lines.map(function(l) { return "\u2022 " + l; }).join("\n");
+                        }
+                        color: "#E65100"
                         font.pixelSize: 11
-                        visible: issueCount !== 0
+                        visible: issueCount > 0
                     }
 
                     RowLayout {
