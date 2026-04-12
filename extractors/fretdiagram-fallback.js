@@ -30,40 +30,23 @@ function needsFallback(debugData) {
     return false;
 }
 
-// Find the .mscz file on disk by scoreName
+// Find the .mscz file on disk by scoreName.
+// Uses find to search in the user's home directory (portable, no hardcoded paths).
 function _findScorePath(scoreName, fileIO, process) {
+    if (!process) return "";
     var home = fileIO.homePath();
-    var baseName = scoreName.replace(/-\d+$/, "");
     var fileName = scoreName + ".mscz";
 
-    // Try direct paths first (fast)
-    var candidates = [
-        home + "/Music/TunaAlcala/" + scoreName + "/" + fileName,
-        home + "/Music/TunaAlcala/" + baseName + "/" + fileName,
-        home + "/Music/" + scoreName + "/" + fileName,
-        home + "/Music/" + baseName + "/" + fileName,
-        home + "/Documents/" + fileName
-    ];
-    for (var i = 0; i < candidates.length; i++) {
-        fileIO.source = candidates[i];
-        if (fileIO.exists()) return candidates[i];
-    }
-
-    // Fallback: search with find command (handles mismatched dir names)
-    if (process) {
-        try {
-            process.startWithArgs("find", [
-                home + "/Music/TunaAlcala", "-name", fileName, "-maxdepth", "2"
-            ]);
-            process.waitForFinished(5000);
-            var output = process.readAllStandardOutput();
-            var found = output ? output.toString().trim().split("\n")[0] : "";
-            if (found) {
-                fileIO.source = found;
-                if (fileIO.exists()) return found;
-            }
-        } catch (e) { /* find not available */ }
-    }
+    // Use find to search in HOME with reasonable depth
+    try {
+        process.startWithArgs("find", [
+            home, "-name", fileName, "-maxdepth", "5", "-not", "-path", "*/.*"
+        ]);
+        process.waitForFinished(5000);
+        var output = process.readAllStandardOutput();
+        var found = output ? output.toString().trim().split("\n")[0] : "";
+        if (found) return found;
+    } catch (e) { /* find not available */ }
 
     return "";
 }
