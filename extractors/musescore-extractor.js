@@ -212,28 +212,6 @@ function extractSyllables(staffIdx) {
 
         var durationQ = getDurationInQuarters(elem);
 
-        var restAfter = false;
-        var restDurationQ = 0;
-        if (e + 1 < elements.length && elements[e + 1].element.type === Element.REST) {
-            restAfter = true;
-            restDurationQ = getDurationInQuarters(elements[e + 1].element);
-        }
-
-        var gapDurationQ = 0;
-        for (var g = e + 1; g < elements.length; g++) {
-            var gElem = elements[g].element;
-            if (gElem.type === Element.REST) {
-                gapDurationQ += getDurationInQuarters(gElem);
-            } else if (gElem.type === Element.CHORD) {
-                var gLyr = gElem.lyrics;
-                if (!gLyr || gLyr.length === 0) {
-                    gapDurationQ += getDurationInQuarters(gElem);
-                } else {
-                    break;
-                }
-            }
-        }
-
         for (var l = 0; l < lyr.length; l++) {
             var lyric = lyr[l];
             if (!lyric.text) continue;
@@ -256,10 +234,31 @@ function extractSyllables(staffIdx) {
                     _stripHyphens(_stripHtml(lyric.text)).trim(),
                 syllabic: syllabicStr,
                 durationQ: durationQ,
-                restAfter: restAfter,
-                restDurationQ: restDurationQ,
-                gapDurationQ: gapDurationQ
+                restAfter: false,
+                restDurationQ: 0,
+                gapDurationQ: 0
             });
+        }
+    }
+
+    // Compute gaps between syllables (same logic as xml-extractor).
+    // Uses tick difference between consecutive syllables of the same verse
+    // instead of looking for physical REST elements (more reliable).
+    syllables.sort(function(a, b) { return a.tick - b.tick || a.verse - b.verse; });
+    for (var gi = 0; gi < syllables.length; gi++) {
+        var gSyl = syllables[gi];
+        for (var gj = gi + 1; gj < syllables.length; gj++) {
+            if (syllables[gj].verse === gSyl.verse) {
+                var gap = (syllables[gj].tick - gSyl.tick) / 480 - gSyl.durationQ;
+                if (gap > 0) {
+                    gSyl.gapDurationQ = gap;
+                    if (gap > 0.25) {
+                        gSyl.restAfter = true;
+                        gSyl.restDurationQ = gap;
+                    }
+                }
+                break;
+            }
         }
     }
 
