@@ -71,8 +71,18 @@ function _searchFile(process, home, fileName) {
         process.waitForFinished(3000);
         var mOutput = process.readAllStandardOutput();
         var mLines = mOutput ? mOutput.toString().trim().split("\n") : [];
+        // Filter out Templates/old/backup, then pick the shortest path (most likely primary)
+        var mCandidates = [];
         for (var mi = 0; mi < mLines.length; mi++) {
-            if (mLines[mi] && mLines[mi].indexOf("/Templates/") < 0) return mLines[mi];
+            var mp = mLines[mi];
+            if (mp && mp.indexOf("/Templates/") < 0 && mp.indexOf("/old/") < 0 &&
+                mp.indexOf("/backup/") < 0 && mp.indexOf("/.Trash/") < 0) {
+                mCandidates.push(mp);
+            }
+        }
+        if (mCandidates.length > 0) {
+            mCandidates.sort(function(a, b) { return a.length - b.length; });
+            return mCandidates[0];
         }
     } catch (e) { /* mdfind not available */ }
 
