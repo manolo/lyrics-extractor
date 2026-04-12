@@ -99,6 +99,99 @@ MuseScore {
     }
 
     // ========================================
+    // CHECK SCORE: count issues without modifying (read-only)
+    // ========================================
+
+    property int issueCount: -1 // -1 = not checked yet, 0 = OK, >0 = issues found
+
+    function checkScore() {
+        if (!curScore) { issueCount = 0; return; }
+
+        var issues = 0;
+
+        // Check lyrics: synalepha, hyphens, syllabic chains
+        var segment = curScore.firstSegment();
+        var prevSyllabic = {};
+        while (segment) {
+            for (var staff = 0; staff < curScore.nstaves; staff++) {
+                for (var voice = 0; voice < 4; voice++) {
+                    var element = segment.elementAt(staff * 4 + voice);
+                    if (!element || (element.type !== Element.CHORD && element.type !== Element.REST)) continue;
+                    var lyr = element.lyrics;
+                    if (!lyr) continue;
+                    for (var l = 0; l < lyr.length; l++) {
+                        var lyric = lyr[l];
+                        var text = TextUtils.stripHtml(lyric.text || "");
+                        if (!text) continue;
+
+                        // Check synalepha: dots between letters not yet converted
+                        if (TextUtils.replaceSynalepha(text) !== text) issues++;
+
+                        // Check manual hyphens
+                        if (text.charAt(0) === '-' || text.charAt(text.length - 1) === '-') issues++;
+
+                        // Check semicolons not converted
+                        if (text.indexOf(';') >= 0) issues++;
+
+                        // Check consecutive dots not converted
+                        if (text.match(/\.{2,}/)) issues++;
+
+                        // Check broken syllabic chains
+                        var verse = lyric.verse || 0;
+                        var key = staff + "_" + voice + "_" + verse;
+                        var currSyllabic = lyric.syllabic || 0;
+                        var prev = prevSyllabic[key] || 0;
+                        // begin/middle (1/3) must be followed by middle/end (3/2)
+                        if ((prev === 1 || prev === 3) && (currSyllabic === 0 || currSyllabic === 1)) issues++;
+                        prevSyllabic[key] = currSyllabic;
+                    }
+                }
+            }
+            segment = segment.next;
+        }
+
+        // Check chord sync: principal staff vs linked tab staves
+        try {
+            var staves = curScore.staves;
+            if (staves) {
+                var principalHarmony = {};
+                var linkedChords = {};
+
+                var seg2 = curScore.firstSegment();
+                while (seg2) {
+                    var anns = seg2.annotations;
+                    if (anns) {
+                        for (var a = 0; a < anns.length; a++) {
+                            var ann = anns[a];
+                            if (ann && ann.type === Element.HARMONY) {
+                                var hStaff = Math.floor(ann.track / 4);
+                                if (staves[hStaff] && !staves[hStaff].isTabStaff) {
+                                    principalHarmony[seg2.tick] = ann.text || "";
+                                } else if (staves[hStaff] && staves[hStaff].isTabStaff) {
+                                    if (!linkedChords[seg2.tick]) linkedChords[seg2.tick] = "";
+                                    linkedChords[seg2.tick] = ann.text || "";
+                                }
+                            }
+                        }
+                    }
+                    seg2 = seg2.next;
+                }
+
+                // Count mismatches
+                var principalTicks = Object.keys(principalHarmony);
+                for (var pt = 0; pt < principalTicks.length; pt++) {
+                    var tick = principalTicks[pt];
+                    if (linkedChords[tick] === undefined || linkedChords[tick] !== principalHarmony[tick]) {
+                        issues++;
+                    }
+                }
+            }
+        } catch (e) { /* chord sync check failed, ignore */ }
+
+        issueCount = issues;
+    }
+
+    // ========================================
     // FIX LYRICS: synalepha + consolidate in one pass (modifies score)
     // ========================================
 
@@ -604,14 +697,37 @@ MuseScore {
                 color: systemPalette.mid
             }
 
-            // Fix lyrics section (synalepha + consolidate)
+            // Fix lyrics and chords section
             GroupBox {
                 Layout.fillWidth: true
-                title: tr("Corregir letras", "Fix lyrics")
+                title: tr("Corregir letras y acordes", "Fix lyrics and chords")
 
                 ColumnLayout {
                     anchors.fill: parent
                     spacing: 8
+
+                    // Status indicator
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        Rectangle {
+                            width: 14; height: 14; radius: 7
+                            color: issueCount < 0 ? "gray" : (issueCount === 0 ? "#4CAF50" : "#FF9800")
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: issueCount < 0
+                                ? tr("Analizando...", "Checking...")
+                                : (issueCount === 0
+                                    ? tr("Partitura correcta", "Score is correct")
+                                    : tr(issueCount + " problema(s) detectado(s)", issueCount + " issue(s) detected"))
+                            color: systemPalette.windowText
+                            font.pixelSize: 12
+                            font.bold: issueCount > 0
+                        }
+                    }
 
                     Text {
                         Layout.fillWidth: true
@@ -622,11 +738,13 @@ MuseScore {
                         )
                         color: systemPalette.windowText
                         font.pixelSize: 11
+                        visible: issueCount !== 0
                     }
 
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 10
+                        visible: issueCount !== 0
 
                         Text {
                             text: hasSelection ?
@@ -641,7 +759,10 @@ MuseScore {
 
                         Button {
                             text: tr("Corregir", "Fix")
-                            onClicked: fixLyrics()
+                            onClicked: {
+                                fixLyrics();
+                                checkScore(); // Re-check after fix
+                            }
                         }
                     }
                 }
@@ -857,6 +978,7 @@ MuseScore {
     Component.onCompleted: {
         hasSelection = checkSelection();
         PdfWriter.setFretboardRenderer(FretboardRenderer);
+        checkScore();
     }
 
     onRun: {
