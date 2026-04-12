@@ -2,6 +2,12 @@
 // from the current score using the MuseScore plugin API (curScore global)
 // Used in the MuseScore extension context (apiversion 1)
 
+// --- Score reference ---
+// _score points to the score to extract from. Defaults to _getScore().
+// When the user is viewing an excerpt, the caller sets this to masterScore.
+var _score = null;
+function _getScore() { return _score || curScore; }
+
 // --- Global debug variables ---
 var _fretDiagramDebug = null;
 
@@ -48,16 +54,16 @@ function toTicks(value) {
 
 // Find the staff with lyrics (voice staff) and the staff with harmony symbols
 // Detect linked/tab staves using the MuseScore API.
-// Uses curScore.staves[i].isTabStaff and staff.part to identify
+// Uses _getScore().staves[i].isTabStaff and staff.part to identify
 // which staves are tablature copies (linked) of a principal staff.
 // For each Part with multiple staves, non-first staves are linked.
 function findLinkedStaves() {
     var linked = {};
     try {
-        var staves = curScore.staves;
+        var staves = _getScore().staves;
         // Build map: for each Part, find its staff indices and mark non-principal
-        for (var p = 0; p < curScore.parts.length; p++) {
-            var part = curScore.parts[p];
+        for (var p = 0; p < _getScore().parts.length; p++) {
+            var part = _getScore().parts[p];
             var partStaffIndices = [];
             for (var s = 0; s < staves.length; s++) {
                 if (staves[s].part && staves[s].part.is(part)) {
@@ -72,7 +78,7 @@ function findLinkedStaves() {
     } catch (e) {
         // Fallback: mark tab staves as linked
         try {
-            var staves2 = curScore.staves;
+            var staves2 = _getScore().staves;
             for (var s2 = 0; s2 < staves2.length; s2++) {
                 if (staves2[s2].isTabStaff) {
                     linked[s2] = true;
@@ -101,8 +107,8 @@ function findStaves() {
 
     // Build set of hidden staff indices from parts with show=false
     try {
-        for (var pi = 0; pi < curScore.parts.length; pi++) {
-            var part = curScore.parts[pi];
+        for (var pi = 0; pi < _getScore().parts.length; pi++) {
+            var part = _getScore().parts[pi];
             if (part.show === false) {
                 var startStaff = Math.floor(part.startTrack / 4);
                 var endStaff = Math.floor((part.endTrack - 1) / 4);
@@ -115,9 +121,9 @@ function findStaves() {
         // API not available, skip hidden detection
     }
 
-    var segment = curScore.firstSegment();
+    var segment = _getScore().firstSegment();
     while (segment) {
-        for (var staff = 0; staff < curScore.nstaves; staff++) {
+        for (var staff = 0; staff < _getScore().nstaves; staff++) {
             // Skip hidden staves
             if (hiddenStaves[staff]) continue;
 
@@ -184,7 +190,7 @@ function findStaves() {
 function extractSyllables(staffIdx) {
     var syllables = [];
     var elements = [];
-    var segment = curScore.firstSegment();
+    var segment = _getScore().firstSegment();
     while (segment) {
         var element = segment.elementAt(staffIdx * 4);
         if (element) {
@@ -269,7 +275,7 @@ function extractChords(harmonyStaffIdx) {
         fretDiagramErrors: []
     };
 
-    var segment = curScore.firstSegment();
+    var segment = _getScore().firstSegment();
     while (segment) {
         var annotations = segment.annotations;
         if (annotations) {
@@ -322,7 +328,7 @@ function extractChords(harmonyStaffIdx) {
 // Extract repeat barlines and volta brackets
 function extractRepeats() {
     var repeats = [];
-    var measure = curScore.firstMeasure;
+    var measure = _getScore().firstMeasure;
     var repeatStartTick = -1;
     while (measure) {
         var seg = measure.firstSegment;
@@ -355,7 +361,7 @@ function extractRepeats() {
 function extractVoltas() {
     var voltas = [];
     try {
-        var spanners = curScore.spanners;
+        var spanners = _getScore().spanners;
         if (spanners) {
             for (var i = 0; i < spanners.length; i++) {
                 var sp = spanners[i];
@@ -384,7 +390,7 @@ function extractNavigation() {
     var jumps = [];
 
     // Method 1: scan segment annotations
-    var segment = curScore.firstSegment();
+    var segment = _getScore().firstSegment();
     while (segment) {
         var annotations = segment.annotations;
         if (annotations) {
@@ -423,7 +429,7 @@ function extractNavigation() {
 
     // Debug: log all annotation types found
     var _annTypes = {};
-    var _segDbg = curScore.firstSegment();
+    var _segDbg = _getScore().firstSegment();
     while (_segDbg) {
         var _anns = _segDbg.annotations;
         if (_anns) {
@@ -441,7 +447,7 @@ function extractNavigation() {
     // Method 2: scan measure.elements (Jump/Marker are measure-level in MS4, not annotations)
     if (markers.length === 0 && jumps.length === 0) {
         try {
-            var measure = curScore.firstMeasure;
+            var measure = _getScore().firstMeasure;
             while (measure) {
                 var seg = measure.firstSegment;
                 var tick = seg ? seg.tick : 0;
@@ -486,7 +492,7 @@ function extractNavigation() {
 // Extract system texts (section labels like "Solista", "Estribillo", etc.)
 function extractSystemTexts() {
     var texts = [];
-    var segment = curScore.firstSegment();
+    var segment = _getScore().firstSegment();
     while (segment) {
         var annotations = segment.annotations;
         if (annotations) {
@@ -512,7 +518,7 @@ function extractSystemTexts() {
 // Returns: array of { tick, type } sorted by tick
 function extractBarlines() {
     var barlines = [];
-    var measure = curScore.firstMeasure;
+    var measure = _getScore().firstMeasure;
     while (measure) {
         var seg = measure.firstSegment;
         var tick = seg ? seg.tick : 0;
@@ -587,7 +593,7 @@ function hasFretDiagramBox() {
 
     // Check guitar excerpts (partScore)
     try {
-        var excerpts = curScore.excerpts;
+        var excerpts = _getScore().excerpts;
         if (excerpts) {
             for (var i = 0; i < excerpts.length; i++) {
                 var title = (excerpts[i].title || "").toLowerCase();
@@ -607,6 +613,14 @@ function hasFretDiagramBox() {
 // Extract all data from the current score
 // Returns the intermediate data structure consumed by the orchestrator
 function extractAll() {
+    // If viewing an excerpt, use the master score for extraction
+    try {
+        var master = curScore.masterScore;
+        _score = (master && !master.is(curScore)) ? master : curScore;
+    } catch (e) {
+        _score = curScore;
+    }
+
     var staves = findStaves();
 
     var syllables = staves.voiceStaff >= 0 ? extractSyllables(staves.voiceStaff) : [];
@@ -619,7 +633,7 @@ function extractAll() {
 
     // Compute lastTick from the last measure
     var lastTick = 0;
-    var measure = curScore.firstMeasure;
+    var measure = _getScore().firstMeasure;
     while (measure) {
         var seg = measure.firstSegment;
         if (seg) lastTick = seg.tick;
@@ -635,8 +649,8 @@ function extractAll() {
     // Debug: collect staff info for diagnostics
     var _staffDebug = [];
     try {
-        for (var dp = 0; dp < curScore.parts.length; dp++) {
-            var dpart = curScore.parts[dp];
+        for (var dp = 0; dp < _getScore().parts.length; dp++) {
+            var dpart = _getScore().parts[dp];
             var dinfo = { part: dp, name: dpart.longName || dpart.shortName || "" };
             try { dinfo.startTrack = dpart.startTrack; } catch(e) { dinfo.startTrack = "N/A"; }
             try { dinfo.endTrack = dpart.endTrack; } catch(e) { dinfo.endTrack = "N/A"; }
@@ -646,8 +660,8 @@ function extractAll() {
     } catch(e) { _staffDebug.push({ error: "" + e }); }
 
     return {
-        title: curScore.metaTag("workTitle") || curScore.metaTag("movementTitle") || curScore.title || curScore.scoreName || "",
-        nstaves: curScore.nstaves,
+        title: _getScore().metaTag("workTitle") || _getScore().metaTag("movementTitle") || _getScore().title || _getScore().scoreName || "",
+        nstaves: _getScore().nstaves,
         division: 480,
         syllables: syllables,
         chords: chords,

@@ -509,7 +509,7 @@ MuseScore {
 
         var cliPath = Qt.resolvedUrl("../cli/extract-chords.js").toString().replace(/^file:\/\//, "");
         var chords = FretFallback.extractChords({
-            scoreName: curScore.scoreName || "",
+            scoreName: (curScore.masterScore ? curScore.masterScore.scoreName : curScore.scoreName) || "",
             fileIO: fileIO,
             process: chordProcess,
             XmlChordReader: XmlChordReader,
