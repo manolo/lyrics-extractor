@@ -38,7 +38,16 @@ function _findScorePath(scoreName, fileIO, process) {
     var home = fileIO.homePath();
     var fileName = scoreName + ".mscz";
 
-    // Try find (macOS/Linux)
+    // Try mdfind (macOS Spotlight, instant)
+    try {
+        process.startWithArgs("mdfind", ["-name", fileName]);
+        process.waitForFinished(3000);
+        var mOutput = process.readAllStandardOutput();
+        var mFound = mOutput ? mOutput.toString().trim().split("\n")[0] : "";
+        if (mFound) return mFound;
+    } catch (e) { /* mdfind not available (not macOS) */ }
+
+    // Try find (Linux, also macOS fallback)
     try {
         process.startWithArgs("find", [
             home, "-name", fileName, "-maxdepth", "5", "-not", "-path", "*/.*"
