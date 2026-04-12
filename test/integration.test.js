@@ -76,3 +76,17 @@ test("integration: fixture.mscz orchestrator produces output", function() {
     assert.ok(output.indexOf("Mi7") >= 0, "Should contain solfeo chord Mi7");
     assert.ok(output.indexOf("Hel") >= 0, "Should contain lyrics");
 });
+
+test("integration: tpcToChordName handles literal text without root", function() {
+    var Constants = require("../lib/constants");
+    // Chords without root TPC should return the name as-is
+    assert.equal(Constants.tpcToChordName(-99, "Bajos", "solfeggio"), "Bajos");
+    assert.equal(Constants.tpcToChordName(-99, "Rem", "standard"), "Rem");
+    assert.equal(Constants.tpcToChordName(-99, "", "solfeggio"), "");
+});
+
+test("integration: readSpelling returns standard when no style sheet", function() {
+    // .mscx files don't have score_style.mss, should default to standard
+    var spelling = msczReader.readSpelling("/tmp/nonexistent.mscx");
+    assert.equal(spelling, "standard");
+});

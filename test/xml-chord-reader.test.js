@@ -386,3 +386,51 @@ test("extractFretDiagrams deduplicates identical diagrams", function() {
 
     assert.equal(reader.extractFretDiagrams(xml).length, 1, "duplicate diagrams should be deduplicated");
 });
+
+test("extractFretDiagrams skips hidden diagrams", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score><Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><FBox>',
+        '<FretDiagram>',
+        '<Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony>',
+        '<fretDiagram><string no="0"><marker>cross</marker></string></fretDiagram>',
+        '</FretDiagram>',
+        '<FretDiagram>',
+        '<visible>0</visible>',
+        '<Harmony><harmonyInfo><root>15</root></harmonyInfo></Harmony>',
+        '<fretDiagram><string no="0"><marker>circle</marker></string></fretDiagram>',
+        '</FretDiagram>',
+        '</FBox></Staff></Score></museScore>'
+    ].join("\n");
+
+    var diagrams = reader.extractFretDiagrams(xml);
+    assert.equal(diagrams.length, 1, "should skip hidden diagram");
+    assert.equal(diagrams[0].chordName, "Do");
+});
+
+test("extractFretDiagrams extracts literal chord names without root TPC", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score><Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><FBox>',
+        '<FretDiagram>',
+        '<Harmony><harmonyInfo><name>Rem</name></harmonyInfo></Harmony>',
+        '<fretDiagram><string no="1"><dot fret="1"/></string></fretDiagram>',
+        '</FretDiagram>',
+        '<FretDiagram>',
+        '<Harmony><harmonyInfo><name>Si7</name></harmonyInfo></Harmony>',
+        '<fretDiagram><string no="0"><marker>circle</marker></string></fretDiagram>',
+        '</FretDiagram>',
+        '</FBox></Staff></Score></museScore>'
+    ].join("\n");
+
+    var diagrams = reader.extractFretDiagrams(xml);
+    assert.equal(diagrams.length, 2, "should extract literal chord names");
+    assert.equal(diagrams[0].chordName, "Rem");
+    assert.equal(diagrams[1].chordName, "Si7");
+});

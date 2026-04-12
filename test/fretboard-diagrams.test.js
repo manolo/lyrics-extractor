@@ -576,3 +576,65 @@ test("extractFretDiagrams prefers main score FBox over excerpts", function() {
     assert.equal(data.fretDiagrams.length, 1, "should only extract from main score");
     assert.equal(data.fretDiagrams[0].chordName, "Sol", "should extract Sol from main score, not Do from excerpt");
 });
+
+test("extractFretDiagrams skips hidden diagrams (visible=0)", function() {
+    var xml = `<?xml version="1.0"?>
+<museScore version="4.40">
+  <Score>
+    <Division>480</Division>
+    <Staff id="1">
+      <FBox>
+        <FretDiagram>
+          <Harmony><harmonyInfo><root>16</root></harmonyInfo></Harmony>
+          <fretDiagram><string no="0"><marker>cross</marker></string></fretDiagram>
+        </FretDiagram>
+        <FretDiagram>
+          <visible>0</visible>
+          <Harmony><harmonyInfo><root>15</root></harmonyInfo></Harmony>
+          <fretDiagram><string no="0"><marker>circle</marker></string></fretDiagram>
+        </FretDiagram>
+        <FretDiagram>
+          <Harmony><harmonyInfo><root>17</root><name>m</name></harmonyInfo></Harmony>
+          <fretDiagram><string no="2"><dot fret="2"/></string></fretDiagram>
+        </FretDiagram>
+      </FBox>
+    </Staff>
+  </Score>
+</museScore>`;
+
+    var data = xmlExtractor.extractAll(xml);
+    assert.equal(data.fretDiagrams.length, 2, "should skip hidden diagram (Sol)");
+    assert.equal(data.fretDiagrams[0].chordName, "Re");
+    assert.equal(data.fretDiagrams[1].chordName, "Lam");
+});
+
+test("extractFretDiagrams extracts chords without root TPC (literal names)", function() {
+    var xml = `<?xml version="1.0"?>
+<museScore version="4.40">
+  <Score>
+    <Division>480</Division>
+    <Staff id="1">
+      <FBox>
+        <FretDiagram>
+          <Harmony><harmonyInfo><root>16</root></harmonyInfo></Harmony>
+          <fretDiagram><string no="0"><marker>cross</marker></string></fretDiagram>
+        </FretDiagram>
+        <FretDiagram>
+          <Harmony><harmonyInfo><name>Rem</name></harmonyInfo></Harmony>
+          <fretDiagram><string no="1"><dot fret="1"/></string></fretDiagram>
+        </FretDiagram>
+        <FretDiagram>
+          <Harmony><harmonyInfo><name>Si7</name></harmonyInfo></Harmony>
+          <fretDiagram><string no="0"><marker>circle</marker></string></fretDiagram>
+        </FretDiagram>
+      </FBox>
+    </Staff>
+  </Score>
+</museScore>`;
+
+    var data = xmlExtractor.extractAll(xml);
+    assert.equal(data.fretDiagrams.length, 3, "should extract all including literal names");
+    assert.equal(data.fretDiagrams[0].chordName, "Re");
+    assert.equal(data.fretDiagrams[1].chordName, "Rem");
+    assert.equal(data.fretDiagrams[2].chordName, "Si7");
+});
