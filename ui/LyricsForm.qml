@@ -544,27 +544,9 @@ MuseScore {
             return data.chords;
         }
 
-        // Verify score can be found before proceeding
         var scorePath = "";
         try { scorePath = curScore.path || ""; } catch (e) {}
         var scoreName = (curScore.masterScore ? curScore.masterScore.scoreName : curScore.scoreName) || "";
-        if (!scorePath) {
-            // curScore.path not available, check if scoresDirectory can find it
-            var testPath = scoresDirectory + "/" + scoreName + "/" + scoreName + ".mscz";
-            if (Qt.platform.os === "windows") testPath = testPath.replace(/\//g, "\\");
-            fileIO.source = testPath;
-            if (!fileIO.exists()) {
-                testPath = scoresDirectory + "/" + scoreName + ".mscz";
-                if (Qt.platform.os === "windows") testPath = testPath.replace(/\//g, "\\");
-                fileIO.source = testPath;
-            }
-            if (!fileIO.exists()) {
-                setStatus(tr(
-                    "Score no encontrado. Ajusta el directorio donde esta '" + scoreName + ".mscz'",
-                    "Score not found. Set the directory where '" + scoreName + ".mscz' is located"), true);
-                return data.chords;
-            }
-        }
 
         console.log("[fallback] extractChordsWithFallback: running cmd('file-save')");
         cmd("file-save");
