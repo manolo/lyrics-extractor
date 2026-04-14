@@ -130,14 +130,18 @@ function _findScorePath(scoreName, fileIO, process, scoresDirectory) {
 // Side effect: sets opts.data.fretDiagrams and opts.data.scorePath when available.
 function extractChords(opts) {
     _log = [];
+    function _saveLog() {
+        if (opts.data && opts.data._debug) opts.data._debug.fallbackLog = _log.slice();
+    }
     _logMsg("[fallback] extractChords: START scoreName='" + opts.scoreName + "'");
     var scorePath = _findScorePath(opts.scoreName, opts.fileIO, opts.process, opts.scoresDirectory);
     if (!scorePath) {
         _logMsg("[fallback] extractChords: ABORT score not found for '" + opts.scoreName + "'");
+        _saveLog();
         return null;
     }
     if (opts.data) opts.data.scorePath = scorePath;
-    console.log("[fallback] extractChords: using scorePath=" + scorePath);
+    _logMsg("[fallback] extractChords: using scorePath=" + scorePath);
 
     var chords = null;
 
@@ -262,10 +266,7 @@ function extractChords(opts) {
     } else {
         _logMsg("[fallback] extractChords: END returning " + chords.length + " chords");
     }
-    // Save log buffer to debug data for diagnostics
-    if (opts.data && opts.data._debug) {
-        opts.data._debug.fallbackLog = _log.slice();
-    }
+    _saveLog();
     return chords;
 }
 
