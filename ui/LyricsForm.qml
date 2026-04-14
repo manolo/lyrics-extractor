@@ -44,6 +44,8 @@ MuseScore {
     property string scoresDirectory: ""
     property bool scoresDirectoryExists: false
     property string lastScorePath: ""
+    // True when fallback directory is needed (FBox exists but native API unavailable)
+    property bool needsFallbackDir: false
 
     SystemPalette { id: systemPalette }
 
@@ -525,7 +527,9 @@ MuseScore {
     // FretDiagram fallback: remove this function when MuseScore exposes FretDiagram.harmony
     function extractChordsWithFallback(data) {
         console.log("[fallback] extractChordsWithFallback: called, scoresDirectory='" + scoresDirectory + "'");
-        if (!FretFallback.needsFallback(data._debug)) {
+        var fallbackNeeded = FretFallback.needsFallback(data._debug);
+        needsFallbackDir = fallbackNeeded;
+        if (!fallbackNeeded) {
             console.log("[fallback] extractChordsWithFallback: not needed, returning original chords");
             return data.chords;
         }
@@ -568,6 +572,16 @@ MuseScore {
         // use CLI to read .mscz file and extract chords from XML
         data.chords = extractChordsWithFallback(data);
 
+        // Convert chord spelling if user preference differs from score
+        if (data.chords && data.chords.length > 0) {
+            var isSolfeo = ChordUtils.detectSolfeo(data.chords);
+            if (settings.useSolfeo && !isSolfeo) {
+                ChordUtils.convertChords(data.chords, true);
+            } else if (!settings.useSolfeo && isSolfeo) {
+                ChordUtils.convertChords(data.chords, false);
+            }
+        }
+
         data.fullRepeat = settings.fullRepeat;
         var output = Orchestrator.processExtraction(data, mods);
 
@@ -576,8 +590,20 @@ MuseScore {
             return;
         }
 
-        // Store fretDiagrams for PDF generation
-        extractedFretDiagrams = data.fretDiagrams || [];
+        // Store fretDiagrams for PDF generation, converting chord names if needed
+        var diagrams = data.fretDiagrams || [];
+        if (diagrams.length > 0 && data.chords && data.chords.length > 0) {
+            var diagramIsSolfeo = ChordUtils.detectSolfeo([{ chord: diagrams[0].chordName }]);
+            var toSolfeo = settings.useSolfeo;
+            if (toSolfeo && !diagramIsSolfeo) {
+                for (var di = 0; di < diagrams.length; di++)
+                    diagrams[di].chordName = ChordUtils.convertChord(diagrams[di].chordName, true);
+            } else if (!toSolfeo && diagramIsSolfeo) {
+                for (var di = 0; di < diagrams.length; di++)
+                    diagrams[di].chordName = ChordUtils.convertChord(diagrams[di].chordName, false);
+            }
+        }
+        extractedFretDiagrams = diagrams;
 
         lyricsPreview.text = output;
         var sylCount = data.syllables ? data.syllables.length : 0;
@@ -624,6 +650,21 @@ MuseScore {
     // SAVE
     // ========================================
 
+    function openFile(path) {
+        var openers = [
+            ["open", [path]],
+            ["xdg-open", [path]],
+            ["cmd", ["/c", "start", "", path]]
+        ];
+        for (var i = 0; i < openers.length; i++) {
+            try {
+                openProcess.startWithArgs(openers[i][0], openers[i][1]);
+                openProcess.waitForFinished(3000);
+                break;
+            } catch (e) { /* try next */ }
+        }
+    }
+
     function saveLyricsToFile(content) {
         if (!content) return;
 
@@ -648,6 +689,7 @@ MuseScore {
                 "Guardado en: " + filePath,
                 "Saved to: " + filePath
             );
+            openFile(filePath);
         } catch (e) {
             statusText.text = tr(
                 "Error guardando: " + e,
@@ -685,6 +727,7 @@ MuseScore {
                 "PDF guardado en: " + filePath,
                 "PDF saved to: " + filePath
             );
+            openFile(filePath);
         } catch (e) {
             statusText.text = tr(
                 "Error guardando PDF: " + e,
@@ -713,26 +756,25 @@ MuseScore {
                 color: systemPalette.windowText
             }
 
-            Text {
-                text: "\u00A9 2025 - Manolo Carrasco (do2tis)"
-                font.pixelSize: 11
-                color: systemPalette.windowText
-            }
-
-            Rectangle {
-                Layout.fillWidth: true
-                height: 1
-                color: systemPalette.mid
-            }
-
-            // Fix lyrics and chords section
             GroupBox {
                 Layout.fillWidth: true
-                title: tr("Corregir letras y acordes", "Fix lyrics and chords")
+                title: ""
+                background: Rectangle {
+                    color: "transparent"
+                    border.color: "#777777"
+                    border.width: 1
+                    radius: 4
+                }
 
                 ColumnLayout {
                     anchors.fill: parent
                     spacing: 8
+
+                    Text {
+                        text: "Fix Lyrics & Chords"
+                        font.bold: true
+                        color: systemPalette.windowText
+                    }
 
                     // Status indicator
                     RowLayout {
@@ -815,11 +857,49 @@ MuseScore {
             GroupBox {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                title: tr("Extraccion de letras", "Lyrics extraction")
+                title: ""
+                background: Rectangle {
+                    color: "transparent"
+                    border.color: "#777777"
+                    border.width: 1
+                    radius: 4
+                }
 
                 ColumnLayout {
                     anchors.fill: parent
                     spacing: 8
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+
+                        Text {
+                            text: "Extract Lyrics & Chords"
+                            font.bold: true
+                            color: systemPalette.windowText
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        CheckBox {
+                            id: solfeoCheck
+                            text: tr("Solfeo (Do, Re, Mi)", "Solfeo (Do, Re, Mi)")
+                            checked: settings.useSolfeo
+                            onCheckedChanged: settings.useSolfeo = checked
+                        }
+
+                        CheckBox {
+                            id: fullRepeatCheck
+                            text: tr("Repetir todo", "Full repeat")
+                            checked: settings.fullRepeat
+                            onCheckedChanged: settings.fullRepeat = checked
+                        }
+
+                        Button {
+                            text: tr("Extraer", "Extract")
+                            onClicked: extractLyricsWithChords()
+                        }
+                    }
 
                     Platform.FolderDialog {
                         id: scoresFolderDialog
@@ -835,6 +915,7 @@ MuseScore {
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 6
+                        visible: needsFallbackDir
 
                         Text {
                             text: tr("Directorio:", "Directory:")
@@ -914,107 +995,105 @@ MuseScore {
                         }
                     }
 
-                    ScrollView {
+                    Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        clip: true
 
-                        TextArea {
-                            id: lyricsPreview
-                            readOnly: true
-                            wrapMode: TextEdit.NoWrap
-                            textFormat: TextEdit.PlainText
-                            font.family: Qt.platform.os === "osx" || Qt.platform.os === "macos" ? "Menlo" : "Courier New"
-                            font.pixelSize: 11
-                            color: "black"
-                            background: Rectangle {
-                                color: "white"
-                                border.color: systemPalette.mid
-                                border.width: 1
-                            }
-                            text: tr("(Pulsa 'Extraer' para ver la letra)",
-                                    "(Click 'Extract' to see lyrics)")
-                        }
-                    }
+                        ScrollView {
+                            anchors.fill: parent
+                            clip: true
 
-                    // Extraction options
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 10
-
-                        CheckBox {
-                            id: solfeoCheck
-                            text: tr("Solfeo (Do, Re, Mi)", "Solfeo (Do, Re, Mi)")
-                            checked: settings.useSolfeo
-                            onCheckedChanged: settings.useSolfeo = checked
-                        }
-
-                        CheckBox {
-                            id: fullRepeatCheck
-                            text: tr("Repetir todo", "Full repeat")
-                            checked: settings.fullRepeat
-                            onCheckedChanged: settings.fullRepeat = checked
-                        }
-
-                        Item { Layout.fillWidth: true }
-                    }
-
-                    // Action buttons
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 10
-
-                        Button {
-                            text: tr("Extraer", "Extract")
-                            onClicked: extractLyricsWithChords()
-                        }
-
-                        Button {
-                            text: tr("Copiar", "Copy")
-                            enabled: lyricsPreview.text.indexOf("(") !== 0
-                            onClicked: {
-                                lyricsPreview.selectAll();
-                                lyricsPreview.copy();
-                                lyricsPreview.deselect();
-                                statusText.text = tr("Copiado al portapapeles", "Copied to clipboard");
+                            TextArea {
+                                id: lyricsPreview
+                                readOnly: true
+                                wrapMode: TextEdit.NoWrap
+                                textFormat: TextEdit.PlainText
+                                font.family: Qt.platform.os === "osx" || Qt.platform.os === "macos" ? "Menlo" : "Courier New"
+                                font.pixelSize: 11
+                                color: systemPalette.text
+                                background: Rectangle {
+                                    color: Qt.lighter(systemPalette.base, 1.15)
+                                }
+                                text: ""
                             }
                         }
 
-                        Button {
-                            text: tr("Guardar TXT", "Save TXT")
-                            enabled: lyricsPreview.text.indexOf("(") !== 0
-                            onClicked: saveLyricsToFile(Formatter.stripChordMarkers(lyricsPreview.text))
-                        }
+                        Row {
+                            anchors.right: parent.right
+                            anchors.top: parent.top
+                            anchors.margins: 4
+                            spacing: 4
+                            visible: lyricsPreview.text.length > 0
+                            z: 1
 
-                        Button {
-                            id: pdfButton
-                            text: tr("Guardar PDF", "Save PDF")
-                            enabled: lyricsPreview.text.indexOf("(") !== 0
-                            onClicked: savePdfFile(lyricsPreview.text)
-                        }
+                            Button {
+                                text: tr("Copiar", "Copy")
+                                opacity: 0.85
+                                onClicked: {
+                                    lyricsPreview.selectAll();
+                                    lyricsPreview.copy();
+                                    lyricsPreview.deselect();
+                                    statusText.text = tr("Copiado al portapapeles", "Copied to clipboard");
+                                }
+                            }
 
-                        Button {
-                            text: "Debug"
-                            onClicked: exportDebugData()
+                            Button {
+                                text: tr("Guardar", "Save")
+                                opacity: 0.85
+                                onClicked: saveLyricsToFile(Formatter.stripChordMarkers(lyricsPreview.text))
+                            }
                         }
                     }
+                }
+            }
 
-                    // PDF options (visible when PDF button is available)
+            GroupBox {
+                Layout.fillWidth: true
+                title: ""
+                visible: lyricsPreview.text.length > 0
+                background: Rectangle {
+                    color: "transparent"
+                    border.color: "#777777"
+                    border.width: 1
+                    radius: 4
+                }
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing: 6
+
+                    Text {
+                        text: "Save as PDF"
+                        font.bold: true
+                        color: systemPalette.windowText
+                    }
+
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: 10
-                        visible: pdfButton.enabled
+                        spacing: 6
 
                         Text {
-                            text: "PDF:"
+                            text: tr("Pie de pagina:", "Footer:")
                             color: systemPalette.windowText
                             font.pixelSize: 11
-                            font.bold: true
                         }
+
+                        TextField {
+                            id: headerField
+                            Layout.fillWidth: true
+                            placeholderText: tr("Nombre del grupo", "Group name")
+                            font.pixelSize: 11
+                            onTextChanged: settings.pdfHeader = text
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
 
                         CheckBox {
                             id: onePageCheck
-                            text: tr("1 pagina", "1 page")
+                            text: tr("Condensar en 1 pagina", "Fit in 1 page")
                             checked: settings.onePage
                             onCheckedChanged: settings.onePage = checked
                         }
@@ -1028,25 +1107,17 @@ MuseScore {
 
                         CheckBox {
                             id: noDiagramsCheck
-                            text: tr("Sin diagramas", "No diagrams")
+                            text: tr("Sin diagramas de acordes", "No chord diagrams")
                             checked: settings.noDiagrams
                             onCheckedChanged: settings.noDiagrams = checked
                         }
 
                         Item { Layout.fillWidth: true }
 
-                        Text {
-                            text: tr("Cabecera:", "Header:")
-                            color: systemPalette.windowText
-                            font.pixelSize: 11
-                        }
-
-                        TextField {
-                            id: headerField
-                            Layout.preferredWidth: 180
-                            placeholderText: tr("Nombre del grupo", "Group name")
-                            font.pixelSize: 11
-                            onTextChanged: settings.pdfHeader = text
+                        Button {
+                            id: pdfButton
+                            text: tr("Guardar", "Save")
+                            onClicked: savePdfFile(lyricsPreview.text)
                         }
                     }
                 }
@@ -1066,76 +1137,38 @@ MuseScore {
                     Layout.fillWidth: true
                 }
 
-                Text {
-                    id: openFileLink
-                    text: "\uD83D\uDD17"
-                    visible: savedFilePath !== ""
-                    font.pixelSize: 14
-                    opacity: openFileMouse.containsMouse ? 1.0 : 0.6
-
-                    MouseArea {
-                        id: openFileMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            // Try platform openers: open (macOS), xdg-open (Linux), start (Windows)
-                            var openers = [
-                                ["open", [savedFilePath]],
-                                ["xdg-open", [savedFilePath]],
-                                ["cmd", ["/c", "start", "", savedFilePath]]
-                            ];
-                            for (var oi = 0; oi < openers.length; oi++) {
-                                try {
-                                    openProcess.startWithArgs(openers[oi][0], openers[oi][1]);
-                                    openProcess.waitForFinished(3000);
-                                    break;
-                                } catch (e) { /* try next */ }
-                            }
-                        }
-                    }
-                }
-
-                Text {
-                    id: copyPathLink
-                    text: "\uD83D\uDCCB"
-                    visible: savedFilePath !== ""
-                    font.pixelSize: 14
-                    opacity: copyPathMouse.containsMouse ? 1.0 : 0.6
-
-                    MouseArea {
-                        id: copyPathMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            textHelper.text = savedFilePath;
-                            textHelper.selectAll();
-                            textHelper.copy();
-                            statusText.text = tr(
-                                "Ruta copiada: " + savedFilePath,
-                                "Path copied: " + savedFilePath
-                            );
-                        }
-                    }
-                }
-
                 TextEdit {
                     id: textHelper
                     visible: false
                 }
             }
 
-            // Close button
-            RowLayout {
+            Item {
                 Layout.fillWidth: true
-                spacing: 10
+                height: 40
 
-                Item { Layout.fillWidth: true }
+                Text {
+                    text: "\u00A9 2025 Manolo Carrasco (do2tis) - v" + version
+                    font.pixelSize: 11
+                    color: systemPalette.windowText
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                }
 
-                Button {
-                    text: tr("Cerrar", "Close")
-                    onClicked: quit()
+                Row {
+                    spacing: 10
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Button {
+                        text: "Debug"
+                        onClicked: exportDebugData()
+                    }
+
+                    Button {
+                        text: tr("Cerrar", "Close")
+                        onClicked: quit()
+                    }
                 }
             }
         }
@@ -1148,6 +1181,7 @@ MuseScore {
             scoresDirectory = getDefaultScoresPath();
         }
         checkScoresDirectory();
+        needsFallbackDir = Extractor.needsFallbackDirectory();
         hasSelection = checkSelection();
         PdfWriter.setFretboardRenderer(FretboardRenderer);
         checkScore();
