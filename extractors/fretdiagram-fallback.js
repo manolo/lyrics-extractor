@@ -45,7 +45,7 @@ function needsFallback(debugData) {
 
     var hasFBox = !!debugData.hasFretBox;
     var need = (unextracted > 0) || hasFBox;
-    console.log("[fallback] needsFallback: " + (need ? "YES" : "NO") +
+    _logMsg("[fallback] needsFallback: " + (need ? "YES" : "NO") +
                 " (FretDiagrams=" + totalFD + ", unextracted=" + unextracted +
                 ", FBox=" + hasFBox + ")");
     return need;
@@ -55,7 +55,7 @@ function needsFallback(debugData) {
 // See specs/11-scores-directory.md.
 // Search order: <dir>/<name>/<name>.mscz, <dir>/<name>.mscz, recursive find inside <dir>.
 function _findScorePath(scoreName, fileIO, process, scoresDirectory) {
-    console.log("[fallback] _findScorePath: scoreName='" + scoreName +
+    _logMsg("[fallback] _findScorePath: scoreName='" + scoreName +
                 "', scoresDirectory='" + scoresDirectory + "'");
     if (!process) {
         _logMsg("[fallback] _findScorePath: ABORT (no process)");
@@ -77,7 +77,7 @@ function _findScorePath(scoreName, fileIO, process, scoresDirectory) {
         _logMsg("[fallback] _findScorePath: FOUND (per-song folder): " + p1);
         return p1;
     }
-    console.log("[fallback] _findScorePath: not at " + p1);
+    _logMsg("[fallback] _findScorePath: not at " + p1);
 
     // 2. Flat: <dir>/<name>.mscz
     var p2 = scoresDirectory + sep + fileName;
@@ -86,10 +86,10 @@ function _findScorePath(scoreName, fileIO, process, scoresDirectory) {
         _logMsg("[fallback] _findScorePath: FOUND (flat): " + p2);
         return p2;
     }
-    console.log("[fallback] _findScorePath: not at " + p2);
+    _logMsg("[fallback] _findScorePath: not at " + p2);
 
     // 3. Recursive search inside scoresDirectory only
-    console.log("[fallback] _findScorePath: trying recursive search in " + scoresDirectory);
+    _logMsg("[fallback] _findScorePath: trying recursive search in " + scoresDirectory);
     if (isWindows) {
         try {
             process.startWithArgs("where", ["/r", scoresDirectory, fileName]);
