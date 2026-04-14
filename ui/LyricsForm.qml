@@ -988,13 +988,21 @@ MuseScore {
                             elide: Text.ElideMiddle
                         }
 
-                        Button {
-                            text: tr("Copiar", "Copy")
-                            implicitHeight: 24
-                            onClicked: {
-                                copyHelper.text = lastScorePath;
-                                copyHelper.selectAll();
-                                copyHelper.copy();
+                        Text {
+                            text: "\uD83D\uDCCB"
+                            font.pixelSize: 13
+                            opacity: copyScorePathMouse.containsMouse ? 1.0 : 0.5
+
+                            MouseArea {
+                                id: copyScorePathMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    copyHelper.text = lastScorePath;
+                                    copyHelper.selectAll();
+                                    copyHelper.copy();
+                                }
                             }
                         }
 
