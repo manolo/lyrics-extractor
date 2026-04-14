@@ -72,6 +72,11 @@ MuseScore {
         return isSpanish ? es : en;
     }
 
+    function setStatus(msg, error) {
+        statusText.text = msg;
+        statusText.isError = !!error;
+    }
+
     function getDefaultScoresPath() {
         var home = fileIO.homePath();
         var path = home + "/Documents";
@@ -554,9 +559,9 @@ MuseScore {
                 fileIO.source = testPath;
             }
             if (!fileIO.exists()) {
-                statusText.text = tr(
+                setStatus(tr(
                     "Score no encontrado. Ajusta el directorio donde esta '" + scoreName + ".mscz'",
-                    "Score not found. Set the directory where '" + scoreName + ".mscz' is located");
+                    "Score not found. Set the directory where '" + scoreName + ".mscz' is located"), true);
                 return data.chords;
             }
         }
@@ -636,9 +641,9 @@ MuseScore {
         lyricsPreview.text = output;
         var sylCount = data.syllables ? data.syllables.length : 0;
         var chordCount = data.chords ? data.chords.length : 0;
-        statusText.text = tr(
+        setStatus(tr(
             sylCount + " silabas, " + chordCount + " acordes extraidos",
-            sylCount + " syllables, " + chordCount + " chords extracted");
+            sylCount + " syllables, " + chordCount + " chords extracted"), false);
     }
 
     // Export raw extracted data as JSON for debugging (compare plugin vs CLI)
@@ -1144,9 +1149,11 @@ MuseScore {
 
                 Text {
                     id: statusText
+                    property bool isError: false
                     text: ""
-                    color: systemPalette.windowText
+                    color: isError ? "#f44336" : systemPalette.windowText
                     font.italic: true
+                    font.bold: isError
                     wrapMode: Text.WordWrap
                     Layout.fillWidth: true
                 }
