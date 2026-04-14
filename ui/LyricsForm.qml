@@ -1137,6 +1137,29 @@ MuseScore {
                     Layout.fillWidth: true
                 }
 
+                Text {
+                    text: "\uD83D\uDCCB"
+                    visible: savedFilePath !== ""
+                    font.pixelSize: 14
+                    opacity: copyPathMouse.containsMouse ? 1.0 : 0.5
+
+                    MouseArea {
+                        id: copyPathMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            textHelper.text = savedFilePath;
+                            textHelper.selectAll();
+                            textHelper.copy();
+                            statusText.text = tr(
+                                "Ruta copiada: " + savedFilePath,
+                                "Path copied: " + savedFilePath
+                            );
+                        }
+                    }
+                }
+
                 TextEdit {
                     id: textHelper
                     visible: false
