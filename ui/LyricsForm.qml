@@ -656,16 +656,19 @@ MuseScore {
         var isWindows = Qt.platform.os === "windows";
         try {
             if (isWindows) {
-                openProcess.startWithArgs("cmd", ["/c", "start", "\"\"", path.replace(/\//g, "\\")]);
+                var winPath = path.replace(/\//g, "\\");
+                console.log("[open] explorer: " + winPath);
+                openProcess.startWithArgs("explorer.exe", [winPath]);
             } else {
                 openProcess.startWithArgs("open", [path]);
             }
-            openProcess.waitForFinished(3000);
+            openProcess.waitForFinished(5000);
         } catch (e) {
+            console.log("[open] first attempt failed: " + e);
             try {
                 openProcess.startWithArgs("xdg-open", [path]);
                 openProcess.waitForFinished(3000);
-            } catch (e2) { /* no opener available */ }
+            } catch (e2) { console.log("[open] xdg-open failed: " + e2); }
         }
     }
 
