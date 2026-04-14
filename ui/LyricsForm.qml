@@ -539,14 +539,34 @@ MuseScore {
             return data.chords;
         }
 
+        // Verify score can be found before proceeding
+        var scorePath = "";
+        try { scorePath = curScore.path || ""; } catch (e) {}
+        var scoreName = (curScore.masterScore ? curScore.masterScore.scoreName : curScore.scoreName) || "";
+        if (!scorePath) {
+            // curScore.path not available, check if scoresDirectory can find it
+            var testPath = scoresDirectory + "/" + scoreName + "/" + scoreName + ".mscz";
+            if (Qt.platform.os === "windows") testPath = testPath.replace(/\//g, "\\");
+            fileIO.source = testPath;
+            if (!fileIO.exists()) {
+                testPath = scoresDirectory + "/" + scoreName + ".mscz";
+                if (Qt.platform.os === "windows") testPath = testPath.replace(/\//g, "\\");
+                fileIO.source = testPath;
+            }
+            if (!fileIO.exists()) {
+                statusText.text = tr(
+                    "Score no encontrado. Ajusta el directorio donde esta '" + scoreName + ".mscz'",
+                    "Score not found. Set the directory where '" + scoreName + ".mscz' is located");
+                return data.chords;
+            }
+        }
+
         console.log("[fallback] extractChordsWithFallback: running cmd('file-save')");
         cmd("file-save");
 
         var cliPath = Qt.resolvedUrl("../cli/extract-chords.js").toString().replace(/^file:\/\//, "");
-        var scorePath = "";
-        try { scorePath = curScore.path || ""; } catch (e) {}
         var chords = FretFallback.extractChords({
-            scoreName: (curScore.masterScore ? curScore.masterScore.scoreName : curScore.scoreName) || "",
+            scoreName: scoreName,
             scorePath: scorePath,
             fileIO: fileIO,
             process: chordProcess,
