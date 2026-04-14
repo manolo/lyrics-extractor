@@ -74,8 +74,7 @@ MuseScore {
 
     function getDefaultScoresPath() {
         var home = fileIO.homePath();
-        var sep = (Qt.platform.os === "windows") ? "\\" : "/";
-        return home + sep + "Documents" + sep + "MuseScore4" + sep + "Scores";
+        return home + "/Documents";
     }
 
     function checkScoresDirectory() {
@@ -540,8 +539,11 @@ MuseScore {
         cmd("file-save");
 
         var cliPath = Qt.resolvedUrl("../cli/extract-chords.js").toString().replace(/^file:\/\//, "");
+        var scorePath = "";
+        try { scorePath = curScore.path || ""; } catch (e) {}
         var chords = FretFallback.extractChords({
             scoreName: (curScore.masterScore ? curScore.masterScore.scoreName : curScore.scoreName) || "",
+            scorePath: scorePath,
             fileIO: fileIO,
             process: chordProcess,
             XmlChordReader: XmlChordReader,

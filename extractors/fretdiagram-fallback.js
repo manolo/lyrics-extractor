@@ -134,7 +134,14 @@ function extractChords(opts) {
         if (opts.data && opts.data._debug) opts.data._debug.fallbackLog = _log.slice();
     }
     _logMsg("[fallback] extractChords: START scoreName='" + opts.scoreName + "'");
-    var scorePath = _findScorePath(opts.scoreName, opts.fileIO, opts.process, opts.scoresDirectory);
+    // Use curScore.path directly if available, otherwise search in scoresDirectory
+    var scorePath = "";
+    if (opts.scorePath) {
+        _logMsg("[fallback] extractChords: using curScore.path=" + opts.scorePath);
+        scorePath = opts.scorePath;
+    } else {
+        scorePath = _findScorePath(opts.scoreName, opts.fileIO, opts.process, opts.scoresDirectory);
+    }
     if (!scorePath) {
         _logMsg("[fallback] extractChords: ABORT score not found for '" + opts.scoreName + "'");
         _saveLog();
