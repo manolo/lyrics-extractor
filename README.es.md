@@ -2,6 +2,8 @@
 
 Extension de MuseScore 4 que extrae letras con acordes alineados de partituras, generando texto plano y PDF para cancioneros, hojas de ensayo y cartas de acordes. Tambien disponible como CLI de Node.js.
 
+![Plugin extrayendo letras y acordes de una partitura de MuseScore, mostrando vista previa del texto y salida PDF con diagramas de acordes](docs/lyrics-extractor-txt-pdf.png)
+
 ## Instalacion
 
 1. Descargar `lyrics-extractor.mext` de la [ultima release](https://github.com/manolo/lyrics-extractor/releases/latest)
@@ -9,6 +11,8 @@ Extension de MuseScore 4 que extrae letras con acordes alineados de partituras, 
 3. La extension aparece en la barra de herramientas y en **Extensiones**
 
 ## Funcionalidades
+
+![Demo de uso del plugin](docs/lyrics-extractor-usage-video.gif)
 
 ### Verificacion de la partitura
 Al abrir el plugin, analiza la partitura y muestra un indicador de estado:
@@ -34,7 +38,7 @@ El boton **Corregir** arregla todos los problemas automaticamente:
 Para partituras sin letras (instrumentales), el plugin muestra automaticamente la progresion de acordes estructurada por secciones, barlines y marcas de repeticion.
 
 ### Diagramas de trastes
-Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) y los renderiza graficamente en la cabecera del PDF.
+Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) y los renderiza graficamente en la cabecera del PDF. En MuseScore 4.7+, los diagramas y nombres de acordes se leen directamente via la API nativa de QML. En versiones anteriores, un fallback extrae los datos del archivo .mscz en disco.
 
 ### Salida PDF
 - Layout compacto optimizado para impresion (A4, margenes seguros)
@@ -49,28 +53,30 @@ Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) 
 |---------|-------------|
 | **Corregir** | Corregir sinalefas, guiones, cadenas silabicas, sincronizar acordes |
 | **Extraer** | Extraer letras con acordes, mostrar vista previa |
-| **Copiar** | Copiar al portapapeles |
-| **Guardar TXT** | Guardar archivo de texto junto a la partitura |
-| **Guardar PDF** | Guardar PDF junto a la partitura |
+| **Copiar** | Copiar texto extraido al portapapeles |
+| **Guardar** (texto) | Guardar archivo de texto junto a la partitura y abrirlo |
 | **Debug** | Exportar datos crudos como JSON |
 
 ### Ajustes (persistentes)
 
 | Ajuste | Descripcion |
 |--------|-------------|
-| Solfeo | Controla la ortografia de acordes del extractor de respaldo |
+| Solfeo | Convierte nombres de acordes a solfeo (Do, Re, Mi) o anglo (C, D, E) |
 | Repetir todo | Expandir todas las repeticiones D.S./D.C. aunque no haya nuevas letras |
 
 ### Opciones PDF (visibles tras la extraccion)
 
 | Opcion | Descripcion |
 |--------|-------------|
-| 1 pagina | Reducir para que quepa en una pagina (gaps, margenes, fuente) |
+| Pie de pagina | Nombre del grupo/agrupacion mostrado al pie de la ultima pagina |
+| Condensar en 1 pagina | Reducir para que quepa en una pagina (gaps, margenes, fuente) |
 | Num. linea | Numeros secuenciales en lineas de letra |
-| Sin diagramas | Omitir diagramas de trastes |
-| Cabecera | Nombre del grupo/agrupacion (sutil, alineado a la derecha) |
+| Sin diagramas de acordes | Omitir diagramas de trastes de la cabecera |
+| **Guardar** (PDF) | Guardar PDF junto a la partitura y abrirlo |
 
 ## Escribir letras para mejores resultados
+
+![Partitura con letras, acordes y multiples pentagramas lista para extraccion](docs/lyrics-extractor-score-pdf.png)
 
 ### Introducir letras en MuseScore
 
@@ -155,7 +161,7 @@ Por defecto, los nombres de acorde usan la ortografia de la partitura. Usar `--a
 node --test test/*.test.js
 ```
 
-260 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes e integracion.
+295 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa e integracion.
 
 ## Licencia
 

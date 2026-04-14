@@ -4,6 +4,8 @@
 
 MuseScore 4 extension that extracts lyrics with aligned chords from scores, generating text and PDF output for songbooks, rehearsal sheets, and chord charts. Also available as a Node.js CLI.
 
+![Plugin extracting lyrics and chords from a MuseScore score, showing text preview and PDF output with fretboard diagrams](docs/lyrics-extractor-txt-pdf.png)
+
 ## Installation
 
 1. Download `lyrics-extractor.mext` from the [latest release](https://github.com/manolo/lyrics-extractor/releases/latest)
@@ -11,6 +13,8 @@ MuseScore 4 extension that extracts lyrics with aligned chords from scores, gene
 3. The extension appears in the toolbar and under **Extensions**
 
 ## Features
+
+![Plugin usage demo](docs/lyrics-extractor-usage-video.gif)
 
 ### Score health check
 When the plugin opens, it analyzes the score and shows a status indicator:
@@ -36,7 +40,7 @@ The **Fix** button corrects all issues automatically:
 For scores without lyrics (instrumentals), the plugin automatically shows the chord progression structured by sections, barlines, and repeat markers.
 
 ### Fretboard diagrams
-Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) and renders them graphically in the PDF header.
+Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) and renders them graphically in the PDF header. On MuseScore 4.7+, diagrams and chord names are read directly via the native QML API. On older versions, a fallback extracts the data from the .mscz file on disk.
 
 ### PDF output
 - Compact layout optimized for printing (A4, safe margins)
@@ -51,28 +55,30 @@ Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) a
 |---------|-------------|
 | **Fix** | Correct synalepha, hyphens, syllabic chains, chord sync |
 | **Extract** | Extract lyrics with chords, show preview |
-| **Copy** | Copy to clipboard |
-| **Save TXT** | Save text file alongside the score |
-| **Save PDF** | Save PDF alongside the score |
+| **Copy** | Copy extracted text to clipboard |
+| **Save** (text) | Save text file alongside the score and open it |
 | **Debug** | Export raw data as JSON |
 
 ### Settings (persisted)
 
 | Setting | Description |
 |---------|-------------|
-| Solfeo | Controls chord spelling for the fallback extractor |
+| Solfeo | Convert chord names to solfeo (Do, Re, Mi) or anglo (C, D, E) |
 | Full repeat | Expand all D.S./D.C. repeats even without new lyrics |
 
 ### PDF options (visible after extraction)
 
 | Option | Description |
 |--------|-------------|
-| 1 page | Shrink to fit on one page (gaps, margins, then font) |
+| Footer | Group/band name shown at the bottom of the last page |
+| Fit in 1 page | Shrink to fit on one page (gaps, margins, then font) |
 | Line numbers | Sequential numbers on lyric lines |
-| No diagrams | Omit fretboard diagrams |
-| Header | Group/band name (subtle, right-aligned) |
+| No chord diagrams | Omit fretboard diagrams from the header |
+| **Save** (PDF) | Save PDF alongside the score and open it |
 
 ## Writing lyrics for best results
+
+![Score with lyrics, chords, and multiple staves ready for extraction](docs/lyrics-extractor-score-pdf.png)
 
 ### Entering lyrics in MuseScore
 
@@ -157,7 +163,7 @@ By default, chord names use the score's own spelling setting. Use `--anglo` or `
 node --test test/*.test.js
 ```
 
-260 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, and integration.
+295 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API fallback, and integration.
 
 ## License
 
