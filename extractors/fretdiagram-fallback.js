@@ -67,11 +67,12 @@ function _findScorePath(scoreName, fileIO, process, scoresDirectory) {
     }
 
     var isWindows = (typeof Qt !== "undefined" && Qt.platform && Qt.platform.os === "windows");
-    var sep = isWindows ? "\\" : "/";
     var fileName = scoreName + ".mscz";
+    // Normalize to forward slashes (Qt FileIO accepts both on all platforms)
+    var dir = scoresDirectory.replace(/\\/g, "/");
 
     // 1. Per-song folder convention: <dir>/<name>/<name>.mscz
-    var p1 = scoresDirectory + sep + scoreName + sep + fileName;
+    var p1 = dir + "/" + scoreName + "/" + fileName;
     fileIO.source = p1;
     if (fileIO.exists()) {
         _logMsg("[fallback] _findScorePath: FOUND (per-song folder): " + p1);
@@ -80,7 +81,7 @@ function _findScorePath(scoreName, fileIO, process, scoresDirectory) {
     _logMsg("[fallback] _findScorePath: not at " + p1);
 
     // 2. Flat: <dir>/<name>.mscz
-    var p2 = scoresDirectory + sep + fileName;
+    var p2 = dir + "/" + fileName;
     fileIO.source = p2;
     if (fileIO.exists()) {
         _logMsg("[fallback] _findScorePath: FOUND (flat): " + p2);
@@ -89,10 +90,11 @@ function _findScorePath(scoreName, fileIO, process, scoresDirectory) {
     _logMsg("[fallback] _findScorePath: not at " + p2);
 
     // 3. Recursive search inside scoresDirectory only
-    _logMsg("[fallback] _findScorePath: trying recursive search in " + scoresDirectory);
+    _logMsg("[fallback] _findScorePath: trying recursive search in " + dir);
     if (isWindows) {
         try {
-            process.startWithArgs("where", ["/r", scoresDirectory, fileName]);
+            var winDir = dir.replace(/\//g, "\\");
+            process.startWithArgs("where", ["/r", winDir, fileName]);
             process.waitForFinished(5000);
             var w = process.readAllStandardOutput();
             var wf = w ? w.toString().trim().split("\r\n")[0] : "";
@@ -106,7 +108,7 @@ function _findScorePath(scoreName, fileIO, process, scoresDirectory) {
     } else {
         try {
             process.startWithArgs("find", [
-                scoresDirectory, "-name", fileName, "-not", "-path", "*/.*"
+                dir, "-name", fileName, "-not", "-path", "*/.*"
             ]);
             process.waitForFinished(5000);
             var o = process.readAllStandardOutput();
