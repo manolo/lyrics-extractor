@@ -74,7 +74,9 @@ MuseScore {
 
     function getDefaultScoresPath() {
         var home = fileIO.homePath();
-        return home + "/Documents";
+        var path = home + "/Documents";
+        if (Qt.platform.os === "windows") path = path.replace(/\//g, "\\");
+        return path;
     }
 
     function checkScoresDirectory() {
@@ -82,7 +84,9 @@ MuseScore {
             scoresDirectoryExists = false;
             return;
         }
-        fileIO.source = scoresDirectory;
+        var path = scoresDirectory;
+        if (Qt.platform.os === "windows") path = path.replace(/\//g, "\\");
+        fileIO.source = path;
         scoresDirectoryExists = fileIO.exists();
     }
 
