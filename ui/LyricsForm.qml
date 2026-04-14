@@ -974,7 +974,7 @@ MuseScore {
                         visible: lastScorePath.length > 0
 
                         Text {
-                            text: tr("Usando:", "Using:")
+                            text: tr("Usando archivo:", "Using file:")
                             color: systemPalette.windowText
                             font.pixelSize: 11
                         }
