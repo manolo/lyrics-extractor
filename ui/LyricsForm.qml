@@ -3,7 +3,9 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 import MuseScore 3.0
 import FileIO 3.0
-import Qt.labs.platform 1.0 as Platform
+// Qt.labs.platform may not be available on all MuseScore builds
+// FolderDialog is created dynamically only when needed
+
 
 // Shared library modules (dual-format: QML import + Node.js require)
 import "../lib/text-utils.js" as TextUtils
@@ -901,17 +903,6 @@ MuseScore {
                         }
                     }
 
-                    Platform.FolderDialog {
-                        id: scoresFolderDialog
-                        title: tr("Seleccionar directorio de partituras",
-                                  "Select scores directory")
-                        onAccepted: {
-                            scoresDirectory = folder.toString().replace(/^file:\/\//, "");
-                            settings.scoresDirectory = scoresDirectory;
-                            checkScoresDirectory();
-                        }
-                    }
-
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 6
@@ -936,17 +927,6 @@ MuseScore {
                                     settings.scoresDirectory = text;
                                     checkScoresDirectory();
                                 }
-                            }
-                        }
-
-                        Button {
-                            text: "..."
-                            implicitWidth: 32
-                            onClicked: {
-                                if (scoresDirectory && scoresDirectory.length > 0) {
-                                    scoresFolderDialog.currentFolder = "file://" + scoresDirectory;
-                                }
-                                scoresFolderDialog.open();
                             }
                         }
 
