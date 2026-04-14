@@ -3,6 +3,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 import MuseScore 3.0
 import FileIO 3.0
+import Qt.labs.platform 1.0 as Platform
 
 // Shared library modules (dual-format: QML import + Node.js require)
 import "../lib/text-utils.js" as TextUtils
@@ -40,6 +41,9 @@ MuseScore {
     property int selectionStartTick: 0
     property int selectionEndTick: 0
     property var extractedFretDiagrams: []
+    property string scoresDirectory: ""
+    property bool scoresDirectoryExists: false
+    property string lastScorePath: ""
 
     SystemPalette { id: systemPalette }
 
@@ -57,10 +61,26 @@ MuseScore {
         property bool lineNumbers: false
         property bool noDiagrams: false
         property string pdfHeader: ""
+        property string scoresDirectory: ""
     }
 
     function tr(es, en) {
         return isSpanish ? es : en;
+    }
+
+    function getDefaultScoresPath() {
+        var home = fileIO.homePath();
+        var sep = (Qt.platform.os === "windows") ? "\\" : "/";
+        return home + sep + "Documents" + sep + "MuseScore4" + sep + "Scores";
+    }
+
+    function checkScoresDirectory() {
+        if (!scoresDirectory || scoresDirectory.length === 0) {
+            scoresDirectoryExists = false;
+            return;
+        }
+        fileIO.source = scoresDirectory;
+        scoresDirectoryExists = fileIO.exists();
     }
 
     // Module bundle for orchestrator
@@ -504,8 +524,13 @@ MuseScore {
 
     // FretDiagram fallback: remove this function when MuseScore exposes FretDiagram.harmony
     function extractChordsWithFallback(data) {
-        if (!FretFallback.needsFallback(data._debug)) return data.chords;
+        console.log("[fallback] extractChordsWithFallback: called, scoresDirectory='" + scoresDirectory + "'");
+        if (!FretFallback.needsFallback(data._debug)) {
+            console.log("[fallback] extractChordsWithFallback: not needed, returning original chords");
+            return data.chords;
+        }
 
+        console.log("[fallback] extractChordsWithFallback: running cmd('file-save')");
         cmd("file-save");
 
         var cliPath = Qt.resolvedUrl("../cli/extract-chords.js").toString().replace(/^file:\/\//, "");
@@ -517,9 +542,12 @@ MuseScore {
             Constants: Constants,
             cliPath: cliPath,
             data: data,
-            spelling: settings.useSolfeo ? "solfeggio" : "standard"
+            spelling: settings.useSolfeo ? "solfeggio" : "standard",
+            scoresDirectory: scoresDirectory,
+            noDiagrams: settings.noDiagrams
         });
 
+        if (data.scorePath) lastScorePath = data.scorePath;
         return chords || data.chords;
     }
 
@@ -793,6 +821,99 @@ MuseScore {
                     anchors.fill: parent
                     spacing: 8
 
+                    Platform.FolderDialog {
+                        id: scoresFolderDialog
+                        title: tr("Seleccionar directorio de partituras",
+                                  "Select scores directory")
+                        onAccepted: {
+                            scoresDirectory = folder.toString().replace(/^file:\/\//, "");
+                            settings.scoresDirectory = scoresDirectory;
+                            checkScoresDirectory();
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Text {
+                            text: tr("Directorio:", "Directory:")
+                            color: systemPalette.windowText
+                            font.pixelSize: 11
+                        }
+
+                        TextField {
+                            id: scoresDirField
+                            Layout.fillWidth: true
+                            text: scoresDirectory
+                            font.family: "monospace"
+                            font.pixelSize: 11
+                            selectByMouse: true
+                            onTextChanged: {
+                                if (text !== scoresDirectory) {
+                                    scoresDirectory = text;
+                                    settings.scoresDirectory = text;
+                                    checkScoresDirectory();
+                                }
+                            }
+                        }
+
+                        Button {
+                            text: "..."
+                            implicitWidth: 32
+                            onClicked: {
+                                if (scoresDirectory && scoresDirectory.length > 0) {
+                                    scoresFolderDialog.currentFolder = "file://" + scoresDirectory;
+                                }
+                                scoresFolderDialog.open();
+                            }
+                        }
+
+                        Text {
+                            text: scoresDirectoryExists ? "OK" : "X"
+                            color: scoresDirectoryExists ? "#4CAF50" : "#f44336"
+                            font.bold: true
+                            font.pixelSize: 12
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        visible: lastScorePath.length > 0
+
+                        Text {
+                            text: tr("Archivo:", "File:")
+                            color: systemPalette.windowText
+                            font.pixelSize: 11
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: lastScorePath
+                            color: systemPalette.windowText
+                            font.family: "monospace"
+                            font.pixelSize: 11
+                            elide: Text.ElideMiddle
+                        }
+
+                        Button {
+                            text: tr("Copiar", "Copy")
+                            implicitHeight: 24
+                            onClicked: {
+                                copyHelper.text = lastScorePath;
+                                copyHelper.selectAll();
+                                copyHelper.copy();
+                            }
+                        }
+
+                        TextEdit {
+                            id: copyHelper
+                            visible: false
+                            width: 0; height: 0
+                        }
+                    }
+
                     ScrollView {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -1021,6 +1142,12 @@ MuseScore {
     }
 
     Component.onCompleted: {
+        if (settings.scoresDirectory && settings.scoresDirectory.length > 0) {
+            scoresDirectory = settings.scoresDirectory;
+        } else {
+            scoresDirectory = getDefaultScoresPath();
+        }
+        checkScoresDirectory();
         hasSelection = checkSelection();
         PdfWriter.setFretboardRenderer(FretboardRenderer);
         checkScore();

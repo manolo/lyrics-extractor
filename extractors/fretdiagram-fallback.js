@@ -14,146 +14,172 @@
 // 1. FretDiagram annotations in measures with unextracted chords (QML API limitation)
 // 2. FBox frame with fret diagrams detected (need to extract diagram data for PDF)
 function needsFallback(debugData) {
-    if (!debugData) return false;
+    if (!debugData) {
+        console.log("[fallback] needsFallback: NO (no debugData)");
+        return false;
+    }
 
     // Case 1: FretDiagram chord annotations that QML API could not read
     var fd = debugData.fretDiagramDebug;
+    var unextracted = 0;
+    var totalFD = 0;
     if (fd && fd.fretDiagramsFound && fd.fretDiagramsFound.length > 0) {
-        for (var i = 0; i < fd.fretDiagramsFound.length; i++) {
-            if (!fd.fretDiagramsFound[i].extracted) return true;
+        totalFD = fd.fretDiagramsFound.length;
+        for (var i = 0; i < totalFD; i++) {
+            if (!fd.fretDiagramsFound[i].extracted) unextracted++;
         }
     }
 
-    // Case 2: FBox with fret diagrams (need diagram data for PDF rendering)
-    if (debugData.hasFretBox) return true;
-
-    return false;
+    var hasFBox = !!debugData.hasFretBox;
+    var need = (unextracted > 0) || hasFBox;
+    console.log("[fallback] needsFallback: " + (need ? "YES" : "NO") +
+                " (FretDiagrams=" + totalFD + ", unextracted=" + unextracted +
+                ", FBox=" + hasFBox + ")");
+    return need;
 }
 
-// Find the .mscz file on disk by scoreName.
-// Strategy: after cmd("file-save"), find the most recently modified .mscz
-// matching the score name. Falls back to broader search if exact name fails.
-function _findScorePath(scoreName, fileIO, process) {
-    if (!process) return "";
-    var home = fileIO.homePath();
+// Find the .mscz file on disk by scoreName, inside a user-configured directory.
+// See specs/11-scores-directory.md.
+// Search order: <dir>/<name>/<name>.mscz, <dir>/<name>.mscz, recursive find inside <dir>.
+function _findScorePath(scoreName, fileIO, process, scoresDirectory) {
+    console.log("[fallback] _findScorePath: scoreName='" + scoreName +
+                "', scoresDirectory='" + scoresDirectory + "'");
+    if (!process) {
+        console.log("[fallback] _findScorePath: ABORT (no process)");
+        return "";
+    }
+    if (!scoresDirectory) {
+        console.log("[fallback] _findScorePath: ABORT (no scoresDirectory)");
+        return "";
+    }
+
+    var isWindows = (typeof Qt !== "undefined" && Qt.platform && Qt.platform.os === "windows");
+    var sep = isWindows ? "\\" : "/";
     var fileName = scoreName + ".mscz";
 
-    // Strategy 1: find recently saved .mscz by exact name
-    var found = _searchFile(process, home, fileName);
-    if (found) return found;
+    // 1. Per-song folder convention: <dir>/<name>/<name>.mscz
+    var p1 = scoresDirectory + sep + scoreName + sep + fileName;
+    fileIO.source = p1;
+    if (fileIO.exists()) {
+        console.log("[fallback] _findScorePath: FOUND (per-song folder): " + p1);
+        return p1;
+    }
+    console.log("[fallback] _findScorePath: not at " + p1);
 
-    // Strategy 2: strip spaces and try again (scoreName "España Cañi" -> "EspañaCañi")
-    var compactName = scoreName.replace(/\s+/g, "") + ".mscz";
-    if (compactName !== fileName) {
-        found = _searchFile(process, home, compactName);
-        if (found) return found;
+    // 2. Flat: <dir>/<name>.mscz
+    var p2 = scoresDirectory + sep + fileName;
+    fileIO.source = p2;
+    if (fileIO.exists()) {
+        console.log("[fallback] _findScorePath: FOUND (flat): " + p2);
+        return p2;
+    }
+    console.log("[fallback] _findScorePath: not at " + p2);
+
+    // 3. Recursive search inside scoresDirectory only
+    console.log("[fallback] _findScorePath: trying recursive search in " + scoresDirectory);
+    if (isWindows) {
+        try {
+            process.startWithArgs("where", ["/r", scoresDirectory, fileName]);
+            process.waitForFinished(5000);
+            var w = process.readAllStandardOutput();
+            var wf = w ? w.toString().trim().split("\r\n")[0] : "";
+            if (wf) {
+                console.log("[fallback] _findScorePath: FOUND (where): " + wf);
+                return wf;
+            }
+        } catch (e) {
+            console.log("[fallback] _findScorePath: where failed: " + e);
+        }
+    } else {
+        try {
+            process.startWithArgs("find", [
+                scoresDirectory, "-name", fileName, "-not", "-path", "*/.*"
+            ]);
+            process.waitForFinished(5000);
+            var o = process.readAllStandardOutput();
+            var f = o ? o.toString().trim().split("\n")[0] : "";
+            if (f) {
+                console.log("[fallback] _findScorePath: FOUND (find): " + f);
+                return f;
+            }
+        } catch (e) {
+            console.log("[fallback] _findScorePath: find failed: " + e);
+        }
     }
 
-    // Strategy 3: find most recently modified .mscz (just saved by cmd("file-save"))
-    try {
-        process.startWithArgs("find", [
-            home, "-name", "*.mscz", "-mmin", "-1", "-maxdepth", "5",
-            "-not", "-path", "*/.*", "-not", "-path", "*/.Trash/*"
-        ]);
-        process.waitForFinished(5000);
-        var output = process.readAllStandardOutput();
-        var recent = output ? output.toString().trim().split("\n")[0] : "";
-        if (recent) return recent;
-    } catch (e) { /* find not available */ }
-
-    return "";
-}
-
-function _searchFile(process, home, fileName) {
-    // Try mdfind (macOS Spotlight, instant, exact name match)
-    try {
-        process.startWithArgs("mdfind", ["kMDItemFSName == '" + fileName + "'"]);
-        process.waitForFinished(3000);
-        var mOutput = process.readAllStandardOutput();
-        var mLines = mOutput ? mOutput.toString().trim().split("\n") : [];
-        // Filter out Templates/old/backup, then pick the shortest path (most likely primary)
-        var mCandidates = [];
-        for (var mi = 0; mi < mLines.length; mi++) {
-            var mp = mLines[mi];
-            if (mp && mp.indexOf("/Templates/") < 0 && mp.indexOf("/old/") < 0 &&
-                mp.indexOf("/backup/") < 0 && mp.indexOf("/.Trash/") < 0) {
-                mCandidates.push(mp);
-            }
-        }
-        if (mCandidates.length > 0) {
-            mCandidates.sort(function(a, b) { return a.length - b.length; });
-            return mCandidates[0];
-        }
-    } catch (e) { /* mdfind not available */ }
-
-    // Try find (Linux, macOS fallback)
-    try {
-        process.startWithArgs("find", [
-            home, "-name", fileName, "-maxdepth", "5", "-not", "-path", "*/.*"
-        ]);
-        process.waitForFinished(5000);
-        var output = process.readAllStandardOutput();
-        var found = output ? output.toString().trim().split("\n")[0] : "";
-        if (found) return found;
-    } catch (e) { /* find not available */ }
-
-    // Try where (Windows)
-    try {
-        process.startWithArgs("where", ["/r", home, fileName]);
-        process.waitForFinished(5000);
-        var wOutput = process.readAllStandardOutput();
-        var wFound = wOutput ? wOutput.toString().trim().split("\r\n")[0] : "";
-        if (wFound) return wFound;
-    } catch (e) { /* where not available */ }
-
+    console.log("[fallback] _findScorePath: NOT FOUND");
     return "";
 }
 
 // Extract chords (and fretDiagrams) from the .mscz file on disk.
-// opts: { scoreName, fileIO, process, XmlChordReader, Constants, cliPath, data }
+// opts: { scoreName, fileIO, process, XmlChordReader, Constants, cliPath, data, scoresDirectory, spelling, noDiagrams }
 // Returns: array of {tick, chord} or null if fallback failed/not needed.
-// Side effect: sets opts.data.fretDiagrams when available.
+// Side effect: sets opts.data.fretDiagrams and opts.data.scorePath when available.
 function extractChords(opts) {
-    var scorePath = _findScorePath(opts.scoreName, opts.fileIO, opts.process);
+    console.log("[fallback] extractChords: START scoreName='" + opts.scoreName + "'");
+    var scorePath = _findScorePath(opts.scoreName, opts.fileIO, opts.process, opts.scoresDirectory);
     if (!scorePath) {
-        console.log("fretdiagram-fallback: score not found for '" + opts.scoreName + "'");
+        console.log("[fallback] extractChords: ABORT score not found for '" + opts.scoreName + "'");
         return null;
     }
+    if (opts.data) opts.data.scorePath = scorePath;
+    console.log("[fallback] extractChords: using scorePath=" + scorePath);
 
     var chords = null;
 
     // Strategy 1: tar extracts .mscx to stdout, parse in QML (no external dependencies)
     try {
         var mscxName = opts.scoreName + ".mscx";
+        console.log("[fallback] tar: extracting " + mscxName + " from " + scorePath);
         opts.process.startWithArgs("tar", ["xf", scorePath, "-O", mscxName]);
         opts.process.waitForFinished(10000);
         var tarOutput = opts.process.readAllStandardOutput();
         var xml = tarOutput ? tarOutput.toString() : "";
+        console.log("[fallback] tar: read " + xml.length + " bytes");
 
         if (xml.length > 100 && xml.indexOf("<museScore") > -1) {
             var xmlChords = opts.XmlChordReader.extractChords(xml, opts.Constants, opts.spelling);
+            console.log("[fallback] tar: parsed " + xmlChords.length + " chords from XML");
             if (xmlChords.length > 0) {
                 chords = xmlChords;
                 if (opts.data) {
                     opts.data.fretDiagrams = opts.XmlChordReader.extractFretDiagrams(xml);
                 }
-                console.log("fretdiagram-fallback: tar: " + chords.length + " chords, " +
-                    (opts.data && opts.data.fretDiagrams ? opts.data.fretDiagrams.length : 0) + " fretDiagrams");
+                var fdCount = (opts.data && opts.data.fretDiagrams) ? opts.data.fretDiagrams.length : 0;
+                console.log("[fallback] tar: OK " + chords.length + " chords, " + fdCount + " fretDiagrams");
+            } else {
+                console.log("[fallback] tar: no chords found in XML");
             }
+        } else {
+            console.log("[fallback] tar: invalid XML output (no <museScore> tag)");
         }
     } catch (e) {
-        console.log("fretdiagram-fallback: tar failed: " + e);
+        console.log("[fallback] tar: FAILED " + e);
     }
 
     // Strategy 2: node extract-chords.js (requires Node.js installed)
-    // Used when tar failed, or tar found no fretDiagrams (they may be in excerpts)
-    var needNode = !chords || (opts.data && (!opts.data.fretDiagrams || opts.data.fretDiagrams.length === 0));
+    // Used when:
+    //  - tar failed to extract chords, OR
+    //  - the score has FBox + the user wants diagrams in PDF, and tar found no diagrams
+    //    (FBox diagrams typically live in guitar excerpts, which tar can't reach)
+    var fdCountSoFar = (opts.data && opts.data.fretDiagrams) ? opts.data.fretDiagrams.length : 0;
+    var hasFBox = !!(opts.data && opts.data._debug && opts.data._debug.hasFretBox);
+    var wantsDiagrams = hasFBox && !opts.noDiagrams;
+    var needNode = !chords || (wantsDiagrams && fdCountSoFar === 0);
+    console.log("[fallback] node: needed=" + needNode +
+                " (chords=" + (chords ? chords.length : 0) +
+                ", fretDiagrams=" + fdCountSoFar +
+                ", hasFBox=" + hasFBox +
+                ", noDiagrams=" + !!opts.noDiagrams +
+                ", wantsDiagrams=" + wantsDiagrams + ")");
     if (opts.cliPath && needNode) {
         try {
+            console.log("[fallback] node: running " + opts.cliPath + " " + scorePath);
             opts.process.startWithArgs("node", [opts.cliPath, scorePath]);
             opts.process.waitForFinished(10000);
             var nodeOutput = opts.process.readAllStandardOutput();
             var output = nodeOutput ? nodeOutput.toString() : "";
+            console.log("[fallback] node: read " + output.length + " bytes");
 
             if (output.length > 2) {
                 var result = JSON.parse(output);
@@ -164,18 +190,22 @@ function extractChords(opts) {
                     if (opts.data && result.fretDiagrams && result.fretDiagrams.length > 0) {
                         opts.data.fretDiagrams = result.fretDiagrams;
                     }
-                    console.log("fretdiagram-fallback: node: " +
+                    console.log("[fallback] node: OK " +
                         (result.chords ? result.chords.length : 0) + " chords, " +
                         (result.fretDiagrams ? result.fretDiagrams.length : 0) + " fretDiagrams");
                 }
+            } else {
+                console.log("[fallback] node: empty output");
             }
         } catch (e) {
-            console.log("fretdiagram-fallback: node failed: " + e);
+            console.log("[fallback] node: FAILED " + e);
         }
     }
 
     if (!chords) {
-        console.log("fretdiagram-fallback: all strategies failed");
+        console.log("[fallback] extractChords: END all strategies failed");
+    } else {
+        console.log("[fallback] extractChords: END returning " + chords.length + " chords");
     }
     return chords;
 }
