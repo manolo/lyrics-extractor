@@ -641,9 +641,18 @@ MuseScore {
         lyricsPreview.text = output;
         var sylCount = data.syllables ? data.syllables.length : 0;
         var chordCount = data.chords ? data.chords.length : 0;
-        setStatus(tr(
-            sylCount + " silabas, " + chordCount + " acordes extraidos",
-            sylCount + " syllables, " + chordCount + " chords extracted"), false);
+        var diagramCount = extractedFretDiagrams.length;
+        var hasFBox = data._debug && data._debug.hasFretBox;
+
+        if (hasFBox && diagramCount === 0) {
+            setStatus(tr(
+                "Diagramas de acordes no encontrados. Ajusta el directorio donde esta el archivo .mscz",
+                "Chord diagrams not found. Set the directory where the .mscz file is located"), true);
+        } else {
+            setStatus(tr(
+                sylCount + " silabas, " + chordCount + " acordes extraidos",
+                sylCount + " syllables, " + chordCount + " chords extracted"), false);
+        }
     }
 
     // Export raw extracted data as JSON for debugging (compare plugin vs CLI)
