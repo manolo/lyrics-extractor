@@ -283,4 +283,6 @@ function extractChords(opts) {
 if (typeof exports !== "undefined") {
     exports.needsFallback = needsFallback;
     exports.extractChords = extractChords;
+    exports._findScorePath = _findScorePath;
+    exports._getLog = function() { return _log; };
 }

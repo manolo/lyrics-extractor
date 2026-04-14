@@ -163,7 +163,7 @@ By default, chord names use the score's own spelling setting. Use `--anglo` or `
 node --test test/*.test.js
 ```
 
-295 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API fallback, and integration.
+323 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API fallback, score file lookup, and integration.
 
 ## License
 

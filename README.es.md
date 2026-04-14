@@ -161,7 +161,7 @@ Por defecto, los nombres de acorde usan la ortografia de la partitura. Usar `--a
 node --test test/*.test.js
 ```
 
-295 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa e integracion.
+323 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos e integracion.
 
 ## Licencia
 
