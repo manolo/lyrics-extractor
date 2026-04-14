@@ -94,16 +94,17 @@ function _findScorePath(scoreName, fileIO, process, scoresDirectory) {
     if (isWindows) {
         try {
             var winDir = dir.replace(/\//g, "\\");
-            process.startWithArgs("where", ["/r", winDir, fileName]);
+            process.startWithArgs("cmd", ["/c", "dir", "/b", "/s", winDir + "\\" + fileName]);
             process.waitForFinished(5000);
             var w = process.readAllStandardOutput();
             var wf = w ? w.toString().trim().split("\r\n")[0] : "";
+            _logMsg("[fallback] _findScorePath: dir /b /s result='" + wf + "'");
             if (wf) {
-                _logMsg("[fallback] _findScorePath: FOUND (where): " + wf);
+                _logMsg("[fallback] _findScorePath: FOUND (dir): " + wf);
                 return wf;
             }
         } catch (e) {
-            _logMsg("[fallback] _findScorePath: where failed: " + e);
+            _logMsg("[fallback] _findScorePath: dir failed: " + e);
         }
     } else {
         try {
