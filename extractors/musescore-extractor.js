@@ -303,13 +303,26 @@ function extractChords(harmonyStaffIdx) {
                         }
                     }
                 }
-                // FretDiagram annotations: QML API does not expose nested Harmony.
-                // Record their presence so the QProcess fallback can be triggered.
+                // FretDiagram annotations: try native API (4.7+), fallback for older versions
                 if (ann && ann.type === 63) { // Type 63 = FRET_DIAGRAM
-                    debugInfo.fretDiagramsFound.push({
-                        tick: segment.tick,
-                        staff: Math.floor(ann.track / 4)
-                    });
+                    var fdChord = "";
+                    try { fdChord = ann.harmonyPlainText || ""; } catch (e) { fdChord = ""; }
+
+                    if (fdChord) {
+                        var fdStaff = Math.floor(ann.track / 4);
+                        if (fdStaff === harmonyStaffIdx || harmonyStaffIdx === -1) {
+                            console.log("[fret-api] chord '" + fdChord + "' at tick " + segment.tick + " staff " + fdStaff);
+                            chords.push({ tick: segment.tick, chord: fdChord });
+                        }
+                        debugInfo.fretDiagramsFound.push({
+                            tick: segment.tick, staff: fdStaff, extracted: true
+                        });
+                    } else {
+                        console.log("[fret-api] no API at tick " + segment.tick + ", marking for fallback");
+                        debugInfo.fretDiagramsFound.push({
+                            tick: segment.tick, staff: Math.floor(ann.track / 4)
+                        });
+                    }
                 }
             }
         }
@@ -609,6 +622,252 @@ function hasFretDiagramBox() {
     return false;
 }
 
+// Check if the fallback directory is needed for fret diagram extraction.
+// Returns false when: no FretDiagrams exist, or the native API can handle them.
+function needsFallbackDirectory() {
+    var hasFBox = hasFretDiagramBox();
+    if (!hasFBox) {
+        console.log("[fret-api] needsFallbackDirectory: NO (no FBox)");
+        return false;
+    }
+    var api = _fretApiAvailable();
+    console.log("[fret-api] needsFallbackDirectory: hasFBox=true, api=" + api);
+    return !api;
+}
+
+// Probe a single FretDiagram element for native API (4.7+)
+function _probeFretDiagramAPI(fd) {
+    try {
+        var hasDots = typeof fd.dots === "function";
+        console.log("[fret-api] probed FretDiagram: dots()=" + hasDots);
+        return hasDots;
+    } catch (e) {
+        console.log("[fret-api] probe failed: " + e);
+        return false;
+    }
+}
+
+// Check if the native FretDiagram API is available (MuseScore 4.7+)
+// by probing a FretDiagram element in FBox frames of this score
+function _fretApiAvailableInScore(score) {
+    try {
+        var mb = score.firstMeasure;
+        if (!mb) return null; // null = no FretDiagram found to probe
+        try { while (mb.prev) mb = mb.prev; } catch (e) { return null; }
+        var limit = 300;
+        while (mb && limit-- > 0) {
+            try {
+                var elems = mb.elements;
+                if (elems) {
+                    for (var i = 0; i < elems.length; i++) {
+                        if (elems[i] && elems[i].type === 63) {
+                            return _probeFretDiagramAPI(elems[i]);
+                        }
+                    }
+                }
+            } catch (e) { /* skip */ }
+            try { mb = mb.next; } catch (e) { break; }
+        }
+    } catch (e) { /* skip */ }
+    return null; // no FretDiagram found
+}
+
+// Check if native FretDiagram API is available, checking main score + guitar excerpts
+function _fretApiAvailable() {
+    console.log("[fret-api] _fretApiAvailable: probing main score");
+    var result = _fretApiAvailableInScore(curScore);
+    if (result !== null) return result;
+
+    // Also probe in segment annotations (FretDiagram as chord symbol, not in FBox)
+    try {
+        var segment = _getScore().firstSegment();
+        while (segment) {
+            var annotations = segment.annotations;
+            if (annotations) {
+                for (var a = 0; a < annotations.length; a++) {
+                    if (annotations[a] && annotations[a].type === 63) {
+                        return _probeFretDiagramAPI(annotations[a]);
+                    }
+                }
+            }
+            segment = segment.next;
+        }
+    } catch (e) { /* skip */ }
+
+    // Probe guitar excerpts
+    try {
+        var excerpts = _getScore().excerpts;
+        if (excerpts) {
+            for (var i = 0; i < excerpts.length; i++) {
+                var title = (excerpts[i].title || "").toLowerCase();
+                if (title.indexOf("guitar") >= 0 || title.indexOf("guitarra") >= 0) {
+                    try {
+                        var partScore = excerpts[i].partScore;
+                        if (partScore) {
+                            console.log("[fret-api] _fretApiAvailable: probing excerpt '" + excerpts[i].title + "'");
+                            result = _fretApiAvailableInScore(partScore);
+                            if (result !== null) return result;
+                        }
+                    } catch (e) { /* skip */ }
+                }
+            }
+        }
+    } catch (e) { /* skip */ }
+
+    console.log("[fret-api] _fretApiAvailable: no FretDiagram found to probe");
+    return false;
+}
+
+// Extract fret diagram data from a single score's FBox frames via native API
+// Returns array of diagram objects compatible with fretboard-renderer
+function _extractFretDiagramsFromScore(score) {
+    var diagrams = [];
+    var seen = {};
+    try {
+        var mb = score.firstMeasure;
+        if (!mb) return diagrams;
+        try { while (mb.prev) mb = mb.prev; } catch (e) { return diagrams; }
+        var limit = 300;
+        while (mb && limit-- > 0) {
+            try {
+                var elems = mb.elements;
+                if (elems) {
+                    for (var i = 0; i < elems.length; i++) {
+                        var fd = elems[i];
+                        if (!fd || fd.type !== 63) continue;
+
+                        var chordName = "";
+                        try { chordName = fd.harmonyPlainText || ""; } catch (e) { continue; }
+                        if (!chordName) continue;
+
+                        var numStrings = 6;
+                        try { numStrings = fd.strings || 6; } catch (e) {}
+                        var numFrets = 4;
+                        try { numFrets = fd.frets || 4; } catch (e) {}
+                        var fretOffset = 0;
+                        try { fretOffset = fd.fretOffset || 0; } catch (e) {}
+
+                        // Read dots -> convert to renderer format
+                        var strings = [];
+                        var dotsByString = {};
+                        try {
+                            var apiDots = fd.dots();
+                            for (var d = 0; d < apiDots.length; d++) {
+                                var dot = apiDots[d];
+                                dotsByString[dot.string] = { fret: dot.fret };
+                            }
+                        } catch (e) {
+                            console.log("[fret-api] dots() failed: " + e);
+                        }
+
+                        // Read markers -> convert to renderer format
+                        var markersByString = {};
+                        try {
+                            var apiMarkers = fd.markers();
+                            for (var m = 0; m < apiMarkers.length; m++) {
+                                var mk = apiMarkers[m];
+                                // FretMarkerType: 1=CIRCLE (open), 2=CROSS (muted)
+                                markersByString[mk.string] = mk.markerType === 2 ? "cross" : "circle";
+                            }
+                        } catch (e) {
+                            console.log("[fret-api] markers() failed: " + e);
+                        }
+
+                        // Build strings array (all strings, 0 to numStrings-1)
+                        for (var s = 0; s < numStrings; s++) {
+                            var strObj = { number: s };
+                            if (markersByString[s]) {
+                                strObj.marker = markersByString[s];
+                            } else if (dotsByString[s]) {
+                                strObj.dot = dotsByString[s];
+                            }
+                            strings.push(strObj);
+                        }
+
+                        // Read barres -> take first one
+                        var barre = null;
+                        try {
+                            var apiBarres = fd.barres();
+                            if (apiBarres.length > 0) {
+                                var b = apiBarres[0];
+                                barre = { start: b.startString, end: b.endString, fret: b.fret };
+                            }
+                        } catch (e) {
+                            console.log("[fret-api] barres() failed: " + e);
+                        }
+
+                        // Deduplicate by fingerprint
+                        var fp = chordName + "|";
+                        for (var si = 0; si < strings.length; si++) {
+                            var ss = strings[si];
+                            if (ss.marker) fp += ss.number + ":" + ss.marker + ",";
+                            else if (ss.dot) fp += ss.number + ":" + ss.dot.fret + ",";
+                        }
+                        if (barre) fp += "barre:" + barre.start + "-" + barre.end + ":" + barre.fret;
+                        if (seen[fp]) continue;
+                        seen[fp] = true;
+
+                        var diagram = {
+                            chordName: chordName,
+                            strings: strings,
+                            fretOffset: fretOffset,
+                            numFrets: numFrets,
+                            barre: barre
+                        };
+                        diagrams.push(diagram);
+                        console.log("[fret-api] FBox diagram: " + chordName +
+                                    " strings=" + numStrings + " frets=" + numFrets +
+                                    " offset=" + fretOffset +
+                                    " dots=" + Object.keys(dotsByString).length +
+                                    " markers=" + Object.keys(markersByString).length +
+                                    " barre=" + (barre ? "yes" : "no"));
+                    }
+                }
+            } catch (e) { /* skip frame */ }
+            try { mb = mb.next; } catch (e) { break; }
+        }
+    } catch (e) {
+        console.log("[fret-api] _extractFretDiagramsFromScore error: " + e);
+    }
+    return diagrams;
+}
+
+// Extract fret diagrams from all scores (main + guitar excerpts) via native API
+function extractFretDiagramsFromAPI() {
+    console.log("[fret-api] extractFretDiagramsFromAPI: START");
+    var diagrams = _extractFretDiagramsFromScore(curScore);
+    console.log("[fret-api] main score: " + diagrams.length + " diagrams");
+
+    // Also check guitar excerpts
+    try {
+        var excerpts = _getScore().excerpts;
+        if (excerpts) {
+            for (var i = 0; i < excerpts.length; i++) {
+                var title = (excerpts[i].title || "").toLowerCase();
+                if (title.indexOf("guitar") >= 0 || title.indexOf("guitarra") >= 0) {
+                    try {
+                        var partScore = excerpts[i].partScore;
+                        if (partScore) {
+                            var excerptDiagrams = _extractFretDiagramsFromScore(partScore);
+                            console.log("[fret-api] excerpt '" + excerpts[i].title + "': " + excerptDiagrams.length + " diagrams");
+                            for (var d = 0; d < excerptDiagrams.length; d++) {
+                                diagrams.push(excerptDiagrams[d]);
+                            }
+                        }
+                    } catch (e) {
+                        console.log("[fret-api] excerpt error: " + e);
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.log("[fret-api] excerpts error: " + e);
+    }
+
+    console.log("[fret-api] extractFretDiagramsFromAPI: END total=" + diagrams.length);
+    return diagrams;
+}
+
 // Extract all data from the current score
 // Returns the intermediate data structure consumed by the orchestrator
 function extractAll() {
@@ -658,6 +917,26 @@ function extractAll() {
         }
     } catch(e) { _staffDebug.push({ error: "" + e }); }
 
+    // Extract fret diagrams via native API if available (4.7+)
+    var fretDiagrams = [];
+    var fretDiagramsExtracted = false;
+    var allFDExtracted = _fretDiagramDebug
+        && _fretDiagramDebug.fretDiagramsFound.length > 0
+        && _fretDiagramDebug.fretDiagramsFound.every(function(fd) { return fd.extracted; });
+    var hasFBox = hasFretDiagramBox();
+    var apiAvailable = allFDExtracted || _fretApiAvailable();
+
+    if (apiAvailable && hasFBox) {
+        console.log("[fret-api] API available, extracting FBox diagrams natively");
+        fretDiagrams = extractFretDiagramsFromAPI();
+        fretDiagramsExtracted = fretDiagrams.length > 0;
+    } else if (apiAvailable) {
+        console.log("[fret-api] API available, no FBox to extract");
+        fretDiagramsExtracted = true; // no diagrams needed, skip fallback
+    } else {
+        console.log("[fret-api] API not available, fallback may be needed");
+    }
+
     return {
         title: _getScore().metaTag("workTitle") || _getScore().metaTag("movementTitle") || _getScore().title || _getScore().scoreName || "",
         nstaves: _getScore().nstaves,
@@ -671,6 +950,7 @@ function extractAll() {
         systemTexts: systemTexts,
         barlines: barlines,
         lastTick: lastTick,
+        fretDiagrams: fretDiagrams.length > 0 ? fretDiagrams : undefined,
         _debug: {
             voiceStaff: staves.voiceStaff,
             harmonyStaff: staves.harmonyStaff,
@@ -681,7 +961,8 @@ function extractAll() {
             elementJump: typeof Element !== "undefined" ? Element.JUMP : "N/A",
             allHarmonyFound: staves._allHarmonyFound || [],
             fretDiagramDebug: _fretDiagramDebug,
-            hasFretBox: hasFretDiagramBox()
+            hasFretBox: hasFBox,
+            fretDiagramsExtracted: fretDiagramsExtracted
         }
     };
 }
@@ -694,4 +975,7 @@ if (typeof exports !== "undefined") {
     exports.extractRepeats = extractRepeats;
     exports.extractVoltas = extractVoltas;
     exports.extractNavigation = extractNavigation;
+    exports._extractFretDiagramsFromScore = _extractFretDiagramsFromScore;
+    exports._fretApiAvailableInScore = _fretApiAvailableInScore;
+    exports.needsFallbackDirectory = needsFallbackDirectory;
 }

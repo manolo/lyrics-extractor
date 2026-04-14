@@ -19,6 +19,12 @@ function needsFallback(debugData) {
         return false;
     }
 
+    // Native API (4.7+) already extracted everything
+    if (debugData.fretDiagramsExtracted) {
+        console.log("[fallback] needsFallback: NO (native API extracted diagrams)");
+        return false;
+    }
+
     // Case 1: FretDiagram chord annotations that QML API could not read
     var fd = debugData.fretDiagramDebug;
     var unextracted = 0;
