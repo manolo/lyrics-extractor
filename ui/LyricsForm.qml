@@ -628,6 +628,9 @@ MuseScore {
             return;
         }
 
+        // Run fallback so its log is captured in _debug.fallbackLog
+        extractChordsWithFallback(data);
+
         var json = JSON.stringify(data, null, 2);
 
         var scorePath = curScore.path || "";
