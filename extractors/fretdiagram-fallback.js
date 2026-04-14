@@ -163,14 +163,55 @@ function extractChords(opts) {
         console.log("[fallback] tar: FAILED " + e);
     }
 
-    // Strategy 2: node extract-chords.js (requires Node.js installed)
-    // Used when:
-    //  - tar failed to extract chords, OR
-    //  - the score has FBox + the user wants diagrams in PDF, and tar found no diagrams
-    //    (FBox diagrams typically live in guitar excerpts, which tar can't reach)
+    // Strategy 1b: tar extracts guitar excerpt .mscx for FBox diagrams
     var fdCountSoFar = (opts.data && opts.data.fretDiagrams) ? opts.data.fretDiagrams.length : 0;
     var hasFBox = !!(opts.data && opts.data._debug && opts.data._debug.hasFretBox);
     var wantsDiagrams = hasFBox && !opts.noDiagrams;
+    if (wantsDiagrams && fdCountSoFar === 0) {
+        try {
+            // List .mscz contents to find guitar excerpt
+            console.log("[fallback] tar: listing archive to find guitar excerpt");
+            opts.process.startWithArgs("tar", ["tf", scorePath]);
+            opts.process.waitForFinished(5000);
+            var listing = opts.process.readAllStandardOutput();
+            var files = listing ? listing.toString().split("\n") : [];
+            var guitarFiles = [];
+            for (var fi = 0; fi < files.length; fi++) {
+                var f = files[fi].trim().toLowerCase();
+                if (f.indexOf("excerpt") >= 0 && f.indexOf(".mscx") >= 0 &&
+                    (f.indexOf("guitar") >= 0 || f.indexOf("guitarra") >= 0)) {
+                    guitarFiles.push(files[fi].trim());
+                }
+            }
+            console.log("[fallback] tar: found " + guitarFiles.length + " guitar excerpts");
+            for (var gi = 0; gi < guitarFiles.length && fdCountSoFar === 0; gi++) {
+                console.log("[fallback] tar: extracting excerpt " + guitarFiles[gi]);
+                opts.process.startWithArgs("tar", ["xf", scorePath, "-O", guitarFiles[gi]]);
+                opts.process.waitForFinished(10000);
+                var excerptOutput = opts.process.readAllStandardOutput();
+                var excerptXml = excerptOutput ? excerptOutput.toString() : "";
+                console.log("[fallback] tar: excerpt read " + excerptXml.length + " bytes");
+                if (excerptXml.length > 100 && excerptXml.indexOf("<museScore") > -1) {
+                    var excerptDiagrams = opts.XmlChordReader.extractFretDiagrams(excerptXml);
+                    if (excerptDiagrams && excerptDiagrams.length > 0) {
+                        if (opts.data) opts.data.fretDiagrams = excerptDiagrams;
+                        fdCountSoFar = excerptDiagrams.length;
+                        console.log("[fallback] tar: excerpt OK " + fdCountSoFar + " fretDiagrams");
+                    } else {
+                        console.log("[fallback] tar: excerpt has no fretDiagrams");
+                    }
+                }
+            }
+            if (guitarFiles.length === 0) {
+                console.log("[fallback] tar: no guitar excerpt found in archive");
+            }
+        } catch (e) {
+            console.log("[fallback] tar excerpt: FAILED " + e);
+        }
+    }
+
+    // Strategy 2: node extract-chords.js (requires Node.js installed)
+    // Used when tar strategies failed
     var needNode = !chords || (wantsDiagrams && fdCountSoFar === 0);
     console.log("[fallback] node: needed=" + needNode +
                 " (chords=" + (chords ? chords.length : 0) +
