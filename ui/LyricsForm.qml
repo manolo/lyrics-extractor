@@ -653,17 +653,19 @@ MuseScore {
     // ========================================
 
     function openFile(path) {
-        var openers = [
-            ["open", [path]],
-            ["xdg-open", [path]],
-            ["cmd", ["/c", "start", "", path]]
-        ];
-        for (var i = 0; i < openers.length; i++) {
+        var isWindows = Qt.platform.os === "windows";
+        try {
+            if (isWindows) {
+                openProcess.startWithArgs("cmd", ["/c", "start", "\"\"", path.replace(/\//g, "\\")]);
+            } else {
+                openProcess.startWithArgs("open", [path]);
+            }
+            openProcess.waitForFinished(3000);
+        } catch (e) {
             try {
-                openProcess.startWithArgs(openers[i][0], openers[i][1]);
+                openProcess.startWithArgs("xdg-open", [path]);
                 openProcess.waitForFinished(3000);
-                break;
-            } catch (e) { /* try next */ }
+            } catch (e2) { /* no opener available */ }
         }
     }
 
