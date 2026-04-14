@@ -1023,6 +1023,46 @@ MuseScore {
                         }
                     }
 
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+                        visible: statusText.text.length > 0
+
+                        Text {
+                            id: statusText
+                            property bool isError: false
+                            text: ""
+                            color: isError ? "#f44336" : systemPalette.windowText
+                            font.italic: true
+                            font.bold: isError
+                            font.pixelSize: 11
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Text {
+                            text: "\uD83D\uDCCB"
+                            visible: savedFilePath !== ""
+                            font.pixelSize: 14
+                            opacity: copyPathMouse.containsMouse ? 1.0 : 0.5
+
+                            MouseArea {
+                                id: copyPathMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    textHelper.text = savedFilePath;
+                                    textHelper.selectAll();
+                                    textHelper.copy();
+                                    setStatus(tr(
+                                        "Ruta copiada: " + savedFilePath,
+                                        "Path copied: " + savedFilePath), false);
+                                }
+                            }
+                        }
+                    }
+
                     Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -1151,49 +1191,9 @@ MuseScore {
                 }
             }
 
-            // Status text with copy path link
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 4
-
-                Text {
-                    id: statusText
-                    property bool isError: false
-                    text: ""
-                    color: isError ? "#f44336" : systemPalette.windowText
-                    font.italic: true
-                    font.bold: isError
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-
-                Text {
-                    text: "\uD83D\uDCCB"
-                    visible: savedFilePath !== ""
-                    font.pixelSize: 14
-                    opacity: copyPathMouse.containsMouse ? 1.0 : 0.5
-
-                    MouseArea {
-                        id: copyPathMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            textHelper.text = savedFilePath;
-                            textHelper.selectAll();
-                            textHelper.copy();
-                            statusText.text = tr(
-                                "Ruta copiada: " + savedFilePath,
-                                "Path copied: " + savedFilePath
-                            );
-                        }
-                    }
-                }
-
-                TextEdit {
-                    id: textHelper
-                    visible: false
-                }
+            TextEdit {
+                id: textHelper
+                visible: false
             }
 
             Item {
