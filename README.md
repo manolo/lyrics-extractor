@@ -95,8 +95,6 @@ Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) a
 
 ## Writing lyrics for best results
 
-![Score with lyrics, chords, and multiple staves ready for extraction](docs/lyrics-extractor-score-pdf.png)
-
 ### Entering lyrics in MuseScore
 
 | Action | Shortcut | Effect |

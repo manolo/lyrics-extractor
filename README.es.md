@@ -93,8 +93,6 @@ Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) 
 
 ## Escribir letras para mejores resultados
 
-![Partitura con letras, acordes y multiples pentagramas lista para extraccion](docs/lyrics-extractor-score-pdf.png)
-
 ### Introducir letras en MuseScore
 
 | Accion | Atajo | Efecto |
