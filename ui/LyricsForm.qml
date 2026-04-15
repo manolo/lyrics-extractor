@@ -562,8 +562,7 @@ MuseScore {
             cliPath: cliPath,
             data: data,
             spelling: settings.useSolfeo ? "solfeggio" : "standard",
-            scoresDirectory: scoresDirectory,
-            noDiagrams: settings.noDiagrams
+            scoresDirectory: scoresDirectory
         });
 
         if (data.scorePath) lastScorePath = data.scorePath;
@@ -627,9 +626,15 @@ MuseScore {
         var hasFBox = data._debug && data._debug.hasFretBox;
 
         if (hasFBox && diagramCount === 0) {
-            setStatus(tr(
-                "Diagramas de acordes no encontrados. Ajusta el directorio donde esta el archivo .mscz",
-                "Chord diagrams not found. Set the directory where the .mscz file is located"), true);
+            if (data.scorePath) {
+                setStatus(tr(
+                    "Diagramas detectados pero no extraidos. Exporta debug para diagnostico.",
+                    "Diagrams detected but not extracted. Run debug export to diagnose."), true);
+            } else {
+                setStatus(tr(
+                    "Diagramas de acordes no encontrados. Ajusta el directorio donde esta el archivo .mscz",
+                    "Chord diagrams not found. Set the directory where the .mscz file is located"), true);
+            }
         } else {
             setStatus(tr(
                 sylCount + " silabas, " + chordCount + " acordes extraidos",

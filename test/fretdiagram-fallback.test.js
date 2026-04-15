@@ -299,15 +299,22 @@ test("extractChords extracts fretDiagrams from guitar excerpt via tar", function
     assert.equal(data.fretDiagrams[0].chordName, "Lam");
 });
 
-test("extractChords skips excerpt extraction when noDiagrams is true", function() {
+test("extractChords always attempts excerpt extraction when FBox present", function() {
+    // Regression: the fallback used to honor an opts.noDiagrams flag and skip
+    // excerpt extraction. That flag was removed so toggling "No chord diagrams"
+    // in the PDF section works without re-extracting. The fallback must always
+    // try to extract diagrams when FBox is present (even when no guitar excerpt
+    // is found, no error should occur).
     var callCount = 0;
     var responses = [
         '<museScore><Score><Division>480</Division><Staff id="1"><Measure><voice>' +
         '<Harmony><harmonyInfo><root>17</root><name>m</name></harmonyInfo></Harmony>' +
-        '<Chord><durationType>whole</durationType></Chord></voice></Measure></Staff></Score></museScore>'
+        '<Chord><durationType>whole</durationType></Chord></voice></Measure></Staff></Score></museScore>',
+        ""  // tar tf listing: no guitar excerpt found
     ];
+    var calls = [];
     var proc = {
-        startWithArgs: function() {},
+        startWithArgs: function(cmd, args) { calls.push(args.slice()); },
         waitForFinished: function() {},
         readAllStandardOutput: function() {
             var r = responses[callCount] || "";
@@ -326,10 +333,11 @@ test("extractChords skips excerpt extraction when noDiagrams is true", function(
         process: proc,
         XmlChordReader: XmlChordReader,
         Constants: Constants,
-        spelling: "solfeggio",
-        noDiagrams: true
+        spelling: "solfeggio"
     });
-    assert.ok(!data.fretDiagrams || data.fretDiagrams.length === 0, "should not extract diagrams when noDiagrams");
+    // The "tar tf" listing call must have been made (proves we attempted excerpts)
+    var sawListing = calls.some(function(a) { return a[0] === "tf"; });
+    assert.ok(sawListing, "should attempt to list archive contents to find guitar excerpts");
 });
 
 // ========================================
