@@ -246,3 +246,23 @@ test("applyStanzaFormatting converts small full stop (U+FE52) to regular period"
     // Period counts as punctuation, no extra comma added
     assert.equal(lines[1].text, "y del sol.");
 });
+
+test("buildLinesFromWords does not insert space before standalone punctuation", function() {
+    var words = [
+        { text: "diciendo", tick: 0, phraseBreak: false, sylTicks: [{ tick: 0, offset: 0 }] },
+        { text: "que\u2026", tick: 480, phraseBreak: false, sylTicks: [{ tick: 480, offset: 0 }] },
+        { text: ",", tick: 960, phraseBreak: true, sylTicks: [{ tick: 960, offset: 0 }] }
+    ];
+    var lines = lb.buildLinesFromWords(words);
+    assert.equal(lines.length, 1);
+    assert.equal(lines[0].text, "diciendo que\u2026,", "no space before comma: " + lines[0].text);
+});
+
+test("buildLinesFromWords inserts spaces between regular words", function() {
+    var words = [
+        { text: "hola", tick: 0, phraseBreak: false, sylTicks: [{ tick: 0, offset: 0 }] },
+        { text: "mundo", tick: 480, phraseBreak: true, sylTicks: [{ tick: 480, offset: 0 }] }
+    ];
+    var lines = lb.buildLinesFromWords(words);
+    assert.equal(lines[0].text, "hola mundo");
+});
