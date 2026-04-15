@@ -1191,7 +1191,7 @@ MuseScore {
                 height: 40
 
                 Text {
-                    text: "\u00A9 2025 Manolo Carrasco (do2tis) - v" + version
+                    text: "\u00A9 2026 Manolo Carrasco (do2tis) - v" + version
                     font.pixelSize: 11
                     color: systemPalette.windowText
                     anchors.left: parent.left

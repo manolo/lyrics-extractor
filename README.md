@@ -182,4 +182,4 @@ node --test test/*.test.js
 
 ## License
 
-Copyright 2025 Manolo Carrasco (do2tis)
+Copyright 2026 Manolo Carrasco (do2tis)
