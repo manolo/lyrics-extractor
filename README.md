@@ -178,7 +178,11 @@ By default, chord names use the score's own spelling setting. Use `--anglo` or `
 node --test test/*.test.js
 ```
 
-323 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API fallback, score file lookup, and integration.
+349 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API fallback, score file lookup, element type classification, and integration.
+
+## Specs
+
+- [Section titles and chords](specs/section-titles-and-chords.md): which MuseScore elements are recognised as chords vs. section titles.
 
 ## License
 

@@ -975,6 +975,7 @@ if (typeof exports !== "undefined") {
     exports.extractRepeats = extractRepeats;
     exports.extractVoltas = extractVoltas;
     exports.extractNavigation = extractNavigation;
+    exports.extractSystemTexts = extractSystemTexts;
     exports._extractFretDiagramsFromScore = _extractFretDiagramsFromScore;
     exports._fretApiAvailableInScore = _fretApiAvailableInScore;
     exports.needsFallbackDirectory = needsFallbackDirectory;

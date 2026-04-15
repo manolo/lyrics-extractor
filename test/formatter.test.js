@@ -1530,3 +1530,58 @@ test("formatPerfLines trailing coda chords on chord line, not duplicated below",
     assert.ok(chordLine.indexOf("Re") >= 0 && chordLine.indexOf("Sol") >= 0,
         "trailing chords on chord line: " + chordLine);
 });
+
+// ============================================================
+// renderLabel: uppercase, # numbering, multi-counter independence
+// ============================================================
+
+test("renderLabel uppercases the input", function() {
+    var counters = {};
+    assert.equal(fmt.renderLabel("estrofa", counters), "ESTROFA");
+    assert.equal(fmt.renderLabel("Estribillo", counters), "ESTRIBILLO");
+    assert.equal(fmt.renderLabel("Final Coda", counters), "FINAL CODA");
+});
+
+test("renderLabel replaces # with incrementing per-base counter", function() {
+    var counters = {};
+    assert.equal(fmt.renderLabel("Estrofa #", counters), "ESTROFA 1");
+    assert.equal(fmt.renderLabel("Estrofa #", counters), "ESTROFA 2");
+    assert.equal(fmt.renderLabel("Estrofa #", counters), "ESTROFA 3");
+});
+
+test("renderLabel keeps independent counters per base label", function() {
+    var counters = {};
+    assert.equal(fmt.renderLabel("Estrofa #", counters), "ESTROFA 1");
+    assert.equal(fmt.renderLabel("Solista #", counters), "SOLISTA 1");
+    assert.equal(fmt.renderLabel("Estrofa #", counters), "ESTROFA 2");
+    assert.equal(fmt.renderLabel("Solista #", counters), "SOLISTA 2");
+    assert.equal(fmt.renderLabel("Estrofa #", counters), "ESTROFA 3");
+});
+
+test("renderLabel passes through labels without # unchanged (just uppercased)", function() {
+    var counters = {};
+    assert.equal(fmt.renderLabel("Intro", counters), "INTRO");
+    assert.equal(fmt.renderLabel("Estribillo", counters), "ESTRIBILLO");
+    assert.equal(fmt.renderLabel("Intro", counters), "INTRO", "no counter for non-# labels");
+});
+
+test("formatPerfLines keeps independent counters for two numbered labels", function() {
+    var lines = [
+        { text: "verse one.", sylMap: [{tick:100,pos:0,chord:"Lam"}], startTick: 100, endTick: 200, sectionEnd: true },
+        { text: "solo one.", sylMap: [{tick:300,pos:0,chord:"Sol"}], startTick: 300, endTick: 400, sectionEnd: true },
+        { text: "verse two.", sylMap: [{tick:500,pos:0,chord:"Re"}], startTick: 500, endTick: 600, sectionEnd: true },
+        { text: "solo two.", sylMap: [{tick:700,pos:0,chord:"Mi"}], startTick: 700, endTick: 800, sectionEnd: false }
+    ];
+    var systemTexts = [
+        {tick:100, text:"Estrofa #"},
+        {tick:300, text:"Solista #"},
+        {tick:500, text:"Estrofa #"},
+        {tick:700, text:"Solista #"}
+    ];
+    var result = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var output = result.text;
+    assert.ok(output.indexOf("- ESTROFA 1 -") >= 0, "should have ESTROFA 1: " + output);
+    assert.ok(output.indexOf("- ESTROFA 2 -") >= 0, "should have ESTROFA 2: " + output);
+    assert.ok(output.indexOf("- SOLISTA 1 -") >= 0, "should have SOLISTA 1: " + output);
+    assert.ok(output.indexOf("- SOLISTA 2 -") >= 0, "should have SOLISTA 2: " + output);
+});

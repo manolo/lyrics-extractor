@@ -599,3 +599,119 @@ test("extractAll excludes hidden staves from selection", function() {
     assert.equal(data.syllables.length, 1, "should only have syllables from visible staff");
     assert.equal(data.syllables[0].text, "visible");
 });
+
+// ============================================================
+// Expression and FretDiagram (nested Harmony) as chord
+// ============================================================
+
+test("extractAll extracts <Expression> as inline chord text", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score><Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<Expression><text>rit.</text></Expression>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>hello</text></Lyrics>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml);
+    assert.equal(data.chords.length, 1);
+    assert.equal(data.chords[0].chord, "rit.");
+    assert.equal(data.chords[0].tick, 0);
+});
+
+test("extractAll extracts chord from <FretDiagram> with nested <Harmony>", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score><Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<FretDiagram>',
+        '<Harmony><harmonyInfo><root>17</root><name>m</name></harmonyInfo></Harmony>',
+        '<fretDiagram><fret>0</fret></fretDiagram>',
+        '</FretDiagram>',
+        '<Chord><durationType>whole</durationType>',
+        '<Lyrics><text>hi</text></Lyrics>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml, [], "solfeggio");
+    assert.equal(data.chords.length, 1);
+    assert.equal(data.chords[0].chord, "Lam");
+});
+
+// ============================================================
+// RehearsalMark and staff filtering for section labels
+// ============================================================
+
+test("extractAll extracts <RehearsalMark> on staff 0 as section label", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score><Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<RehearsalMark><text>A</text></RehearsalMark>',
+        '<Chord><durationType>whole</durationType>',
+        '<Lyrics><text>hi</text></Lyrics>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml);
+    assert.equal(data.systemTexts.length, 1);
+    assert.equal(data.systemTexts[0].text, "A");
+    assert.equal(data.systemTexts[0].tick, 0);
+});
+
+test("extractAll ignores <RehearsalMark> on non-zero staff", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score><Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Part><Staff id="2"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<Chord><durationType>whole</durationType>',
+        '<Lyrics><text>hi</text></Lyrics>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '<Staff id="2"><Measure><voice>',
+        '<RehearsalMark><text>B</text></RehearsalMark>',
+        '<Chord><durationType>whole</durationType>',
+        '<Note><pitch>62</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml);
+    assert.equal(data.systemTexts.length, 0, "RehearsalMark on staff 2 should be ignored");
+});
+
+test("extractAll ignores <SystemText> on non-zero staff", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score><Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Part><Staff id="2"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<Chord><durationType>whole</durationType>',
+        '<Lyrics><text>hi</text></Lyrics>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '<Staff id="2"><Measure><voice>',
+        '<SystemText><text>SHOULD-NOT-APPEAR</text></SystemText>',
+        '<Chord><durationType>whole</durationType>',
+        '<Note><pitch>62</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml);
+    assert.equal(data.systemTexts.length, 0, "SystemText on staff 2 should be ignored");
+});

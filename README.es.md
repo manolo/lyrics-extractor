@@ -176,7 +176,11 @@ Por defecto, los nombres de acorde usan la ortografia de la partitura. Usar `--a
 node --test test/*.test.js
 ```
 
-323 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos e integracion.
+349 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento e integracion.
+
+## Specs
+
+- [Titulos de seccion y acordes](specs/section-titles-and-chords.md): que elementos de MuseScore se reconocen como acordes y cuales como titulos de seccion.
 
 ## Licencia
 
