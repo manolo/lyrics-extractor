@@ -614,6 +614,8 @@ function extractAll(xmlString, excerptXmls, spelling) {
             if (elem.tag === "StaffText" || elem.tag === "Expression" || elem.tag === "PlayTechAnnotation") {
                 var inlineText = childText(elem, "text");
                 if (inlineText) {
+                    // Collapse internal whitespace to '-' for readability in chord line
+                    inlineText = inlineText.replace(/\s+/g, "-");
                     if (!harmonyCounts[staffId]) harmonyCounts[staffId] = 0;
                     harmonyCounts[staffId]++;
                     allChords.push({ staffId: staffId, tick: voiceTick, chord: inlineText });

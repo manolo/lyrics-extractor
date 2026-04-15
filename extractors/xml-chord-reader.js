@@ -218,6 +218,8 @@ function extractChords(xmlString, C, spelling) {
                         // Inline text annotations on the harmony staff appear in the chord line
                         var inlineText = _ct(e, "text");
                         if (inlineText) {
+                            // Collapse internal whitespace to '-' for readability
+                            inlineText = inlineText.replace(/\s+/g, "-");
                             if (!counts[sid]) counts[sid] = 0;
                             counts[sid]++;
                             all.push({ staffId: sid, tick: vt, chord: inlineText });

@@ -238,3 +238,16 @@ test("PlayTechAnnotation on a non-harmony staff is filtered out", function() {
     var chords = msExtractor.extractChords(0);
     assert.equal(chords.length, 0);
 });
+
+test("inline text with internal whitespace is collapsed to '-'", function() {
+    setScore(makeMockScore({
+        0: [{ type: Element.STAFF_TEXT, text: "Staff text", track: 0 }],
+        480: [{ type: 56, text: "molto rit.", track: 0 }],
+        960: [{ type: 42, text: "  multiple   spaces  ", track: 0 }]
+    }));
+    var chords = msExtractor.extractChords(0);
+    assert.equal(chords.length, 3);
+    assert.equal(chords[0].chord, "Staff-text");
+    assert.equal(chords[1].chord, "molto-rit.");
+    assert.equal(chords[2].chord, "-multiple-spaces-");
+});
