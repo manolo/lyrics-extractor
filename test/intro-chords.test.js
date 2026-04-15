@@ -54,6 +54,30 @@ test("buildIntroChordsPerf resets dedup between passes", function() {
     assert.ok(lamCount >= 2, "Lam should appear at least twice (once per pass): " + result.join(", "));
 });
 
+test("buildIntroChordsPerf does not double-emit intro chords when repeat starts at 0 and contains lyrics (Clavelitos regression)", function() {
+    // Whole-song repeat (one section spanning 0..end), with a music intro
+    // before the first lyric. The lyrics branch must advance lastSectionEnd
+    // so the post-loop gap pass does not re-emit the same intro chords.
+    var chords = [
+        { tick: 0, chord: "Lam" }, { tick: 480, chord: "Mi7" },
+        { tick: 960, chord: "Lam" }, { tick: 1440, chord: "Rem" },
+        { tick: 1920, chord: "Mi7" }, { tick: 2400, chord: "Lam" },
+        { tick: 2880, chord: "Sol" }  // first chord under lyric, not part of intro
+    ];
+    var syllables = [{ tick: 2880, text: "Hey" }];
+    var repeats = [{ startTick: 0, endTick: 5000 }];
+    var voltas = [];
+    var repStruct = {
+        repeats: repeats, voltas: voltas,
+        sections: RepeatStructure.buildSections(repeats, voltas)
+    };
+    var result = IntroChords.buildIntroChordsPerf(chords, repStruct, syllables, 2880);
+    // Expect: Lam, Mi7, Lam, Rem, Mi7, Lam (6 chords, one pass)
+    assert.equal(result.length, 6,
+        "intro should be one pass of music chords, not duplicated: " + result.join(","));
+    assert.deepEqual(result, ["Lam", "Mi7", "Lam", "Rem", "Mi7", "Lam"]);
+});
+
 test("buildIntroChordsPerf includes gap chords after section end", function() {
     // Chord in gap between section end and first lyric should be included
     var chords = [
