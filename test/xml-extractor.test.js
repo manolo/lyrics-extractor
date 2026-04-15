@@ -604,6 +604,26 @@ test("extractAll excludes hidden staves from selection", function() {
 // Expression and FretDiagram (nested Harmony) as chord
 // ============================================================
 
+test("extractAll extracts <PlayTechAnnotation> as inline chord text", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score><Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<PlayTechAnnotation><playTechType>harmonics</playTechType><text>harmonics</text></PlayTechAnnotation>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>hello</text></Lyrics>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml);
+    assert.equal(data.chords.length, 1);
+    assert.equal(data.chords[0].chord, "harmonics");
+    assert.equal(data.chords[0].tick, 0);
+});
+
 test("extractAll extracts <Expression> as inline chord text", function() {
     var xml = [
         '<?xml version="1.0" encoding="UTF-8"?>',

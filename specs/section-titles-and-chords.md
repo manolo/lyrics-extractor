@@ -11,6 +11,7 @@ This spec documents which MuseScore elements the extractor recognises as
 | `Element.HARMONY` / `<Harmony>` | varies | `ann.text` (QML) or composed from `harmonyInfo/root` + `name` (XML) | Primary chord source |
 | `Element.STAFF_TEXT` / `<StaffText>` | 52 | `ann.text` / `<text>` | Inline text on the harmony staff is treated as a chord |
 | `Element.EXPRESSION` / `<Expression>` | 42 | `ann.text` / `<text>` | Same as StaffText; useful for expression marks like `rit.` placed above the chord line |
+| `Element.PLAYTECH_ANNOTATION` / `<PlayTechAnnotation>` | 56 | `ann.text` / `<text>` | Play technique markings like `harmonics`, `pizz.`, `arco` |
 | `Element.FRET_DIAGRAM` / `<FretDiagram>` | 63 | `ann.harmonyPlainText` (QML 4.7+) or nested `<Harmony>` (XML) | Only if the diagram has a harmony |
 
 Filtering rules:
@@ -25,9 +26,12 @@ Filtering rules:
 
 | Element / XML tag | Type | Notes |
 |---|---|---|
-| `Element.STAFF_TEXT` / `<StaffText>` | 52 | Same element as the chord case; the same text can appear both as a chord (when on the harmony staff) and as a section title |
-| `Element.SYSTEM_TEXT` / `<SystemText>` | varies | XML extractor restricts to staff 0 |
+| `Element.SYSTEM_TEXT` / `<SystemText>` | 53 | XML extractor restricts to staff 0 |
 | `Element.REHEARSAL_MARK` / `<RehearsalMark>` | 60 | XML extractor restricts to staff 0 |
+
+`STAFF_TEXT` is intentionally excluded: it belongs to a single staff (instrument
+instructions, dynamics) and is treated as inline chord text, not as a system-wide
+section title.
 
 Rendering (`Formatter.renderLabel`):
 

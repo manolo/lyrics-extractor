@@ -176,7 +176,7 @@ function walkStaffMeasures(staffNode, division, onElement, onMeasure) {
         if (onElement) {
             for (var mci = 0; mci < measure.children.length; mci++) {
                 var mChild = measure.children[mci];
-                if (mChild.tag === "Jump" || mChild.tag === "Marker" || mChild.tag === "SystemText" || mChild.tag === "StaffText") {
+                if (mChild.tag === "Jump" || mChild.tag === "Marker" || mChild.tag === "SystemText" || mChild.tag === "StaffText" || mChild.tag === "Expression" || mChild.tag === "PlayTechAnnotation" || mChild.tag === "RehearsalMark") {
                     onElement(mChild, measureStartTick, measureStartTick, mi, actualMeasureTicks);
                 }
             }
@@ -610,8 +610,8 @@ function extractAll(xmlString, excerptXmls, spelling) {
                 if (sysText) systemTexts.push({ tick: voiceTick, text: sysText });
             }
 
-            // Staff text / Expression -> inline text shown in chord line
-            if (elem.tag === "StaffText" || elem.tag === "Expression") {
+            // Staff text / Expression / Play technique -> inline text shown in chord line
+            if (elem.tag === "StaffText" || elem.tag === "Expression" || elem.tag === "PlayTechAnnotation") {
                 var inlineText = childText(elem, "text");
                 if (inlineText) {
                     if (!harmonyCounts[staffId]) harmonyCounts[staffId] = 0;

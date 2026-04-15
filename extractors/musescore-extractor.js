@@ -292,9 +292,9 @@ function extractChords(harmonyStaffIdx) {
                         }
                     }
                 }
-                // Staff text (52) / Expression (42) -> inline text in chord line
-                // STAFF_TEXT=52, EXPRESSION=42 in MS4 element types
-                if (ann && (ann.type === 52 || ann.type === 42)) {
+                // Staff text (52) / Expression (42) / PlayTechAnnotation (56) -> inline text in chord line
+                // MS4 element types: STAFF_TEXT=52, EXPRESSION=42, PLAYTECH_ANNOTATION=56
+                if (ann && (ann.type === 52 || ann.type === 42 || ann.type === 56)) {
                     var inlineStaff = Math.floor(ann.track / 4);
                     if (inlineStaff === harmonyStaffIdx || harmonyStaffIdx === -1) {
                         var inlineText = _stripHtml(ann.text || "");
@@ -511,8 +511,10 @@ function extractSystemTexts() {
             for (var a = 0; a < annotations.length; a++) {
                 var ann = annotations[a];
                 if (!ann) continue;
-                // REHEARSAL_MARK = 60, include alongside staff/system text
-                if (ann.type === Element.STAFF_TEXT || ann.type === Element.SYSTEM_TEXT || ann.type === 60) {
+                // System-wide labels only: SYSTEM_TEXT and REHEARSAL_MARK (60).
+                // STAFF_TEXT belongs to a single staff and is treated as inline chord
+                // text in extractChords(), not as a section title.
+                if (ann.type === Element.SYSTEM_TEXT || ann.type === 60) {
                     var txt = ann.text || "";
                     if (txt) {
                         texts.push({ tick: segment.tick, text: txt });

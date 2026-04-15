@@ -154,7 +154,7 @@ test("extractChords ignores other annotation types (REHEARSAL_MARK, SYSTEM_TEXT)
 // extractSystemTexts: by element type
 // ============================================================
 
-test("extractSystemTexts picks up SYSTEM_TEXT, STAFF_TEXT, and REHEARSAL_MARK (type 60)", function() {
+test("extractSystemTexts picks up SYSTEM_TEXT and REHEARSAL_MARK (type 60), but NOT STAFF_TEXT", function() {
     setScore(makeMockScore({
         0: [{ type: Element.SYSTEM_TEXT, text: "INTRO", track: 0 }],
         480: [{ type: Element.STAFF_TEXT, text: "Solo", track: 0 }],
@@ -162,11 +162,10 @@ test("extractSystemTexts picks up SYSTEM_TEXT, STAFF_TEXT, and REHEARSAL_MARK (t
         1440: [{ type: Element.REHEARSAL_MARK, text: "B", track: 0 }]
     }));
     var texts = msExtractor.extractSystemTexts();
-    assert.equal(texts.length, 4);
+    assert.equal(texts.length, 3, "STAFF_TEXT should not be a section title");
     assert.equal(texts[0].text, "INTRO");
-    assert.equal(texts[1].text, "Solo");
-    assert.equal(texts[2].text, "A");
-    assert.equal(texts[3].text, "B");
+    assert.equal(texts[1].text, "A");
+    assert.equal(texts[2].text, "B");
 });
 
 test("extractSystemTexts ignores Element.HARMONY and FretDiagram", function() {
@@ -209,7 +208,7 @@ test("extractSystemTexts sorts by tick", function() {
 // Cross-classification: same element type STAFF_TEXT
 // ============================================================
 
-test("STAFF_TEXT appears both in chords (harmony staff) and systemTexts (always)", function() {
+test("STAFF_TEXT on the harmony staff becomes a chord and never a section title", function() {
     setScore(makeMockScore({
         0: [{ type: Element.STAFF_TEXT, text: "Solo", track: 0 }]
     }));
@@ -217,6 +216,25 @@ test("STAFF_TEXT appears both in chords (harmony staff) and systemTexts (always)
     var texts = msExtractor.extractSystemTexts();
     assert.equal(chords.length, 1, "STAFF_TEXT on harmony staff is chord");
     assert.equal(chords[0].chord, "Solo");
-    assert.equal(texts.length, 1, "STAFF_TEXT is always included as system text");
-    assert.equal(texts[0].text, "Solo");
+    assert.equal(texts.length, 0, "STAFF_TEXT should never appear as section title");
+});
+
+test("PlayTechAnnotation (type 56) on the harmony staff is extracted as inline chord", function() {
+    setScore(makeMockScore({
+        0: [{ type: Element.HARMONY, text: "Lam", track: 0 }],
+        480: [{ type: 56, text: "harmonics", track: 0 }],
+        960: [{ type: 56, text: "pizz.", track: 0 }]
+    }));
+    var chords = msExtractor.extractChords(0);
+    assert.equal(chords.length, 3);
+    assert.equal(chords[1].chord, "harmonics");
+    assert.equal(chords[2].chord, "pizz.");
+});
+
+test("PlayTechAnnotation on a non-harmony staff is filtered out", function() {
+    setScore(makeMockScore({
+        0: [{ type: 56, text: "harmonics", track: 8 }]  // staff 2
+    }));
+    var chords = msExtractor.extractChords(0);
+    assert.equal(chords.length, 0);
 });
