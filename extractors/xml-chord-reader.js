@@ -214,6 +214,14 @@ function extractChords(xmlString, C, spelling) {
                             counts[sid]++;
                             all.push({ staffId: sid, tick: vt, chord: hname });
                         }
+                    } else if (e.tag === "StaffText" || e.tag === "Expression" || e.tag === "PlayTechAnnotation") {
+                        // Inline text annotations on the harmony staff appear in the chord line
+                        var inlineText = _ct(e, "text");
+                        if (inlineText) {
+                            if (!counts[sid]) counts[sid] = 0;
+                            counts[sid]++;
+                            all.push({ staffId: sid, tick: vt, chord: inlineText });
+                        }
                     }
 
                     // Advance tick for Chord/Rest (skip grace notes)

@@ -434,3 +434,31 @@ test("extractFretDiagrams extracts literal chord names without root TPC", functi
     assert.equal(diagrams[0].chordName, "Rem");
     assert.equal(diagrams[1].chordName, "Si7");
 });
+
+// ============================================================
+// Inline text annotations (StaffText, Expression, PlayTechAnnotation)
+// ============================================================
+
+test("extractChords picks up StaffText, Expression and PlayTechAnnotation as chord text", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score><Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<StaffText><text>Staff text</text></StaffText>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch></Note></Chord>',
+        '<PlayTechAnnotation><playTechType>harmonics</playTechType><text>harmonics</text></PlayTechAnnotation>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>62</pitch></Note></Chord>',
+        '<Expression><text>rit.</text></Expression>',
+        '<Harmony><harmonyInfo><root>15</root></harmonyInfo></Harmony>',
+        '<Chord><durationType>half</durationType><Note><pitch>64</pitch></Note></Chord>',
+        '</voice></Measure></Staff></Score></museScore>'
+    ].join("\n");
+
+    var chords = reader.extractChords(xml, Constants, "solfeggio");
+    var names = chords.map(function(c) { return c.chord; });
+    assert.ok(names.indexOf("Staff text") >= 0, "should have Staff text: " + names);
+    assert.ok(names.indexOf("harmonics") >= 0, "should have harmonics: " + names);
+    assert.ok(names.indexOf("rit.") >= 0, "should have rit.: " + names);
+    assert.ok(names.indexOf("Sol") >= 0, "should have Sol: " + names);
+});
