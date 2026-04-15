@@ -6,6 +6,21 @@ MuseScore 4 extension that extracts lyrics with aligned chords from scores, gene
 
 ![Plugin extracting lyrics and chords from a MuseScore score, showing text preview and PDF output with fretboard diagrams](docs/lyrics-extractor-txt-pdf.png)
 
+**Legend:**
+
+| # | Source / Output | Description |
+|---|-----------------|-------------|
+| 1 | Score | Lyrics on the melody staff (one syllable per note) |
+| 2 | Score | Chord symbols on the accompaniment staff |
+| 3 | Plugin | Extracted text preview with chords aligned over syllables |
+| 4 | PDF | Generated PDF, ready to print or share |
+| 5 | PDF | Song title rendered in large bold type |
+| 6 | PDF | Fretboard diagrams for every unique chord used in the song |
+| 7 | PDF | Section labels from rehearsal marks and system text (INTRO, ESTROFA, ESTRIBILLO) |
+| 8 | PDF | Chord progression for instrumental sections (intro, interludes, outro) |
+| 9 | PDF | Lyrics with each chord positioned exactly above the syllable where it changes |
+| 10 | PDF | Optional sequential line numbers for easy rehearsal references |
+
 ## Installation
 
 1. Download `lyrics-extractor.mext` from the [latest release](https://github.com/manolo/lyrics-extractor/releases/latest)

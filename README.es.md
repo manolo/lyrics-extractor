@@ -4,6 +4,21 @@ Extension de MuseScore 4 que extrae letras con acordes alineados de partituras, 
 
 ![Plugin extrayendo letras y acordes de una partitura de MuseScore, mostrando vista previa del texto y salida PDF con diagramas de acordes](docs/lyrics-extractor-txt-pdf.png)
 
+**Leyenda:**
+
+| # | Origen / Salida | Descripcion |
+|---|-----------------|-------------|
+| 1 | Partitura | Letras en el pentagrama de melodia (una silaba por nota) |
+| 2 | Partitura | Simbolos de acorde en el pentagrama de acompanamiento |
+| 3 | Plugin | Vista previa del texto extraido con acordes alineados sobre las silabas |
+| 4 | PDF | PDF generado, listo para imprimir o compartir |
+| 5 | PDF | Titulo de la cancion en tipografia grande y en negrita |
+| 6 | PDF | Diagramas de trastes para cada acorde unico usado en la cancion |
+| 7 | PDF | Etiquetas de seccion desde marcas de ensayo y textos de sistema (INTRO, ESTROFA, ESTRIBILLO) |
+| 8 | PDF | Progresion de acordes en partes instrumentales (intro, interludios, salida) |
+| 9 | PDF | Letra con cada acorde colocado exactamente sobre la silaba donde cambia |
+| 10 | PDF | Numeros de linea opcionales para facilitar referencias en los ensayos |
+
 ## Instalacion
 
 1. Descargar `lyrics-extractor.mext` de la [ultima release](https://github.com/manolo/lyrics-extractor/releases/latest)
