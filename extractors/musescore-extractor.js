@@ -271,7 +271,8 @@ function extractChords(harmonyStaffIdx) {
     var chords = [];
     var debugInfo = {
         fretDiagramsFound: [],
-        fretDiagramErrors: []
+        fretDiagramErrors: [],
+        annotationsByType: {}  // diagnostic: type -> {count, sampleText, staff}
     };
 
     var segment = _getScore().firstSegment();
@@ -280,6 +281,22 @@ function extractChords(harmonyStaffIdx) {
         if (annotations) {
             for (var a = 0; a < annotations.length; a++) {
                 var ann = annotations[a];
+                // Diagnostic: track every annotation type seen
+                if (ann && ann.type !== undefined) {
+                    var key = "" + ann.type;
+                    if (!debugInfo.annotationsByType[key]) {
+                        debugInfo.annotationsByType[key] = {
+                            count: 0,
+                            sampleText: "",
+                            sampleStaff: -1
+                        };
+                    }
+                    debugInfo.annotationsByType[key].count++;
+                    if (!debugInfo.annotationsByType[key].sampleText) {
+                        try { debugInfo.annotationsByType[key].sampleText = (ann.text || "").substring(0, 40); } catch (e) {}
+                        try { debugInfo.annotationsByType[key].sampleStaff = Math.floor(ann.track / 4); } catch (e) {}
+                    }
+                }
                 if (ann && ann.type === Element.HARMONY) {
                     var annStaff = Math.floor(ann.track / 4);
                     if (annStaff === harmonyStaffIdx || harmonyStaffIdx === -1) {
@@ -292,9 +309,13 @@ function extractChords(harmonyStaffIdx) {
                         }
                     }
                 }
-                // Staff text (52) / Expression (42) / PlayTechAnnotation (56) -> inline text in chord line
-                // MS4 element types: STAFF_TEXT=52, EXPRESSION=42, PLAYTECH_ANNOTATION=56
-                if (ann && (ann.type === 52 || ann.type === 42 || ann.type === 56)) {
+                // Inline text annotations -> chord line.
+                // STAFF_TEXT=52, EXPRESSION=42, PLAYTECH_ANNOTATION=55 or 56 (varies by MS4 minor version).
+                // We accept both 55 and 56 for PlayTechAnnotation since the enum shifted between releases.
+                if (ann && (ann.type === Element.STAFF_TEXT || ann.type === Element.EXPRESSION
+                            || ann.type === 52 || ann.type === 42
+                            || ann.type === 55 || ann.type === 56
+                            || (typeof Element.PLAYTECH_ANNOTATION !== "undefined" && ann.type === Element.PLAYTECH_ANNOTATION))) {
                     var inlineStaff = Math.floor(ann.track / 4);
                     if (inlineStaff === harmonyStaffIdx || harmonyStaffIdx === -1) {
                         var inlineText = _stripHtml(ann.text || "");
