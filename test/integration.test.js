@@ -90,3 +90,31 @@ test("integration: readSpelling returns standard when no style sheet", function(
     var spelling = msczReader.readSpelling("/tmp/nonexistent.mscx");
     assert.equal(spelling, "standard");
 });
+
+test("integration: trailing chords appended to last line are not duplicated as coda", function() {
+    // Reproduces the 'extra Sol Do' bug: when the last lyric line has trailing
+    // chords that fit and are appended, they shouldn't be re-emitted below.
+    var data = {
+        title: "TEST",
+        syllables: [
+            { tick: 0, verse: 0, text: "ho", syllabic: "begin", durationQ: 1 },
+            { tick: 480, verse: 0, text: "la.", syllabic: "end", durationQ: 1 }
+        ],
+        chords: [
+            { tick: 0, chord: "Do" },
+            { tick: 600, chord: "Sol" },
+            { tick: 800, chord: "Do" },
+            { tick: 1000, chord: "Sol" },
+            { tick: 1200, chord: "Do" }
+        ],
+        repeats: [], voltas: [], markers: [], jumps: [],
+        systemTexts: [], barlines: [], lastTick: 1500, division: 480
+    };
+    var output = orchestrator.processExtraction(data);
+    // "Sol Do Sol Do" appended after "hola." should appear exactly once
+    var solDoMatches = output.match(/Sol\s+Do/g) || [];
+    var solCount = (output.match(/\bSol\b/g) || []).length;
+    var doCount = (output.match(/\bDo\b/g) || []).length;
+    assert.equal(solCount, 2, "Sol should appear exactly twice (in trailing): " + output);
+    assert.equal(doCount, 3, "Do should appear exactly three times (1 inline + 2 trailing): " + output);
+});
