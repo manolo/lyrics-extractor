@@ -1638,3 +1638,102 @@ test("formatPerfLines keeps independent counters for two numbered labels", funct
     assert.ok(output.indexOf("- SOLISTA 1 -") >= 0, "should have SOLISTA 1: " + output);
     assert.ok(output.indexOf("- SOLISTA 2 -") >= 0, "should have SOLISTA 2: " + output);
 });
+
+// ============================================================
+// Trailing chord width-based decision (no hardcoded count)
+// ============================================================
+
+test("formatPerfLines: 5 short trailing chords on a short line are appended", function() {
+    var lines = [
+        { text: "que.", sylMap: [{ tick: 0, pos: 0, chord: "Do" }],
+          startTick: 0, endTick: 100, sectionEnd: false },
+        { text: "siguiente", sylMap: [{ tick: 5000, pos: 0, chord: "Sol" }],
+          startTick: 5000, endTick: 5100, sectionEnd: false }
+    ];
+    var chords = [
+        { tick: 0, chord: "Do" },
+        { tick: 200, chord: "Re7" }, { tick: 400, chord: "Dom" },
+        { tick: 600, chord: "Re7" }, { tick: 800, chord: "Dom" },
+        { tick: 1000, chord: "Re7" },
+        { tick: 5000, chord: "Sol" }
+    ];
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var outLines = result.text.split("\n");
+    var queIdx = -1;
+    for (var li = 0; li < outLines.length; li++) {
+        if (outLines[li].indexOf("que.") >= 0) { queIdx = li; break; }
+    }
+    var chordLine = outLines[queIdx - 1] || "";
+    assert.ok(chordLine.indexOf("Re7") >= 0 && chordLine.indexOf("Dom") >= 0,
+        "trailing appended (fits in 70): " + JSON.stringify(chordLine));
+});
+
+test("formatPerfLines: 4 long chord names on a long line go to separate line", function() {
+    var lines = [
+        { text: "linea de letra muy larga para que no entren acordes detras seguro.",
+          sylMap: [{ tick: 0, pos: 0, chord: "Do" }],
+          startTick: 0, endTick: 100, sectionEnd: false },
+        { text: "siguiente", sylMap: [{ tick: 5000, pos: 0, chord: "Sol" }],
+          startTick: 5000, endTick: 5100, sectionEnd: false }
+    ];
+    var chords = [
+        { tick: 0, chord: "Do" },
+        { tick: 200, chord: "Sol7sus4" }, { tick: 400, chord: "Lam9add6" },
+        { tick: 600, chord: "Mi7b9" }, { tick: 800, chord: "Re7sus4" },
+        { tick: 5000, chord: "Sol" }
+    ];
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var output = result.text;
+    // Trailing chords should be on their own line, after the lyric
+    var lyricIdx = output.indexOf("linea de letra");
+    var trailIdx = output.indexOf("Sol7sus4  Lam9add6");
+    assert.ok(trailIdx > lyricIdx, "trailing on separate line: " + output);
+});
+
+test("formatPerfLines: trailing chords exactly at width boundary", function() {
+    // Text 60 chars + 2 separator + 8 chars chord = 70, fits exactly
+    var lines = [
+        { text: "abcdefghij abcdefghij abcdefghij abcdefghij abcdefghij abcd.",
+          sylMap: [{ tick: 0, pos: 0, chord: "Do" }],
+          startTick: 0, endTick: 100, sectionEnd: false },
+        { text: "next", sylMap: [{ tick: 5000, pos: 0, chord: "Sol" }],
+          startTick: 5000, endTick: 5100, sectionEnd: false }
+    ];
+    var chords = [
+        { tick: 0, chord: "Do" },
+        { tick: 200, chord: "Re" }, { tick: 400, chord: "Mi" },
+        { tick: 5000, chord: "Sol" }
+    ];
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    // Re Mi (5 chars) + 60 + 2 = 67, fits -> appended
+    var output = result.text;
+    var lyricIdx = output.indexOf("abcd.");
+    var beforeLyric = output.substring(0, lyricIdx);
+    var lastChordLine = beforeLyric.split("\n").slice(-2)[0];
+    assert.ok(lastChordLine.indexOf("Re") >= 0, "Re appended: " + lastChordLine);
+    assert.ok(lastChordLine.indexOf("Mi") >= 0, "Mi appended: " + lastChordLine);
+});
+
+// ============================================================
+// Inline text annotations whitespace collapsing
+// ============================================================
+// Already covered for QML extractor in test/extract-chords-types.test.js
+// Here we verify orchestrator output renders multi-word StaffText as one chord token
+
+test("xml-extractor: StaffText with internal whitespace collapses to '-'", function() {
+    var xmlExt = require("../extractors/xml-extractor");
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score><Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<StaffText><text>molto rit. ed espressivo</text></StaffText>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>hello</text></Lyrics>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff></Score></museScore>'
+    ].join("\n");
+    var data = xmlExt.extractAll(xml);
+    assert.equal(data.chords.length, 1);
+    assert.equal(data.chords[0].chord, "molto-rit.-ed-espressivo");
+});

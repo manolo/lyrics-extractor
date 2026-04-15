@@ -266,3 +266,44 @@ test("buildLinesFromWords inserts spaces between regular words", function() {
     var lines = lb.buildLinesFromWords(words);
     assert.equal(lines[0].text, "hola mundo");
 });
+
+test("buildLinesFromWords: punctuation rule covers . ; : ! ?", function() {
+    var cases = [
+        { p: ".",  expected: "que." },
+        { p: ";",  expected: "que;" },
+        { p: ":",  expected: "que:" },
+        { p: "!",  expected: "que!" },
+        { p: "?",  expected: "que?" }
+    ];
+    for (var i = 0; i < cases.length; i++) {
+        var words = [
+            { text: "que", tick: 0, phraseBreak: false, sylTicks: [{ tick: 0, offset: 0 }] },
+            { text: cases[i].p, tick: 480, phraseBreak: true, sylTicks: [{ tick: 480, offset: 0 }] }
+        ];
+        var lines = lb.buildLinesFromWords(words);
+        assert.equal(lines[0].text, cases[i].expected, "punct " + cases[i].p + ": " + lines[0].text);
+    }
+});
+
+test("buildLinesFromWords: ellipsis variants stick to previous syllable", function() {
+    // Unicode ellipsis (\u2026), small full stop (\uFE52), small comma (\uFE50), fullwidth comma (\uFF0C)
+    var cases = ["\u2026", "\uFE52", "\uFE50", "\uFF0C"];
+    for (var i = 0; i < cases.length; i++) {
+        var words = [
+            { text: "ay", tick: 0, phraseBreak: false, sylTicks: [{ tick: 0, offset: 0 }] },
+            { text: cases[i], tick: 480, phraseBreak: true, sylTicks: [{ tick: 480, offset: 0 }] }
+        ];
+        var lines = lb.buildLinesFromWords(words);
+        assert.equal(lines[0].text, "ay" + cases[i], "char " + cases[i].charCodeAt(0) + ": " + lines[0].text);
+    }
+});
+
+test("buildLinesFromWords: punctuation in a word with letters keeps the space", function() {
+    // Only words STARTING with punctuation skip the space; "hello," doesn't apply
+    var words = [
+        { text: "que", tick: 0, phraseBreak: false, sylTicks: [{ tick: 0, offset: 0 }] },
+        { text: "hello,", tick: 480, phraseBreak: true, sylTicks: [{ tick: 480, offset: 0 }] }
+    ];
+    var lines = lb.buildLinesFromWords(words);
+    assert.equal(lines[0].text, "que hello,");
+});
