@@ -1737,3 +1737,17 @@ test("xml-extractor: StaffText with internal whitespace collapses to '-'", funct
     assert.equal(data.chords.length, 1);
     assert.equal(data.chords[0].chord, "molto-rit.-ed-espressivo");
 });
+
+test("formatLines reports lastChordTick so orchestrator can dedup coda", function() {
+    var lines = [{ text: "hola.", sylMap: [{ tick: 0, pos: 0 }],
+                   startTick: 0, endTick: 480 }];
+    var chords = [
+        { tick: 0, chord: "Do" },
+        { tick: 600, chord: "Sol" },
+        { tick: 800, chord: "Do" }
+    ];
+    var result = fmt.formatLines(lines, chords, null, -1);
+    // lastChordTick should be the tick of the last appended trailing chord (800)
+    assert.equal(result.lastChordTick, 800,
+        "should report tick of last emitted chord: " + result.lastChordTick);
+});

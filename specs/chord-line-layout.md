@@ -40,6 +40,13 @@ Tests: `test/formatter.test.js`
 - `formatPerfLines: 5 short trailing chords on a short line are appended`
 - `formatPerfLines: 4 long chord names on a long line go to separate line`
 - `formatPerfLines: trailing chords exactly at width boundary`
+- `formatLines reports lastChordTick so orchestrator can dedup coda`
+
+`formatLines` also returns `lastChordTick` (the highest tick at which a chord
+was emitted, including trailing chords appended to the last line). The
+orchestrator uses this to start its post-formatting coda block AFTER that tick,
+avoiding the duplication where the same trailing chords appeared both on the
+chord line and again on a separate "outro" line below.
 
 ## Inline text annotations as chord tokens
 
