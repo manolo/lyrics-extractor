@@ -320,8 +320,9 @@ test("formatLines renders system text before corresponding line", function() {
     assert.ok(sysIdx < secondIdx, "system text before second verse: " + result.output);
 });
 
-test("formatLines renders system text before interlude chords (not after)", function() {
-    // Use a long line so trailing chords don't fit and force a separate interlude line
+test("formatLines preserves system text in trailing chord gap between stanzas", function() {
+    // Trailing chords in the gap are now inline above the previous lyric;
+    // the system text (label) within the same gap must still appear between stanzas.
     var lines = [
         { text: "este texto es bastante largo para que no quepan acordes detras.",
           sylMap: [{ tick: 0, pos: 0 }], startTick: 0, endTick: 480 },
@@ -335,14 +336,14 @@ test("formatLines renders system text before interlude chords (not after)", func
         { tick: 2500, chord: "Lam7" },
         { tick: 5000, chord: "Lam" }
     ];
-    // System text "Musica" at tick 800, falls in the trailing chord range
     var systemTexts = [{ tick: 800, text: "Musica" }];
     var result = fmt.formatLines(lines, chords, null, -1, systemTexts);
     var musicaIdx = result.output.indexOf("- MUSICA -");
-    var interludeIdx = result.output.indexOf("ReM  Solm  Mi7  Lam7");
+    var firstLyricIdx = result.output.indexOf("este texto");
+    var nextLyricIdx = result.output.indexOf("siguiente verso");
     assert.ok(musicaIdx >= 0, "should have MUSICA: " + result.output);
-    assert.ok(interludeIdx >= 0, "should have interlude: " + result.output);
-    assert.ok(musicaIdx < interludeIdx, "MUSICA should be before interlude chords: " + result.output);
+    assert.ok(musicaIdx > firstLyricIdx, "MUSICA after first lyric: " + result.output);
+    assert.ok(musicaIdx < nextLyricIdx, "MUSICA before next lyric: " + result.output);
 });
 
 test("formatLines does not duplicate system text already shown in intro", function() {
@@ -368,7 +369,7 @@ test("formatLines works without systemTexts parameter", function() {
     assert.ok(result.output.indexOf("hello.") >= 0, "should render text: " + result.output);
 });
 
-test("formatLines renders trailing chords as separate line when they don't fit", function() {
+test("formatLines appends trailing chords inline even when they overflow width", function() {
     var lines = [{
         text: "este es un texto suficientemente largo para no caber.",
         sylMap: [{ tick: 0, pos: 0 }, { tick: 480, pos: 6 }],
@@ -384,12 +385,11 @@ test("formatLines renders trailing chords as separate line when they don't fit",
         { tick: 1680, chord: "Sim" }
     ];
     var result = fmt.formatLines(lines, chords, null, -1);
-    // Trailing chords don't fit (text > 50 chars + 5 chords) -> separate line
-    assert.ok(result.output.indexOf("Mi  Re#  Re  Do#m  Sim") >= 0,
-        "interlude line should appear: " + result.output);
+    // Trailing chords are appended inline above the lyric (overflow allowed).
     var textIdx = result.output.indexOf("este es un texto");
-    var interIdx = result.output.indexOf("Mi  Re#");
-    assert.ok(interIdx > textIdx, "interlude after text: " + result.output);
+    var miIdx = result.output.indexOf("Mi");
+    assert.ok(miIdx >= 0 && miIdx < textIdx,
+        "trailing chords inline above lyric: " + result.output);
 });
 
 test("formatLines appends trailing chords when they fit on the chord line", function() {
@@ -497,7 +497,7 @@ test("formatPerfLines appends trailing chords (<4) to chord line", function() {
     assert.ok(chordLineIdx < textIdx, "trailing chords on chord line before text: " + output);
 });
 
-test("formatPerfLines renders trailing chords as separate line when they don't fit", function() {
+test("formatPerfLines appends trailing chords inline even when they overflow width", function() {
     var lines = [
         {
             text: "esta linea es bastante larga, pero realmente larga si.",
@@ -522,11 +522,15 @@ test("formatPerfLines renders trailing chords as separate line when they don't f
     ];
     var result = fmt.formatPerfLines(lines, [], null, "", chords);
     var output = result.text;
-    // 4 trailing chords don't fit on the long line -> separate melodic line
-    assert.ok(output.indexOf("Fa#7  Sim  Mi7  La") >= 0, "melodic line should appear: " + output);
+    // Trailing chords are appended to the chord line above the lyric
+    // (overflow is preferred over an orphan chord line between stanzas).
     var textIdx = output.indexOf("esta linea es");
-    var melodicIdx = output.indexOf("Fa#7  Sim  Mi7  La");
-    assert.ok(melodicIdx > textIdx, "melodic line after text: " + output);
+    var trailIdx = output.indexOf("Fa#7");
+    assert.ok(trailIdx >= 0 && trailIdx < textIdx,
+        "trailing chords inline above lyric: " + output);
+    assert.ok(output.indexOf("Sim") < textIdx, "Sim above lyric: " + output);
+    assert.ok(output.indexOf("Mi7") < textIdx, "Mi7 above lyric: " + output);
+    assert.ok(output.indexOf("La") < textIdx, "La above lyric: " + output);
 });
 
 test("formatPerfLines appends trailing chords when they fit on the chord line", function() {
@@ -1668,7 +1672,7 @@ test("formatPerfLines: 5 short trailing chords on a short line are appended", fu
         "trailing appended (fits in 70): " + JSON.stringify(chordLine));
 });
 
-test("formatPerfLines: 4 long chord names on a long line go to separate line", function() {
+test("formatPerfLines: 4 long chord names append inline above the lyric", function() {
     var lines = [
         { text: "linea de letra muy larga para que no entren acordes detras seguro.",
           sylMap: [{ tick: 0, pos: 0, chord: "Do" }],
@@ -1684,10 +1688,12 @@ test("formatPerfLines: 4 long chord names on a long line go to separate line", f
     ];
     var result = fmt.formatPerfLines(lines, [], null, "", chords);
     var output = result.text;
-    // Trailing chords should be on their own line, after the lyric
+    // Trailing chords are appended inline on the chord line above the lyric,
+    // even when this overflows the 70-char budget.
     var lyricIdx = output.indexOf("linea de letra");
-    var trailIdx = output.indexOf("Sol7sus4  Lam9add6");
-    assert.ok(trailIdx > lyricIdx, "trailing on separate line: " + output);
+    var trailIdx = output.indexOf("Sol7sus4");
+    assert.ok(trailIdx >= 0 && trailIdx < lyricIdx,
+        "trailing chord above lyric: " + output);
 });
 
 test("formatPerfLines: trailing chords exactly at width boundary", function() {

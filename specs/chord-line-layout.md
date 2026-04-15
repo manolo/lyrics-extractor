@@ -12,34 +12,31 @@ sounds it). See `lib/formatter.js` and `test/formatter.test.js` (`gap` tests).
 ## Trailing chords (between two consecutive lyric lines)
 
 When chords appear in the gap between the end of one line and the start of the
-next, the formatter has two options:
-
-1. **Append** them to the chord line above the line that just ended.
-2. **Emit a separate instrumental line** below the lyric.
-
-The decision is **width-based**: if `lineLength + 2 + trailingChordsWidth <= 70`
-the chords are appended; otherwise they go to a separate line.
+next, they are **always appended** to the chord line above the line that just
+ended, even if this overflows the 70-char per-line budget.
 
 ```
                  Do                           Re7 Dom Re7 Dom Re7
-para que me acariciaste diciendo que, eeee eeee,    <- 38 + 2 + ~21 = 61 chars, fits
+para que me acariciaste diciendo que, eeee eeee,    <- short, fits naturally
 ```
 
-vs.
-
 ```
-aaaaas si en tu pecho se encontraba otro hom bre que, eeeeeeee,
-Dom  Re7  Dom  Re7                                  <- 62 + 2 + 18 = 82 chars, separate
+                                                                  Fa#7  Sim  Mi7  La
+aaaaas si en tu pecho se encontraba otro hom bre que, eeeeeeee,    <- overflows but stays inline
 ```
 
-This replaces the previous hardcoded 4-chord threshold and lets short
-"passing chord" sequences stay attached to the line they belong to.
+The previous behaviour split long sequences into a separate "instrumental" chord
+line below the lyric. That created orphan chord lines between stanzas which
+confused readers about which verse the chords belonged to. Inline overflow is
+the lesser evil.
 
 Tests: `test/formatter.test.js`
 
 - `formatPerfLines: 5 short trailing chords on a short line are appended`
-- `formatPerfLines: 4 long chord names on a long line go to separate line`
+- `formatPerfLines appends trailing chords inline even when they overflow width`
+- `formatPerfLines: 4 long chord names append inline above the lyric`
 - `formatPerfLines: trailing chords exactly at width boundary`
+- `formatLines appends trailing chords inline even when they overflow width`
 - `formatLines reports lastChordTick so orchestrator can dedup coda`
 
 `formatLines` also returns `lastChordTick` (the highest tick at which a chord
