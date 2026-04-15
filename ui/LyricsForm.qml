@@ -1101,7 +1101,7 @@ MuseScore {
                             }
 
                             Button {
-                                text: tr("Guardar", "Save")
+                                text: tr("Guardar txt", "Save txt")
                                 opacity: 0.85
                                 onClicked: saveLyricsToFile(Formatter.stripChordMarkers(lyricsPreview.text))
                             }
@@ -1179,7 +1179,7 @@ MuseScore {
 
                         Button {
                             id: pdfButton
-                            text: tr("Guardar", "Save")
+                            text: tr("Guardar pdf", "Save pdf")
                             onClicked: savePdfFile(lyricsPreview.text)
                         }
                     }
