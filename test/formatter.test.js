@@ -619,6 +619,44 @@ test("formatPerfLines shows interlude chords on backwards tick (repeat pass)", f
     assert.ok(between.indexOf("Re") >= 0, "Re should be in interlude between passes: " + between);
 });
 
+test("formatPerfLines: interlude chord block carries its system text label above (Clavelitos regression)", function() {
+    // Repeat scenario where after a chorus ('Estribillo') the song goes back
+    // to a 'Musica' section (system text at tick 0) before re-entering the
+    // 'Estrofa'. The interlude chord line must appear UNDER the 'Musica'
+    // label, not above an empty 'Musica' label.
+    var lines = [
+        { text: "primer estribillo.", sylMap: [{ tick: 5000, pos: 0, chord: "La" }],
+          startTick: 5000, endTick: 5480, sectionEnd: true },
+        // Backwards: second pass starts at the second Estrofa
+        { text: "segunda estrofa.", sylMap: [{ tick: 1000, pos: 0, chord: "Mi7" }],
+          startTick: 1000, endTick: 1480, sectionEnd: false }
+    ];
+    var chords = [
+        { tick: 0, chord: "Lam" }, { tick: 200, chord: "Mi7" },
+        { tick: 400, chord: "Lam" }, { tick: 600, chord: "Rem" },
+        { tick: 800, chord: "Mi7" },
+        { tick: 1000, chord: "Mi7" },
+        { tick: 5000, chord: "La" }
+    ];
+    var systemTexts = [
+        { tick: 0, text: "Musica" },
+        { tick: 1000, text: "Estrofa" }
+    ];
+    var result = fmt.formatPerfLines(lines, [], null, "", chords, null, systemTexts);
+    var output = result.text;
+    var endStribillo = output.indexOf("primer estribillo.");
+    var nextEstrofa = output.indexOf("segunda estrofa.");
+    var between = output.substring(endStribillo, nextEstrofa);
+    var musicaIdx = between.indexOf("- MUSICA -");
+    var lamIdx = between.indexOf("Lam");
+    assert.ok(musicaIdx >= 0, "MUSICA label should appear: " + between);
+    assert.ok(lamIdx >= 0, "interlude chords should appear: " + between);
+    assert.ok(musicaIdx < lamIdx, "MUSICA must be above the interlude chord line: " + between);
+    // Label appears exactly once between the two stanzas (no orphan duplicate)
+    var musicaCount = (between.match(/- MUSICA -/g) || []).length;
+    assert.equal(musicaCount, 1, "MUSICA should not be duplicated: " + between);
+});
+
 test("formatPerfLines shows trailing coda chords on chord line (< 4 chords)", function() {
     var lines = [
         {
