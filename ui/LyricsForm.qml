@@ -307,16 +307,11 @@ MuseScore {
                 var changed = false;
                 var cleanText = entry.text;
 
-                // FIRST: Convert consecutive dots/commas BEFORE replaceSynalepha
-                // This prevents "..." from being treated as multiple synalepha marks
-                // Convert consecutive dots: 3+ → ellipsis, 2 → small full stop (no-break period)
-                cleanText = cleanText.replace(/\.{3,}/g, "\u2026");
-                cleanText = cleanText.replace(/\.\./g, "\uFE52");
-                // Convert double commas to small comma (no-break comma)
-                cleanText = cleanText.replace(/,,/g, "\uFE50");
+                // FIRST: Convert punctuation sequences BEFORE replaceSynalepha
+                cleanText = TextUtils.convertPunctuation(cleanText);
                 // Convert semicolons to fullwidth comma (phrase separator, stanza break)
                 cleanText = cleanText.replace(/;/g, "\uFF0C");
-                
+
                 // SECOND: Apply synalepha replacement (only to single dots between letters)
                 cleanText = TextUtils.replaceSynalepha(cleanText);
                 
@@ -1348,6 +1343,8 @@ MuseScore {
 
     Component.onCompleted: {
         Extractor.setTextUtils(TextUtils);
+        LineBuilder.setTextUtils(TextUtils);
+        Formatter.setLineBuilder(LineBuilder);
         if (settings.scoresDirectory && settings.scoresDirectory.length > 0) {
             scoresDirectory = settings.scoresDirectory;
         } else {

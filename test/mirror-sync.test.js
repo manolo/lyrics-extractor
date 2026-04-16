@@ -1,15 +1,17 @@
-// Sync-check tests: verify that QML mirror functions produce identical
-// results to their canonical versions. These catch divergence when someone
-// updates one copy but not the other.
+// Dependency injection verification: confirm that modules using injected
+// dependencies produce identical results to the canonical implementations.
+// All mirrors have been replaced with delegation via setTextUtils/setLineBuilder,
+// so these tests verify the auto-wiring works correctly at require() time.
 var test = require("node:test");
 var assert = require("node:assert/strict");
 
 var textUtils = require("../lib/text-utils");
 var lineBuilder = require("../lib/line-builder");
+var formatter = require("../lib/formatter");
 
-// --- isLetter mirror: text-utils vs line-builder ---
+// --- isLetter: line-builder delegates to text-utils ---
 
-test("mirror sync: isLetter (text-utils vs line-builder)", function() {
+test("injection: isLetter (line-builder delegates to text-utils)", function() {
     var chars = "aAbBzZñÑéÉüÜ.-_ 0123456789¬~|'()!?;,".split("");
     for (var i = 0; i < chars.length; i++) {
         assert.equal(
@@ -20,9 +22,9 @@ test("mirror sync: isLetter (text-utils vs line-builder)", function() {
     }
 });
 
-// --- isSynalephaMarker mirror: text-utils vs line-builder ---
+// --- isSynalephaMarker: line-builder delegates to text-utils ---
 
-test("mirror sync: isSynalephaMarker (text-utils vs line-builder)", function() {
+test("injection: isSynalephaMarker (line-builder delegates to text-utils)", function() {
     var chars = "aA.-_¬~|' 09\u203F".split("");
     for (var i = 0; i < chars.length; i++) {
         assert.equal(
@@ -33,9 +35,9 @@ test("mirror sync: isSynalephaMarker (text-utils vs line-builder)", function() {
     }
 });
 
-// --- cleanWordText mirror: text-utils vs line-builder ---
+// --- cleanWordText: line-builder delegates to text-utils ---
 
-test("mirror sync: cleanWordText (text-utils vs line-builder)", function() {
+test("injection: cleanWordText (line-builder delegates to text-utils)", function() {
     var inputs = [
         "da.es", "da\u00aces", "da~es", "da-es", "da_es",
         "normal", "palabra...", "te...", "A..", "word,,",
@@ -51,5 +53,19 @@ test("mirror sync: cleanWordText (text-utils vs line-builder)", function() {
     }
 });
 
-// --- stripHtml/stripHyphens: musescore-extractor delegates to text-utils ---
-// (no longer mirrored, injected via setTextUtils at require time)
+// --- findPosForTick: formatter delegates to line-builder ---
+
+test("injection: findPosForTick (formatter delegates to line-builder)", function() {
+    var sylMap = [
+        { tick: 0, pos: 0 },
+        { tick: 480, pos: 5 },
+        { tick: 960, pos: 12 }
+    ];
+    var ticks = [0, 240, 480, 700, 960, 2000];
+    for (var i = 0; i < ticks.length; i++) {
+        var fmtResult = formatter.findPosForTick(sylMap, ticks[i]);
+        var lbResult = lineBuilder.findPosForTick(sylMap, ticks[i]);
+        assert.deepEqual(fmtResult, lbResult,
+            "findPosForTick diverges for tick " + ticks[i]);
+    }
+});
