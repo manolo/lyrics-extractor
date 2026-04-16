@@ -1347,6 +1347,7 @@ MuseScore {
     }
 
     Component.onCompleted: {
+        Extractor.setTextUtils(TextUtils);
         if (settings.scoresDirectory && settings.scoresDirectory.length > 0) {
             scoresDirectory = settings.scoresDirectory;
         } else {

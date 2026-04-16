@@ -6,7 +6,6 @@ var assert = require("node:assert/strict");
 
 var textUtils = require("../lib/text-utils");
 var lineBuilder = require("../lib/line-builder");
-var msExtractor = require("../extractors/musescore-extractor");
 
 // --- isLetter mirror: text-utils vs line-builder ---
 
@@ -52,34 +51,5 @@ test("mirror sync: cleanWordText (text-utils vs line-builder)", function() {
     }
 });
 
-// --- stripHtml mirror: text-utils vs musescore-extractor ---
-
-test("mirror sync: stripHtml (text-utils vs musescore-extractor)", function() {
-    var inputs = [
-        '<font size="11"/>hello',
-        "<b>bold</b>",
-        "no tags",
-        "",
-        null
-    ];
-    for (var i = 0; i < inputs.length; i++) {
-        assert.equal(
-            textUtils.stripHtml(inputs[i]),
-            msExtractor._stripHtml(inputs[i]),
-            "stripHtml diverges for: " + JSON.stringify(inputs[i])
-        );
-    }
-});
-
-// --- stripHyphens mirror: text-utils vs musescore-extractor ---
-
-test("mirror sync: stripHyphens (text-utils vs musescore-extractor)", function() {
-    var inputs = ["-hello-", "no-hyphens", "-leading", "trailing-", "---both---", "clean"];
-    for (var i = 0; i < inputs.length; i++) {
-        assert.equal(
-            textUtils.stripHyphens(inputs[i]),
-            msExtractor._stripHyphens(inputs[i]),
-            "stripHyphens diverges for '" + inputs[i] + "'"
-        );
-    }
-});
+// --- stripHtml/stripHyphens: musescore-extractor delegates to text-utils ---
+// (no longer mirrored, injected via setTextUtils at require time)

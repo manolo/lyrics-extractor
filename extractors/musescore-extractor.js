@@ -11,31 +11,15 @@ function _getScore() { return _score || curScore; }
 // --- Global debug variables ---
 var _fretDiagramDebug = null;
 
-// --- Internal helpers ---
+// --- Injected dependencies ---
+// text-utils is injected via setTextUtils() to avoid duplicating code.
+// QML caller passes TextUtils; Node.js auto-wires via require().
+var _textUtils = null;
+function setTextUtils(tu) { _textUtils = tu; }
 
-// Mirror of text-utils.js:stripHtml (QML import compatibility)
-function _stripHtml(text) {
-    if (!text) return "";
-    var result = "";
-    var inTag = false;
-    for (var i = 0; i < text.length; i++) {
-        if (text[i] === '<') {
-            inTag = true;
-        } else if (text[i] === '>') {
-            inTag = false;
-        } else if (!inTag) {
-            result += text[i];
-        }
-    }
-    return result;
-}
-
-// Mirror of text-utils.js:stripHyphens (QML import compatibility)
-function _stripHyphens(text) {
-    while (text.length > 0 && text.charAt(0) === '-') text = text.substring(1);
-    while (text.length > 0 && text.charAt(text.length - 1) === '-') text = text.substring(0, text.length - 1);
-    return text;
-}
+// --- Internal helpers (delegating to injected text-utils) ---
+function _stripHtml(text) { return _textUtils.stripHtml(text); }
+function _stripHyphens(text) { return _textUtils.stripHyphens(text); }
 
 // Get duration in quarter-note units from a ChordRest element
 function getDurationInQuarters(element) {
@@ -1069,6 +1053,9 @@ function extractAll() {
 }
 
 if (typeof exports !== "undefined") {
+    // Auto-wire text-utils in Node.js context
+    _textUtils = require("../lib/text-utils");
+
     exports.extractAll = extractAll;
     exports.findStaves = findStaves;
     exports.extractSyllables = extractSyllables;
@@ -1080,6 +1067,5 @@ if (typeof exports !== "undefined") {
     exports._extractFretDiagramsFromScore = _extractFretDiagramsFromScore;
     exports._fretApiAvailableInScore = _fretApiAvailableInScore;
     exports.needsFallbackDirectory = needsFallbackDirectory;
-    exports._stripHtml = _stripHtml;
-    exports._stripHyphens = _stripHyphens;
+    exports.setTextUtils = setTextUtils;
 }
