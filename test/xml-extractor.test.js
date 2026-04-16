@@ -123,6 +123,46 @@ test("extractAll with repeat markers", function() {
     assert.equal(data.repeats[0].endTick, 1920); // whole note = 4 quarters * 480
 });
 
+test("extractAll reads repeatCount from endRepeat value", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><startRepeat/><voice>',
+        '<Chord><durationType>whole</durationType><Lyrics><text>hello</text></Lyrics><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice><endRepeat>3</endRepeat></Measure>',
+        '</Staff></Score></museScore>'
+    ].join("\n");
+    var data = xmlExt.extractAll(xml);
+    assert.equal(data.repeats.length, 1);
+    assert.equal(data.repeats[0].repeatCount, 3, "should read 3x repeat count");
+});
+
+test("extractAll reads volta endings from endings element", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><startRepeat/><voice>',
+        '<Chord><durationType>half</durationType><Lyrics><text>main</text></Lyrics><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '<Spanner type="Volta"><Volta><endings>1,2</endings></Volta><next><location><measures>1</measures></location></next></Spanner>',
+        '<Chord><durationType>half</durationType><Lyrics><text>volta.</text></Lyrics><Note><pitch>62</pitch><tpc>16</tpc></Note></Chord>',
+        '</voice><endRepeat>3</endRepeat></Measure>',
+        '<Measure><voice>',
+        '<Spanner type="Volta"><prev><location><measures>-1</measures></location></prev></Spanner>',
+        '<Chord><durationType>whole</durationType><Lyrics><text>after</text></Lyrics><Note><pitch>64</pitch><tpc>18</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff></Score></museScore>'
+    ].join("\n");
+    var data = xmlExt.extractAll(xml);
+    assert.equal(data.voltas.length, 1, "should have 1 volta");
+    assert.deepEqual(data.voltas[0].endingList, [1, 2], "should parse endings 1,2");
+});
+
 test("extractAll handles multi-verse lyrics", function() {
     var xml = [
         '<?xml version="1.0" encoding="UTF-8"?>',

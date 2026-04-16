@@ -374,18 +374,22 @@ function extractRepeats() {
             repeatStartTick = tick;
         }
         if (measure.repeatEnd) {
-            var endMeasure = measure.nextMeasure;
+            // Compute end tick from the measure's tick + duration.
+            // measure.ticks is a FractionWrapper; .ticks gives MIDI ticks.
             var endTick;
-            if (endMeasure && endMeasure.firstSegment) {
-                endTick = endMeasure.firstSegment.tick;
-            } else {
-                // Last measure: compute end from measure start + duration
+            try {
+                var measDur = measure.ticks ? measure.ticks.ticks : 0;
+                endTick = measDur > 0 ? tick + measDur : tick + 1920;
+            } catch (e) {
                 var lastSeg = measure.lastSegment;
                 endTick = lastSeg ? lastSeg.tick + 480 : tick + 1920;
             }
+            var repeatCount = 2;
+            try { repeatCount = measure.repeatCount || 2; } catch (e) {}
             repeats.push({
                 startTick: repeatStartTick >= 0 ? repeatStartTick : 0,
-                endTick: endTick
+                endTick: endTick,
+                repeatCount: repeatCount
             });
             repeatStartTick = -1;
         }
@@ -404,9 +408,37 @@ function extractVoltas() {
                 if (sp && sp.type === Element.VOLTA) {
                     var vStart = toTicks(sp.spannerTick);
                     var vDur = toTicks(sp.spannerTicks);
+                    var endingList = [];
+                    try {
+                        // QML property: volta_ending (INT_VEC)
+                        var endings = sp.volta_ending;
+                        if (endings && endings.length) {
+                            for (var e = 0; e < endings.length; e++) endingList.push(endings[e]);
+                        }
+                    } catch (ev) {}
+                    // Fallback: parse volta display text ("1-2", "1.", "1.2.", etc.)
+                    if (endingList.length === 0) {
+                        try {
+                            var voltaText = sp.text || sp.beginText || "";
+                            var nums = voltaText.match(/\d+/g);
+                            if (nums) {
+                                // Handle range "1-3" → [1,2,3]
+                                if (nums.length === 2 && voltaText.indexOf("-") >= 0) {
+                                    var from = parseInt(nums[0]), to = parseInt(nums[1]);
+                                    for (var r = from; r <= to; r++) endingList.push(r);
+                                } else {
+                                    for (var en = 0; en < nums.length; en++) {
+                                        var n = parseInt(nums[en]);
+                                        if (n > 0 && endingList.indexOf(n) < 0) endingList.push(n);
+                                    }
+                                }
+                            }
+                        } catch (et) {}
+                    }
                     voltas.push({
                         startTick: vStart,
-                        endTick: vStart + vDur
+                        endTick: vStart + vDur,
+                        endingList: endingList
                     });
                 }
             }

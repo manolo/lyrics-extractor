@@ -571,7 +571,9 @@ function extractAll(xmlString, excerptXmls, spelling) {
             if (elem.tag === "Spanner" && elem.attrs.type === "Volta" && staffId === 0) {
                 var voltaNode = findChild(elem, "Volta");
                 if (voltaNode) {
-                    voltas.push({ startTick: voiceTick, endTick: -1, _measureIdx: mi, _endingList: childText(voltaNode, "endingList") });
+                    var endingsStr = childText(voltaNode, "endings") || childText(voltaNode, "endingList") || "";
+                    var endingList = endingsStr ? endingsStr.split(",").map(function(s){ return parseInt(s.trim()); }).filter(function(n){ return !isNaN(n); }) : [];
+                    voltas.push({ startTick: voiceTick, endTick: -1, _measureIdx: mi, endingList: endingList });
                 }
                 var prevNode = findChild(elem, "prev");
                 if (prevNode) {
@@ -634,8 +636,10 @@ function extractAll(xmlString, excerptXmls, spelling) {
             if (findChild(measure, "startRepeat")) {
                 repeatStartTick = startTick;
             }
-            if (findChild(measure, "endRepeat")) {
-                repeats.push({ startTick: repeatStartTick >= 0 ? repeatStartTick : 0, endTick: endTick });
+            var endRepeatNode = findChild(measure, "endRepeat");
+            if (endRepeatNode) {
+                var repeatCount = parseInt(endRepeatNode.text) || 2;
+                repeats.push({ startTick: repeatStartTick >= 0 ? repeatStartTick : 0, endTick: endTick, repeatCount: repeatCount });
                 repeatStartTick = -1;
                 sectionBarTicks[endTick] = "endRepeat";
             }

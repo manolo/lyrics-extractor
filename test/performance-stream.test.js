@@ -122,6 +122,59 @@ test("buildPerformanceStream with simple repeat and two verses", function() {
     assert.equal(stream[1].text, "second");
 });
 
+test("buildPerformanceStream with 3x repeat and volta endingList (VirgenAlmudena)", function() {
+    // 3x repeat with volta "1-2": passes 1-2 include volta, pass 3 skips it.
+    // Volta has 2 verses (v0 and v1), main section has only v0.
+    var syllables = [
+        // Main section (tick 0-480, only verse 0)
+        { tick: 0, verse: 0, text: "main.", syllabic: "single", durationQ: 1, restAfter: true, restDurationQ: 2, gapDurationQ: 2 },
+        // Volta section (tick 960-1440, verse 0 and verse 1)
+        { tick: 960, verse: 0, text: "volta0.", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 960, verse: 1, text: "volta1.", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+    ];
+    var chords = [{ tick: 0, chord: "Lam" }, { tick: 960, chord: "Mi7" }];
+    var repStruct = {
+        repeats: [{ startTick: 0, endTick: 1440, repeatCount: 3 }],
+        voltas: [{ startTick: 960, endTick: 1440, endingList: [1, 2] }],
+        sections: [{
+            repeat: { startTick: 0, endTick: 1440, repeatCount: 3 },
+            volta1: { startTick: 960, endTick: 1440, endingList: [1, 2] },
+            volta2: null,
+            sectionEnd: 1440
+        }]
+    };
+    var stream = ps.buildPerformanceStream(syllables, chords, repStruct);
+
+    // Should produce 3 passes
+    var passes = [0];
+    for (var i = 1; i < stream.length; i++) {
+        if (stream[i].tick < stream[i-1].tick) passes.push(i);
+    }
+    passes.push(stream.length);
+    assert.equal(passes.length - 1, 3, "should have 3 passes: " +
+        stream.map(function(s) { return s.text; }).join(", "));
+
+    // Pass 1: main + volta verse 0
+    var p1 = stream.slice(passes[0], passes[1]);
+    assert.ok(p1.some(function(s) { return s.text === "main."; }), "pass 1 has main");
+    assert.ok(p1.some(function(s) { return s.text === "volta0."; }), "pass 1 has volta v0");
+
+    // Pass 2: main + volta verse 1
+    var p2 = stream.slice(passes[1], passes[2]);
+    assert.ok(p2.some(function(s) { return s.text === "main."; }), "pass 2 has main");
+    assert.ok(p2.some(function(s) { return s.text === "volta1."; }), "pass 2 has volta v1");
+
+    // Pass 3: main only, NO volta (ending list [1,2] excludes pass 3)
+    var p3 = stream.slice(passes[2], passes[3]);
+    assert.ok(p3.some(function(s) { return s.text === "main."; }), "pass 3 has main");
+    assert.ok(!p3.some(function(s) { return s.text === "volta0." || s.text === "volta1."; }),
+        "pass 3 should NOT have volta: " + p3.map(function(s) { return s.text; }).join(", "));
+
+    // Pass 3 last syllable should have endChordTick (cap volta chords)
+    var lastP3 = p3[p3.length - 1];
+    assert.equal(lastP3.endChordTick, 960, "pass 3 last syl should cap chords at volta start");
+});
+
 test("buildPerformanceStream with verseOffset skips consumed verses", function() {
     // 4 verses in a repeat. verseOffset=2 means verses 0-1 already consumed.
     // Should use verses 2 and 3.

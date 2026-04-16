@@ -170,6 +170,30 @@ test("buildWords joins broken chain after repair", function() {
     assert.equal(words[0].text, "corazón");
 });
 
+test("sectionEnd overrides noBreakAfter at pass boundary", function() {
+    // When a volta pass ends with noBreakAfter=true but sectionEnd=true,
+    // the phrase should still break (sectionEnd wins).
+    var syls = [
+        { tick: 0, verse: 0, text: "ti.", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0, sectionEnd: true, noBreakAfter: true },
+        { tick: 480, verse: 0, text: "Sal", syllabic: "begin", durationQ: 0.5, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 720, verse: 0, text: "ve,", syllabic: "end", durationQ: 0.5, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+    ];
+    var words = wb.buildWords(syls, 0);
+    // "ti." should be its own word (phrase breaks despite noBreakAfter)
+    assert.ok(words.some(function(w) { return w.text === "ti."; }),
+        "ti. should be a separate word: " + words.map(function(w) { return w.text; }).join(", "));
+    assert.ok(words.some(function(w) { return w.text === "Salve,"; }),
+        "Salve, should be a separate word: " + words.map(function(w) { return w.text; }).join(", "));
+});
+
+test("buildWords propagates endChordTick from syllable to word", function() {
+    var syls = [
+        { tick: 0, verse: 0, text: "amor.", syllabic: "single", durationQ: 1, restAfter: true, restDurationQ: 2, gapDurationQ: 2, sectionEnd: true, endChordTick: 960 }
+    ];
+    var words = wb.buildWords(syls, 0);
+    assert.equal(words[0].endChordTick, 960, "endChordTick should propagate to word");
+});
+
 test("buildWords propagates sectionBar as sectionEnd on the word", function() {
     var syls = [
         { tick: 0, verse: 0, text: "a", syllabic: "single", durationQ: 1, restAfter: true, restDurationQ: 2, gapDurationQ: 2 },

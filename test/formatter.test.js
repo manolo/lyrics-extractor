@@ -1795,3 +1795,46 @@ test("formatLines reports lastChordTick so orchestrator can dedup coda", functio
     assert.equal(result.lastChordTick, 800,
         "should report tick of last emitted chord: " + result.lastChordTick);
 });
+
+test("formatPerfLines resets lastChord after abbreviated stanza (VirgenAlmudena Mim regression)", function() {
+    // When a repeated stanza is abbreviated, the next non-abbreviated section
+    // should show its first chord even if it matches the previous pass's last chord.
+    var lines = [
+        // Pass 1: main + volta
+        { text: "Salve, señora.", sylMap: [{tick:0,pos:0,chord:"Sol"}], startTick: 0, endTick: 480, sectionEnd: true, sectionBar: true },
+        { text: "verso uno.", sylMap: [{tick:960,pos:0,chord:"Mim"}], startTick: 960, endTick: 1440, sectionEnd: true },
+        // Pass 2: abbreviated main (same text) + different volta
+        { text: "Salve, señora.", sylMap: [{tick:0,pos:0,chord:"Sol"}], startTick: 0, endTick: 480, sectionEnd: true, sectionBar: true, abbreviated: true },
+        { text: "verso dos.", sylMap: [{tick:960,pos:0,chord:"Mim"}], startTick: 960, endTick: 1440, sectionEnd: true }
+    ];
+    var chords = [
+        { tick: 0, chord: "Sol" },
+        { tick: 960, chord: "Mim" }
+    ];
+    var systemTexts = [{ tick: 0, text: "Estribillo" }];
+    var result = fmt.formatPerfLines(lines, [], null, "", chords, null, systemTexts);
+    var output = result.text;
+    // After the abbreviated "ESTRIBILLO", "verso dos." should show Mim chord
+    var versoDosIdx = output.indexOf("verso dos.");
+    var before = output.substring(Math.max(0, versoDosIdx - 30), versoDosIdx);
+    assert.ok(before.indexOf("Mim") >= 0,
+        "Mim should appear before 'verso dos.' after abbreviated stanza: " + output);
+});
+
+test("formatPerfLines respects endChordTick to cap coda chords", function() {
+    // When a line has endChordTick, coda chords beyond that tick are excluded.
+    var lines = [
+        { text: "main section.", sylMap: [{tick:0,pos:0,chord:"Sol"}], startTick: 0, endTick: 480, sectionEnd: true, endChordTick: 960 }
+    ];
+    var chords = [
+        { tick: 0, chord: "Sol" },
+        { tick: 720, chord: "Re" },   // within endChordTick range
+        { tick: 1200, chord: "Mim" }, // beyond endChordTick, should be excluded
+        { tick: 1440, chord: "La" }   // beyond endChordTick, should be excluded
+    ];
+    var result = fmt.formatPerfLines(lines, [], null, "", chords);
+    var output = result.text;
+    assert.ok(output.indexOf("Re") >= 0, "Re (within range) should appear: " + output);
+    assert.equal(output.indexOf("Mim"), -1, "Mim (beyond endChordTick) should NOT appear: " + output);
+    assert.equal(output.indexOf("La"), -1, "La (beyond endChordTick) should NOT appear: " + output);
+});
