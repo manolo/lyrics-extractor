@@ -1098,10 +1098,11 @@ test("formatPerfLines sole intro label does not repeat on repeat pass", function
     assert.equal(second, -1, "sole label should NOT repeat on pass 2: " + output);
 });
 
-test("formatPerfLines intro label re-emits when multiple labels in repeat", function() {
+test("formatPerfLines intro label does NOT re-emit on repeat when before firstLineTick", function() {
     // Intro(0) + Solista(100) + Estribillo(500): 3 labels.
-    // Intro is the introLabel (at introFirstChordTick). On backwards tick,
-    // it should re-emit because there are 2+ other emitted labels.
+    // Intro and Solista are before firstLineTick (200). On backwards tick
+    // (repeat goes to 200), pre-firstLineTick labels should not re-emit
+    // because the repeat does not cover the intro section.
     var lines = [
         { text: "verse one.", sylMap: [{tick:200,pos:0,chord:"Lam"}], startTick: 200, endTick: 400, sectionEnd: true },
         { text: "chorus.", sylMap: [{tick:500,pos:0,chord:"Sol"}], startTick: 500, endTick: 700, sectionEnd: true },
@@ -1113,9 +1114,9 @@ test("formatPerfLines intro label re-emits when multiple labels in repeat", func
     var systemTexts = [{tick:0, text:"Intro"}, {tick:100, text:"Solista"}, {tick:500, text:"Estribillo"}];
     var result = fmt.formatPerfLines(lines, ["Do"], null, "", chords, null, systemTexts);
     var output = result.text;
-    // Intro should appear twice (multi-label repeat)
-    assert.equal((output.match(/- INTRO -/g) || []).length, 2,
-        "INTRO should appear twice with multiple labels: " + output);
+    // Intro appears only once (before the repeat, not re-emitted)
+    assert.equal((output.match(/- INTRO -/g) || []).length, 1,
+        "INTRO should appear only once (outside repeat): " + output);
 });
 
 test("formatPerfLines pre-intro label does NOT re-emit on repeat when outside repeat range", function() {
@@ -1153,6 +1154,33 @@ test("formatPerfLines pre-intro label does NOT re-emit even with multiple labels
     // MÚSICA should appear only once (introLabel, not re-emitted)
     assert.equal((output.match(/MÚSICA/g) || []).length, 1,
         "MÚSICA (introLabel) should appear once: " + output);
+});
+
+test("formatPerfLines intro label outside repeat not re-emitted (VirgenAlmudena with startRepeat)", function() {
+    // Intro at tick 0 (outside repeat), repeat starts at tick 200 (= firstLineTick).
+    // On backwards tick (repeat pass), Intro label should NOT re-emit because
+    // the repeat does not cover the intro section.
+    var lines = [
+        // Pass 1
+        { text: "salve.", sylMap: [{tick:200,pos:0,chord:"Sol"}], startTick: 200, endTick: 400, sectionEnd: true, sectionBar: true },
+        { text: "verso uno.", sylMap: [{tick:500,pos:0,chord:"Mim"}], startTick: 500, endTick: 700, sectionEnd: true },
+        // Pass 2 (backwards to 200, NOT to 0)
+        { text: "salve.", sylMap: [{tick:200,pos:0,chord:"Sol"}], startTick: 200, endTick: 400, sectionEnd: true, sectionBar: true, abbreviated: true },
+        { text: "verso dos.", sylMap: [{tick:500,pos:0,chord:"Mim"}], startTick: 500, endTick: 700, sectionEnd: true },
+        // Pass 3 (backwards to 200 again)
+        { text: "salve.", sylMap: [{tick:200,pos:0,chord:"Sol"}], startTick: 200, endTick: 400, sectionEnd: true, abbreviated: true }
+    ];
+    var chords = [{tick:0, chord:"Mim"}, {tick:200, chord:"Sol"}, {tick:500, chord:"Mim"}];
+    var systemTexts = [{tick:0, text:"Intro"}, {tick:200, text:"Estribillo"}, {tick:500, text:"Estrofa #"}];
+    var introChords = ["Mim", "Si", "Sim"];
+    var result = fmt.formatPerfLines(lines, introChords, null, "", chords, null, systemTexts);
+    var output = result.text;
+    // INTRO should appear exactly once (outside repeat range)
+    assert.equal((output.match(/- INTRO -/g) || []).length, 1,
+        "INTRO should appear only once (outside repeat): " + output);
+    // ESTRIBILLO should appear on all passes
+    assert.ok((output.match(/- ESTRIBILLO -/g) || []).length >= 2,
+        "ESTRIBILLO should appear on repeat passes: " + output);
 });
 
 test("formatPerfLines D.S. interlude includes intro chords when segment goes before first lyric", function() {
