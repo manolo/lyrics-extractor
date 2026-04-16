@@ -169,3 +169,15 @@ test("buildWords joins broken chain after repair", function() {
     assert.equal(words.length, 1);
     assert.equal(words[0].text, "corazón");
 });
+
+test("buildWords propagates sectionBar as sectionEnd on the word", function() {
+    var syls = [
+        { tick: 0, verse: 0, text: "a", syllabic: "single", durationQ: 1, restAfter: true, restDurationQ: 2, gapDurationQ: 2 },
+        { tick: 960, verse: 0, text: "mor.", syllabic: "single", durationQ: 1, restAfter: true, restDurationQ: 2, gapDurationQ: 2, sectionBar: true },
+        { tick: 1920, verse: 0, text: "Tú", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+    ];
+    var words = wb.buildWords(syls, 0);
+    var morWord = words.filter(function(w) { return w.text === "mor."; })[0];
+    assert.ok(morWord, "should have word 'mor.'");
+    assert.ok(morWord.sectionEnd, "word with sectionBar syllable should have sectionEnd=true");
+});

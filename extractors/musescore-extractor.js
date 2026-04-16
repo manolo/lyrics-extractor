@@ -595,6 +595,47 @@ function extractBarlines() {
             }
         }
 
+        // Check measure's end barline type. Try the property first (4.7+),
+        // then fall back to scanning the last segment's elements.
+        var foundEndBar = false;
+        try {
+            var ebl = measure.endBarLineType;
+            if (ebl === 32 || ebl === 2 || ebl === 512 || ebl === 1024) {
+                var endMNext = measure.nextMeasure;
+                var endT = endMNext && endMNext.firstSegment
+                    ? endMNext.firstSegment.tick
+                    : (measure.lastSegment ? measure.lastSegment.tick + 480 : tick + 1920);
+                var eblType = ebl === 32 ? "final" : ebl === 2 ? "double" : ebl === 512 ? "heavy" : "double-heavy";
+                barlines.push({ tick: endT, type: eblType });
+                foundEndBar = true;
+            }
+        } catch (e) {}
+        // Fallback: walk segments looking for barline elements (type 10)
+        if (!foundEndBar) {
+            try {
+                var bSeg = measure.lastSegment;
+                if (bSeg) {
+                    for (var bTrack = 0; bTrack < curScore.nstaves * 4; bTrack++) {
+                        var bElem = bSeg.elementAt(bTrack);
+                        if (bElem && bElem.type === 10) {
+                            var bSub = -1;
+                            try { bSub = bElem.subtype || bElem.barLineType || -1; } catch (e2) {}
+                            if (bSub === 32 || bSub === 2 || bSub === 512 || bSub === 1024) {
+                                var endMNext2 = measure.nextMeasure;
+                                var endT2 = endMNext2 && endMNext2.firstSegment
+                                    ? endMNext2.firstSegment.tick
+                                    : (bSeg.tick + 480);
+                                var eblType2 = bSub === 32 ? "final" : bSub === 2 ? "double" : bSub === 512 ? "heavy" : "double-heavy";
+                                barlines.push({ tick: endT2, type: eblType2 });
+                                foundEndBar = true;
+                            }
+                            break;
+                        }
+                    }
+                }
+            } catch (e) {}
+        }
+
         measure = measure.nextMeasure;
     }
     barlines.sort(function(a, b) { return a.tick - b.tick; });

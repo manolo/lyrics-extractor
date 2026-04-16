@@ -640,10 +640,17 @@ function extractAll(xmlString, excerptXmls, spelling) {
                 sectionBarTicks[endTick] = "endRepeat";
             }
             // Detect section barlines (double, final, heavy, etc.)
+            // BarLine can be a direct child of Measure or inside a voice element
             var barline = findChild(measure, "BarLine");
+            if (!barline) {
+                var voices = findChildren(measure, "voice");
+                for (var vi = 0; vi < voices.length && !barline; vi++) {
+                    barline = findChild(voices[vi], "BarLine");
+                }
+            }
             if (barline) {
                 var barSubtype = childText(barline, "subtype");
-                if (barSubtype === "double" || barSubtype === "final" ||
+                if (barSubtype === "double" || barSubtype === "final" || barSubtype === "end" ||
                     barSubtype === "end-repeat" || barSubtype === "heavy" ||
                     barSubtype === "double-heavy") {
                     sectionBarTicks[endTick] = barSubtype;

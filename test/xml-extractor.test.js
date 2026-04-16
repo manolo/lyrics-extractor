@@ -547,6 +547,32 @@ test("extractAll marks syllables at endRepeat barline with sectionBar", function
     assert.ok(!helloSyl.sectionBar, "hello should not have sectionBar");
 });
 
+test("extractAll detects end barline inside voice element (VirgenAlmudena regression)", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Chord><durationType>half</durationType><Lyrics><syllabic>single</syllabic><text>amor.</text></Lyrics><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '<BarLine><subtype>end</subtype></BarLine>',
+        '</voice></Measure>',
+        '<Measure><voice>',
+        '<Chord><durationType>quarter</durationType><Lyrics><syllabic>single</syllabic><text>T\u00fa</text></Lyrics><Note><pitch>62</pitch><tpc>16</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff></Score></museScore>'
+    ].join("\n");
+    var data = xmlExt.extractAll(xml);
+    // "amor." should have sectionBar from the end barline
+    var amorSyl = data.syllables.filter(function(s) { return s.text === "amor."; })[0];
+    assert.ok(amorSyl, "should have amor. syllable");
+    assert.equal(amorSyl.sectionBar, true, "amor. should have sectionBar from end barline");
+    // barlines array should contain the end barline
+    assert.ok(data.barlines.some(function(b) { return b.type === "end"; }),
+        "barlines should include end type: " + JSON.stringify(data.barlines));
+});
+
 test("extractAll skips grace notes (acciaccatura) in tick calculation", function() {
     var xml = [
         '<?xml version="1.0" encoding="UTF-8"?>',
