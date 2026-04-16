@@ -13,6 +13,7 @@ var _fretDiagramDebug = null;
 
 // --- Internal helpers ---
 
+// Mirror of text-utils.js:stripHtml (QML import compatibility)
 function _stripHtml(text) {
     if (!text) return "";
     var result = "";
@@ -29,6 +30,7 @@ function _stripHtml(text) {
     return result;
 }
 
+// Mirror of text-utils.js:stripHyphens (QML import compatibility)
 function _stripHyphens(text) {
     while (text.length > 0 && text.charAt(0) === '-') text = text.substring(1);
     while (text.length > 0 && text.charAt(text.length - 1) === '-') text = text.substring(0, text.length - 1);
@@ -1078,4 +1080,6 @@ if (typeof exports !== "undefined") {
     exports._extractFretDiagramsFromScore = _extractFretDiagramsFromScore;
     exports._fretApiAvailableInScore = _fretApiAvailableInScore;
     exports.needsFallbackDirectory = needsFallbackDirectory;
+    exports._stripHtml = _stripHtml;
+    exports._stripHyphens = _stripHyphens;
 }

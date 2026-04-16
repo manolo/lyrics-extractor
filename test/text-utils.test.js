@@ -87,13 +87,16 @@ test("isVowel detects vowels including accented", function() {
     assert.equal(tu.isVowel(" "), false);
 });
 
-test("cleanWordText replaces synalepha markers with spaces", function() {
+test("cleanWordText replaces synalepha markers with spaces and converts punctuation", function() {
     assert.equal(tu.cleanWordText("da\u203Fes"), "da es");
     assert.equal(tu.cleanWordText("vi.da"), "vi da");
     assert.equal(tu.cleanWordText("normal"), "normal");
     // Dots not between letters are preserved
     assert.equal(tu.cleanWordText("palabra."), "palabra.");
-    assert.equal(tu.cleanWordText("A..."), "A...");
+    // 3+ dots → ellipsis, 2 dots → small full stop, ,, → small comma
+    assert.equal(tu.cleanWordText("A..."), "A\u2026", "3 dots → ellipsis");
+    assert.equal(tu.cleanWordText("A.."), "A\uFE52", "2 dots → small full stop");
+    assert.equal(tu.cleanWordText("word,,"), "word\uFE50", "double comma → small comma");
     // Alternative markers
     assert.equal(tu.cleanWordText("da\u00aces"), "da es", "not sign cleaned");
     assert.equal(tu.cleanWordText("da~es"), "da es", "tilde cleaned");
