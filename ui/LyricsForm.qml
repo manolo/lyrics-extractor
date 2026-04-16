@@ -26,6 +26,7 @@ import "../extractors/musescore-extractor.js" as Extractor
 import "../extractors/fretdiagram-fallback.js" as FretFallback
 import "../extractors/xml-chord-reader.js" as XmlChordReader
 import "../lib/constants.js" as Constants
+import "help-text.js" as HelpText
 
 MuseScore {
     id: plugin
@@ -139,6 +140,7 @@ MuseScore {
     property int issueSynalepha: 0
     property int issueHyphens: 0
     property int issueSyllabic: 0
+    property string issueSyllabicDetail: ""
     property int issuePunctuation: 0
     property int issueChordSync: 0
 
@@ -146,10 +148,12 @@ MuseScore {
         if (!curScore) { issueCount = 0; return; }
 
         var synalepha = 0, hyphens = 0, syllabic = 0, punctuation = 0, chordSync = 0;
+        var syllabicExamples = [];
 
         // Check lyrics: synalepha, hyphens, syllabic chains
         var segment = curScore.firstSegment();
         var prevSyllabic = {};
+        var prevText = {};
         while (segment) {
             for (var staff = 0; staff < curScore.nstaves; staff++) {
                 for (var voice = 0; voice < 4; voice++) {
@@ -170,8 +174,15 @@ MuseScore {
                         var key = staff + "_" + voice + "_" + verse;
                         var currSyl = lyric.syllabic || 0;
                         var prev = prevSyllabic[key] || 0;
-                        if ((prev === 1 || prev === 3) && (currSyl === 0 || currSyl === 1)) syllabic++;
+                        if ((prev === 1 || prev === 3) && (currSyl === 0 || currSyl === 1)) {
+                            syllabic++;
+                            if (syllabicExamples.length < 4) {
+                                var pt = prevText[key] || "?";
+                                syllabicExamples.push(pt + "--" + text);
+                            }
+                        }
                         prevSyllabic[key] = currSyl;
+                        prevText[key] = text;
                     }
                 }
             }
@@ -205,11 +216,15 @@ MuseScore {
                     seg2 = seg2.next;
                 }
 
-                var principalTicks = Object.keys(principalHarmony);
-                for (var pt = 0; pt < principalTicks.length; pt++) {
-                    var tick = principalTicks[pt];
-                    if (linkedChords[tick] === undefined || linkedChords[tick] !== principalHarmony[tick]) {
-                        chordSync++;
+                // Only check sync if there is at least one tab staff with chords
+                var hasLinkedTab = Object.keys(linkedChords).length > 0;
+                if (hasLinkedTab) {
+                    var principalTicks = Object.keys(principalHarmony);
+                    for (var pt = 0; pt < principalTicks.length; pt++) {
+                        var tick = principalTicks[pt];
+                        if (linkedChords[tick] === undefined || linkedChords[tick] !== principalHarmony[tick]) {
+                            chordSync++;
+                        }
                     }
                 }
             }
@@ -218,6 +233,9 @@ MuseScore {
         issueSynalepha = synalepha;
         issueHyphens = hyphens;
         issueSyllabic = syllabic;
+        var detail = syllabicExamples.join(", ");
+        if (syllabic > 4) detail += ", ...";
+        issueSyllabicDetail = detail;
         issuePunctuation = punctuation;
         issueChordSync = chordSync;
         issueCount = synalepha + hyphens + syllabic + punctuation + chordSync;
@@ -786,11 +804,38 @@ MuseScore {
             anchors.margins: 20
             spacing: 10
 
-            Text {
-                text: tr("Extractor de Letras y Acordes", "Lyrics and Chords Extractor")
-                font.bold: true
-                font.pixelSize: 18
-                color: systemPalette.windowText
+            RowLayout {
+                Layout.fillWidth: true
+
+                Text {
+                    text: tr("Extractor de Letras y Acordes", "Lyrics and Chords Extractor")
+                    font.bold: true
+                    font.pixelSize: 18
+                    color: systemPalette.windowText
+                }
+
+                Item { Layout.fillWidth: true }
+
+                Rectangle {
+                    width: 26
+                    height: 26
+                    radius: 13
+                    color: "#2196F3"
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "?"
+                        font.bold: true
+                        font.pixelSize: 15
+                        color: "white"
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: helpDialog.open()
+                    }
+                }
             }
 
             GroupBox {
@@ -842,14 +887,14 @@ MuseScore {
                         text: {
                             var lines = [];
                             if (issueSynalepha > 0) lines.push(
-                                tr(issueSynalepha + " sinalefas: punto entre vocales \u2192 \u203F",
-                                   issueSynalepha + " synalepha: dot between vowels \u2192 \u203F"));
+                                tr(issueSynalepha + " sinalefas: s\u00edmbolo entre letras \u2192 \u203F",
+                                   issueSynalepha + " synalepha: symbol between letters \u2192 \u203F"));
                             if (issueHyphens > 0) lines.push(
                                 tr(issueHyphens + " guiones manuales en silabas",
                                    issueHyphens + " manual hyphens in syllables"));
                             if (issueSyllabic > 0) lines.push(
-                                tr(issueSyllabic + " cadenas silabicas rotas",
-                                   issueSyllabic + " broken syllabic chains"));
+                                tr(issueSyllabic + " cadenas sil\u00e1bicas rotas: " + issueSyllabicDetail,
+                                   issueSyllabic + " broken syllabic chains: " + issueSyllabicDetail));
                             if (issuePunctuation > 0) lines.push(
                                 tr(issuePunctuation + " puntuacion pendiente (; .. ,,)",
                                    issuePunctuation + " pending punctuation (; .. ,,)"));
@@ -1209,12 +1254,6 @@ MuseScore {
                     anchors.verticalCenter: parent.verticalCenter
 
                     Button {
-                        text: "?"
-                        implicitWidth: 30
-                        onClicked: helpDialog.open()
-                    }
-
-                    Button {
                         text: "Debug"
                         onClicked: exportDebugData()
                     }
@@ -1230,93 +1269,82 @@ MuseScore {
 
     Dialog {
         id: helpDialog
-        title: tr("Ayuda", "Help")
+        title: ""
         modal: true
-        width: 620
-        height: 520
+        width: 700
+        height: 700
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
-        standardButtons: Dialog.Close
+        standardButtons: Dialog.NoButton
+
+        background: Rectangle {
+            color: systemPalette.window
+            border.color: systemPalette.windowText
+            border.width: 2
+            radius: 6
+        }
+
+        header: RowLayout {
+            spacing: 0
+
+            Text {
+                text: tr("Ayuda", "Help")
+                font.bold: true
+                font.pixelSize: 14
+                color: systemPalette.windowText
+                Layout.fillWidth: true
+                Layout.leftMargin: 12
+                Layout.topMargin: 8
+                Layout.bottomMargin: 4
+            }
+
+            Button {
+                text: "\u2715"
+                flat: true
+                implicitWidth: 32
+                implicitHeight: 28
+                Layout.rightMargin: 6
+                Layout.topMargin: 4
+                onClicked: helpDialog.close()
+            }
+        }
 
         Flickable {
+            id: helpFlickable
             anchors.fill: parent
+            anchors.margins: 10
+            anchors.rightMargin: 18
             contentHeight: helpContent.height
             clip: true
             flickableDirection: Flickable.VerticalFlick
 
             Text {
                 id: helpContent
-                width: parent.width - 20
+                width: parent.width
                 wrapMode: Text.WordWrap
                 textFormat: Text.RichText
                 color: systemPalette.windowText
                 font.pixelSize: 12
-                text: isSpanish ? helpTextEs : helpTextEn
+                text: isSpanish ? HelpText.es : HelpText.en
+            }
+        }
+
+        ScrollBar {
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            anchors.rightMargin: 2
+            anchors.topMargin: 4
+            anchors.bottomMargin: 4
+            orientation: Qt.Vertical
+            size: helpFlickable.visibleArea.heightRatio
+            position: helpFlickable.visibleArea.yPosition
+            policy: ScrollBar.AlwaysOn
+            onPositionChanged: {
+                if (pressed) helpFlickable.contentY = position * helpFlickable.contentHeight;
             }
         }
     }
-
-    property string helpTextEs:
-        "<h3>Como usar el plugin</h3>" +
-        "<ol>" +
-        "<li>Abre una partitura con letra y acordes en MuseScore.</li>" +
-        "<li>Pulsa <b>Extraer</b> para extraer letra con acordes alineados.</li>" +
-        "<li>Revisa el resultado en la previsualizacion.</li>" +
-        "<li>Pulsa <b>Guardar txt</b> para guardar como texto plano, " +
-        "o <b>Guardar pdf</b> para generar un PDF con formato.</li>" +
-        "</ol>" +
-        "<h3>Opciones de extraccion</h3>" +
-        "<table cellpadding='4'>" +
-        "<tr><td><b>Solfeo</b></td><td>Usa nombres Do, Re, Mi en vez de C, D, E.</td></tr>" +
-        "<tr><td><b>Repetir todo</b></td><td>Escribe todas las repeticiones aunque el texto sea identico (sin abreviar estribillos).</td></tr>" +
-        "</table>" +
-        "<h3>Opciones del PDF</h3>" +
-        "<table cellpadding='4'>" +
-        "<tr><td><b>Pie de pagina</b></td><td>Texto que aparece al pie de cada pagina (ej: nombre del grupo).</td></tr>" +
-        "<tr><td><b>Condensar en 1 pagina</b></td><td>Reduce el tamano de fuente para intentar que todo quepa en una sola pagina.</td></tr>" +
-        "<tr><td><b>Num. linea</b></td><td>Muestra numeros de linea a la izquierda de cada verso.</td></tr>" +
-        "<tr><td><b>Sin diagramas</b></td><td>Omite los diagramas de trastes del encabezado del PDF.</td></tr>" +
-        "</table>" +
-        "<h3>Directorio de partituras</h3>" +
-        "<p>Cuando MuseScore no expone la API nativa de diagramas de trastes, " +
-        "el plugin necesita leer el archivo .mscz del disco. Configura aqui la " +
-        "carpeta donde guardas tus partituras (ej: ~/Music/TunaAlcala).</p>" +
-        "<h3>Otros botones</h3>" +
-        "<table cellpadding='4'>" +
-        "<tr><td><b>Corregir</b></td><td>Corrige sinalefas y formato de la letra directamente en la partitura.</td></tr>" +
-        "<tr><td><b>Debug</b></td><td>Exporta los datos internos como JSON para diagnostico.</td></tr>" +
-        "</table>"
-
-    property string helpTextEn:
-        "<h3>How to use the plugin</h3>" +
-        "<ol>" +
-        "<li>Open a score with lyrics and chords in MuseScore.</li>" +
-        "<li>Click <b>Extract</b> to extract lyrics with aligned chords.</li>" +
-        "<li>Review the result in the preview area.</li>" +
-        "<li>Click <b>Save txt</b> for plain text, " +
-        "or <b>Save pdf</b> to generate a formatted PDF.</li>" +
-        "</ol>" +
-        "<h3>Extraction options</h3>" +
-        "<table cellpadding='4'>" +
-        "<tr><td><b>Solfeo</b></td><td>Use names Do, Re, Mi instead of C, D, E.</td></tr>" +
-        "<tr><td><b>Full repeat</b></td><td>Write all repetitions even if the text is identical (no abbreviated choruses).</td></tr>" +
-        "</table>" +
-        "<h3>PDF options</h3>" +
-        "<table cellpadding='4'>" +
-        "<tr><td><b>Footer</b></td><td>Text shown at the bottom of each page (e.g. group name).</td></tr>" +
-        "<tr><td><b>Fit in 1 page</b></td><td>Shrink font size to fit everything on a single page.</td></tr>" +
-        "<tr><td><b>Line num.</b></td><td>Show line numbers to the left of each verse line.</td></tr>" +
-        "<tr><td><b>No chord diagrams</b></td><td>Omit fretboard diagrams from the PDF header.</td></tr>" +
-        "</table>" +
-        "<h3>Scores directory</h3>" +
-        "<p>When MuseScore does not expose the native fretboard diagram API, " +
-        "the plugin needs to read the .mscz file from disk. Set the folder " +
-        "where you store your scores (e.g. ~/Music/TunaAlcala).</p>" +
-        "<h3>Other buttons</h3>" +
-        "<table cellpadding='4'>" +
-        "<tr><td><b>Fix</b></td><td>Fix synalepha and lyric formatting directly in the score.</td></tr>" +
-        "<tr><td><b>Debug</b></td><td>Export internal data as JSON for diagnostics.</td></tr>" +
-        "</table>"
 
     Component.onCompleted: {
         if (settings.scoresDirectory && settings.scoresDirectory.length > 0) {
