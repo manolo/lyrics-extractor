@@ -1209,6 +1209,12 @@ MuseScore {
                     anchors.verticalCenter: parent.verticalCenter
 
                     Button {
+                        text: "?"
+                        implicitWidth: 30
+                        onClicked: helpDialog.open()
+                    }
+
+                    Button {
                         text: "Debug"
                         onClicked: exportDebugData()
                     }
@@ -1221,6 +1227,96 @@ MuseScore {
             }
         }
     }
+
+    Dialog {
+        id: helpDialog
+        title: tr("Ayuda", "Help")
+        modal: true
+        width: 620
+        height: 520
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+        standardButtons: Dialog.Close
+
+        Flickable {
+            anchors.fill: parent
+            contentHeight: helpContent.height
+            clip: true
+            flickableDirection: Flickable.VerticalFlick
+
+            Text {
+                id: helpContent
+                width: parent.width - 20
+                wrapMode: Text.WordWrap
+                textFormat: Text.RichText
+                color: systemPalette.windowText
+                font.pixelSize: 12
+                text: isSpanish ? helpTextEs : helpTextEn
+            }
+        }
+    }
+
+    property string helpTextEs:
+        "<h3>Como usar el plugin</h3>" +
+        "<ol>" +
+        "<li>Abre una partitura con letra y acordes en MuseScore.</li>" +
+        "<li>Pulsa <b>Extraer</b> para extraer letra con acordes alineados.</li>" +
+        "<li>Revisa el resultado en la previsualizacion.</li>" +
+        "<li>Pulsa <b>Guardar txt</b> para guardar como texto plano, " +
+        "o <b>Guardar pdf</b> para generar un PDF con formato.</li>" +
+        "</ol>" +
+        "<h3>Opciones de extraccion</h3>" +
+        "<table cellpadding='4'>" +
+        "<tr><td><b>Solfeo</b></td><td>Usa nombres Do, Re, Mi en vez de C, D, E.</td></tr>" +
+        "<tr><td><b>Repetir todo</b></td><td>Escribe todas las repeticiones aunque el texto sea identico (sin abreviar estribillos).</td></tr>" +
+        "</table>" +
+        "<h3>Opciones del PDF</h3>" +
+        "<table cellpadding='4'>" +
+        "<tr><td><b>Pie de pagina</b></td><td>Texto que aparece al pie de cada pagina (ej: nombre del grupo).</td></tr>" +
+        "<tr><td><b>Condensar en 1 pagina</b></td><td>Reduce el tamano de fuente para intentar que todo quepa en una sola pagina.</td></tr>" +
+        "<tr><td><b>Num. linea</b></td><td>Muestra numeros de linea a la izquierda de cada verso.</td></tr>" +
+        "<tr><td><b>Sin diagramas</b></td><td>Omite los diagramas de trastes del encabezado del PDF.</td></tr>" +
+        "</table>" +
+        "<h3>Directorio de partituras</h3>" +
+        "<p>Cuando MuseScore no expone la API nativa de diagramas de trastes, " +
+        "el plugin necesita leer el archivo .mscz del disco. Configura aqui la " +
+        "carpeta donde guardas tus partituras (ej: ~/Music/TunaAlcala).</p>" +
+        "<h3>Otros botones</h3>" +
+        "<table cellpadding='4'>" +
+        "<tr><td><b>Corregir</b></td><td>Corrige sinalefas y formato de la letra directamente en la partitura.</td></tr>" +
+        "<tr><td><b>Debug</b></td><td>Exporta los datos internos como JSON para diagnostico.</td></tr>" +
+        "</table>"
+
+    property string helpTextEn:
+        "<h3>How to use the plugin</h3>" +
+        "<ol>" +
+        "<li>Open a score with lyrics and chords in MuseScore.</li>" +
+        "<li>Click <b>Extract</b> to extract lyrics with aligned chords.</li>" +
+        "<li>Review the result in the preview area.</li>" +
+        "<li>Click <b>Save txt</b> for plain text, " +
+        "or <b>Save pdf</b> to generate a formatted PDF.</li>" +
+        "</ol>" +
+        "<h3>Extraction options</h3>" +
+        "<table cellpadding='4'>" +
+        "<tr><td><b>Solfeo</b></td><td>Use names Do, Re, Mi instead of C, D, E.</td></tr>" +
+        "<tr><td><b>Full repeat</b></td><td>Write all repetitions even if the text is identical (no abbreviated choruses).</td></tr>" +
+        "</table>" +
+        "<h3>PDF options</h3>" +
+        "<table cellpadding='4'>" +
+        "<tr><td><b>Footer</b></td><td>Text shown at the bottom of each page (e.g. group name).</td></tr>" +
+        "<tr><td><b>Fit in 1 page</b></td><td>Shrink font size to fit everything on a single page.</td></tr>" +
+        "<tr><td><b>Line num.</b></td><td>Show line numbers to the left of each verse line.</td></tr>" +
+        "<tr><td><b>No chord diagrams</b></td><td>Omit fretboard diagrams from the PDF header.</td></tr>" +
+        "</table>" +
+        "<h3>Scores directory</h3>" +
+        "<p>When MuseScore does not expose the native fretboard diagram API, " +
+        "the plugin needs to read the .mscz file from disk. Set the folder " +
+        "where you store your scores (e.g. ~/Music/TunaAlcala).</p>" +
+        "<h3>Other buttons</h3>" +
+        "<table cellpadding='4'>" +
+        "<tr><td><b>Fix</b></td><td>Fix synalepha and lyric formatting directly in the score.</td></tr>" +
+        "<tr><td><b>Debug</b></td><td>Export internal data as JSON for diagnostics.</td></tr>" +
+        "</table>"
 
     Component.onCompleted: {
         if (settings.scoresDirectory && settings.scoresDirectory.length > 0) {
