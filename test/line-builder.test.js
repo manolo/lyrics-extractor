@@ -163,10 +163,17 @@ test("splitLongLines splits very long line even when comma is far from median", 
     assert.ok(result[0].text.indexOf("decir,") >= 0, "should split at comma: " + result[0].text);
 });
 
-test("cleanWordText replaces underties and synalepha dots", function() {
+test("cleanWordText replaces underties and synalepha markers", function() {
     assert.equal(lb.cleanWordText("da\u203Fes"), "da es");
     assert.equal(lb.cleanWordText("vi.da"), "vi da");
     assert.equal(lb.cleanWordText("normal word"), "normal word");
+    // Alternative synalepha markers
+    assert.equal(lb.cleanWordText("da\u00aces"), "da es", "not sign as synalepha");
+    assert.equal(lb.cleanWordText("da~es"), "da es", "tilde as synalepha");
+    assert.equal(lb.cleanWordText("da|es"), "da es", "pipe as synalepha");
+    // Hyphen and underscore are NOT synalepha
+    assert.equal(lb.cleanWordText("da-es"), "da-es", "hyphen preserved");
+    assert.equal(lb.cleanWordText("da_es"), "da_es", "underscore preserved");
 });
 
 test("cleanWordText converts 3+ dots to ellipsis, 2 dots to small full stop", function() {

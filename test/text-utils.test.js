@@ -38,34 +38,45 @@ test("isLetter detects letters including accented", function() {
     assert.equal(tu.isLetter(null), false);
 });
 
-test("replaceSynalepha only replaces dots BETWEEN LETTERS", function() {
+test("replaceSynalepha replaces markers BETWEEN LETTERS", function() {
     // Valid synalepha: dot between two letters
     assert.equal(tu.replaceSynalepha("da.es"), "da\u203Fes");
     assert.equal(tu.replaceSynalepha("y.o"), "y\u203Fo");
     assert.equal(tu.replaceSynalepha("so.has"), "so\u203Fhas");
     assert.equal(tu.replaceSynalepha("bre.el"), "bre\u203Fel");
-    
+
     // With accented letters
-    assert.equal(tu.replaceSynalepha("té.amo"), "té\u203Famo");
+    assert.equal(tu.replaceSynalepha("t\u00e9.amo"), "t\u00e9\u203Famo");
     assert.equal(tu.replaceSynalepha("mi.alma"), "mi\u203Falma");
-    
+
     // Synalepha preserved when followed by punctuation
     assert.equal(tu.replaceSynalepha("bre.el,"), "bre\u203Fel,");
     assert.equal(tu.replaceSynalepha("da.es!"), "da\u203Fes!");
-    
+
     // Synalepha followed by ellipsis (first dot is synalepha, rest preserved)
     assert.equal(tu.replaceSynalepha("bre.el..."), "bre\u203Fel...");
-    
+
     // NOT synalepha: dot not between letters
     assert.equal(tu.replaceSynalepha("A..."), "A...");
     assert.equal(tu.replaceSynalepha("palabra..."), "palabra...");
     assert.equal(tu.replaceSynalepha("palabra."), "palabra.");
     assert.equal(tu.replaceSynalepha(".palabra"), ".palabra");
     assert.equal(tu.replaceSynalepha("end.,start"), "end.,start");
-    
+
     // Dots with spaces should NOT be replaced
     assert.equal(tu.replaceSynalepha("word. next"), "word. next");
     assert.equal(tu.replaceSynalepha("a .b"), "a .b");
+
+    // Alternative synalepha markers between letters
+    assert.equal(tu.replaceSynalepha("da\u00aces"), "da\u203Fes", "not sign as synalepha");
+    assert.equal(tu.replaceSynalepha("da~es"), "da\u203Fes", "tilde as synalepha");
+    assert.equal(tu.replaceSynalepha("da|es"), "da\u203Fes", "pipe as synalepha");
+    assert.equal(tu.replaceSynalepha("da'es"), "da\u203Fes", "apostrophe as synalepha");
+
+    // Hyphens, underscores, digits: NOT synalepha
+    assert.equal(tu.replaceSynalepha("da-es"), "da-es", "hyphen preserved");
+    assert.equal(tu.replaceSynalepha("da_es"), "da_es", "underscore preserved");
+    assert.equal(tu.replaceSynalepha("a1b"), "a1b", "digit preserved");
 });
 
 test("isVowel detects vowels including accented", function() {
@@ -83,4 +94,7 @@ test("cleanWordText replaces synalepha markers with spaces", function() {
     // Dots not between letters are preserved
     assert.equal(tu.cleanWordText("palabra."), "palabra.");
     assert.equal(tu.cleanWordText("A..."), "A...");
+    // Alternative markers
+    assert.equal(tu.cleanWordText("da\u00aces"), "da es", "not sign cleaned");
+    assert.equal(tu.cleanWordText("da~es"), "da es", "tilde cleaned");
 });
