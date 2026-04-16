@@ -1328,6 +1328,7 @@ MuseScore {
         needsFallbackDir = Extractor.needsFallbackDirectory();
         hasSelection = checkSelection();
         PdfWriter.setFretboardRenderer(FretboardRenderer);
+        PdfWriter.setLayoutTables(Constants);
         checkScore();
     }
 
