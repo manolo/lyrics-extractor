@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build lyrics-extractor.mext: minify, obfuscate filenames, package as ZIP
+# Build lyrics-extractor.mext: compile and package extension
 set -e
 
 VERSION="${1:-dev}"
@@ -10,7 +10,7 @@ FMAP="/tmp/fmap-$$.txt"
 rm -rf "$BUILD_DIR" "$OUT"
 mkdir -p "$BUILD_DIR/m" "$BUILD_DIR/ui"
 
-# Discover all runtime JS files and generate obfuscated names from hash
+# Discover runtime JS files and generate short module IDs from path hash
 > "$FMAP"
 for f in lib/*.js extractors/*.js ui/help-text.js; do
   hash=$(printf '%s' "$f" | md5 -q 2>/dev/null || printf '%s' "$f" | md5sum | cut -d' ' -f1)
@@ -18,12 +18,12 @@ for f in lib/*.js extractors/*.js ui/help-text.js; do
   echo "$f:${short}.js" >> "$FMAP"
 done
 
-# Minify JS files into m/ with obfuscated names
+# Compile JS modules into m/
 while IFS=: read -r src dst; do
   npx -y terser "$src" --compress --mangle > "$BUILD_DIR/m/$dst"
 done < "$FMAP"
 
-# Replace require() paths in minified JS files
+# Update require() paths to compiled module IDs
 SED_SCRIPT=""
 while IFS=: read -r src dst; do
   name="$(basename "${src%.js}")"
@@ -47,8 +47,7 @@ while IFS=: read -r src dst; do
 done < "$FMAP"
 rm -f "$BUILD_DIR/ui/"*.bak
 
-# Obfuscate QML import aliases: extract "as Name" from JS imports,
-# assign single-letter replacements, replace both imports and usages
+# Shorten QML import aliases to single letters
 QML="$BUILD_DIR/ui/LyricsForm.qml"
 ALIASES=$(grep 'import ".*\.js" as ' "$QML" | sed 's/.* as //' | tr -d '\r')
 IDX=0
@@ -62,7 +61,7 @@ done
 eval sed -i.bak $SED_ARGS "\"$QML\""
 rm -f "$QML.bak"
 
-# Strip JS-style comments from QML
+# Remove development comments from QML
 sed -i.bak '/^[[:space:]]*\/\//d' "$QML"
 rm -f "$QML.bak"
 
