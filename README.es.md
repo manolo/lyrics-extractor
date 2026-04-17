@@ -85,8 +85,9 @@ Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) 
 
 | Opcion | Descripcion |
 |--------|-------------|
-| Pie de pagina | Nombre del grupo/agrupacion mostrado al pie de la ultima pagina |
-| Condensar en 1 pagina | Reducir para que quepa en una pagina (gaps, margenes, fuente) |
+| Cabecera | Texto alineado a la derecha en cada pagina (ej: nombre del grupo) |
+| Pie de pagina | Texto centrado al pie de cada pagina (ej: nombre de la banda) |
+| Condensar en 1 pagina | Reduce espaciado y fuente para caber en una pagina (prioriza mantener fuente legible) |
 | Num. linea | Numeros secuenciales en lineas de letra |
 | Sin diagramas de acordes | Omitir diagramas de trastes de la cabecera |
 | **Guardar** (PDF) | Guardar PDF junto a la partitura y abrirlo |
@@ -139,7 +140,8 @@ El mismo motor de extraccion esta disponible como CLI de Node.js (sin dependenci
 ```bash
 node cli/index.js cancion.mscz                              # stdout
 node cli/index.js cancion.mscz --save                       # guardar txt
-node cli/index.js cancion.mscz --pdf --header "Mi Tuna"     # generar PDF
+node cli/index.js cancion.mscz --pdf --header "Mi Tuna"     # PDF con cabecera
+node cli/index.js cancion.mscz --pdf --footer "Mi Tuna"     # PDF con pie
 node cli/index.js cancion.mscz --pdf --single --numbers     # PDF, 1 pagina, numerado
 node cli/index.js cancion.mscz --chords-only                # solo progresion de acordes
 ```
@@ -150,14 +152,17 @@ node cli/index.js cancion.mscz --chords-only                # solo progresion de
 |------|-------------|
 | `--save` | Guardar como `<partitura>-letra.txt` junto al .mscz |
 | `--pdf` | Generar PDF como `<partitura>-letra.pdf` |
-| `--single` | Ajustar PDF a una pagina |
-| `--header <nombre>` | Nombre del grupo para cabecera PDF |
+| `--single` | Ajustar a una pagina (reduce espaciado y luego fuente) |
+| `--header <nombre>` | Texto alineado a la derecha en cada pagina |
+| `--footer <nombre>` | Texto centrado al pie de cada pagina |
 | `--numbers` | Numeros de linea en PDF |
 | `--no-diagrams` | Omitir diagramas de trastes del PDF |
 | `--chords-only` | Forzar modo solo acordes (ignorar letras) |
 | `--anglo` | Forzar nombres de acorde anglo (C, D, E) |
 | `--solfeo` | Forzar nombres de acorde solfeo (Do, Re, Mi) |
 | `--full` | Expandir todas las repeticiones D.S./D.C. |
+| `--check` | Analizar letras (sinalefa, guiones, silabico, puntuacion) |
+| `--fix` | Corregir problemas de letras en el archivo |
 | `--debug` | Exportar datos crudos como JSON |
 
 Por defecto, los nombres de acorde usan la ortografia de la partitura. Usar `--anglo` o `--solfeo` para forzar.

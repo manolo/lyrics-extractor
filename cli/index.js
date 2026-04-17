@@ -41,12 +41,12 @@ function main() {
         console.log("  --save              Save to <score>-letra.txt alongside the score");
         console.log("  --pdf               Generate PDF to <score>-letra.pdf");
         console.log("  --header <name>     Right-aligned header on every PDF page");
-        console.log("  --footer <name>     Centered footer on last PDF page");
+        console.log("  --footer <name>     Centered footer on every PDF page");
         console.log("  --numbers           Add line numbers in PDF output");
         console.log("  --anglo             Force anglo chord names (C, D, E)");
         console.log("  --solfeo            Force solfeo chord names (Do, Re, Mi)");
         console.log("  --full              Write all D.S./D.C. repeats even without new lyrics");
-        console.log("  --single            Shrink PDF font to fit on one page");
+        console.log("  --single            Auto-fit to one page (gaps first, then font)");
         console.log("  --no-diagrams       Omit fretboard diagrams from PDF");
         console.log("  --chords-only       List chords even if the score has no lyrics");
         console.log("  --debug             Export raw extracted data as JSON");

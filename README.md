@@ -62,7 +62,7 @@ Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) a
 ### PDF output
 - Compact layout optimized for printing (A4, safe margins)
 - Chords in green, lyrics in black, monospace alignment
-- Optional: auto-fit to one page, line numbers, group header
+- Optional: auto-fit to one page, line numbers, header, footer
 - Fretboard diagrams in header with barres, markers, and fret numbers
 - Open generated file directly from the plugin
 
@@ -88,8 +88,8 @@ Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) a
 | Option | Description |
 |--------|-------------|
 | Header | Right-aligned text on every PDF page (e.g. group name) |
-| Footer | Centered text at the bottom of the last page |
-| Fit in 1 page | Shrink to fit on one page (gaps, margins, then font) |
+| Footer | Centered text at the bottom of every page |
+| Fit in 1 page | Auto-fit to one page (reduces gaps first, then font size) |
 | Line numbers | Sequential numbers on lyric lines |
 | No chord diagrams | Omit fretboard diagrams from the header |
 | **Save** (PDF) | Save PDF alongside the score and open it |
@@ -183,7 +183,7 @@ By default, chord names use the score's own spelling setting. Use `--anglo` or `
 node --test test/*.test.js
 ```
 
-421 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, and integration.
+425 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
 
 ## Building the .mext package
 

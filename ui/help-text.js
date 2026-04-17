@@ -51,8 +51,9 @@ var es =
     "<tr><td width='150' nowrap><b>Solfeo</b></td><td>Usa nombres Do, Re, Mi en vez de C, D, E.</td></tr>" +
     "<tr><td width='150' nowrap><b>Repetir todo</b></td><td>Escribe todas las repeticiones aunque el texto sea id\u00e9ntico (sin abreviar estribillos).</td></tr>" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Opciones del PDF</h3></td></tr>" +
-    "<tr><td width='150' nowrap><b>Pie de p\u00e1gina</b></td><td>Texto que aparece al pie de cada p\u00e1gina (ej: nombre de la banda).</td></tr>" +
-    "<tr><td width='150' nowrap><b>Condensar en 1 p\u00e1gina</b></td><td>Reduce el tama\u00f1o de fuente para intentar que todo quepa en una sola p\u00e1gina.</td></tr>" +
+    "<tr><td width='150' nowrap><b>Cabecera</b></td><td>Texto alineado a la derecha en la parte superior de cada p\u00e1gina (ej: nombre del grupo).</td></tr>" +
+    "<tr><td width='150' nowrap><b>Pie de p\u00e1gina</b></td><td>Texto centrado al pie de cada p\u00e1gina (ej: nombre de la banda).</td></tr>" +
+    "<tr><td width='150' nowrap><b>Condensar en 1 p\u00e1gina</b></td><td>Reduce espaciado y tama\u00f1o de fuente para que todo quepa en una p\u00e1gina. Prioriza mantener la fuente legible reduciendo primero los espacios.</td></tr>" +
     "<tr><td width='150' nowrap><b>N\u00fam. l\u00ednea</b></td><td>Muestra n\u00fameros de l\u00ednea a la izquierda de cada verso.</td></tr>" +
     "<tr><td width='150' nowrap><b>Sin diagramas</b></td><td>Omite los diagramas de acordes del encabezado del PDF.</td></tr>" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Otros botones</h3></td></tr>" +
@@ -113,8 +114,9 @@ var en =
     "<tr><td width='150' nowrap><b>Solfeo</b></td><td>Use names Do, Re, Mi instead of C, D, E.</td></tr>" +
     "<tr><td width='150' nowrap><b>Full repeat</b></td><td>Write all repetitions even if the text is identical (no abbreviated choruses).</td></tr>" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>PDF options</h3></td></tr>" +
-    "<tr><td width='150' nowrap><b>Footer</b></td><td>Text shown at the bottom of each page (e.g. band name).</td></tr>" +
-    "<tr><td width='150' nowrap><b>Fit in 1 page</b></td><td>Shrink font size to fit everything on a single page.</td></tr>" +
+    "<tr><td width='150' nowrap><b>Header</b></td><td>Right-aligned text at the top of every page (e.g. group name).</td></tr>" +
+    "<tr><td width='150' nowrap><b>Footer</b></td><td>Centered text at the bottom of every page (e.g. band name).</td></tr>" +
+    "<tr><td width='150' nowrap><b>Fit in 1 page</b></td><td>Reduce spacing and font size to fit on one page. Prioritizes keeping the font readable by reducing gaps first.</td></tr>" +
     "<tr><td width='150' nowrap><b>Line num.</b></td><td>Show line numbers to the left of each verse line.</td></tr>" +
     "<tr><td width='150' nowrap><b>No chord diagrams</b></td><td>Omit chord diagrams from the PDF header.</td></tr>" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Other buttons</h3></td></tr>" +
