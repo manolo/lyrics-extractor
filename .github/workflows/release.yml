@@ -21,38 +21,16 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
 
       - name: Get version from tag
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
-      - name: Update version in manifest and QML
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          sed -i "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" manifest.json
-          sed -i "s/^    version: \".*\"/    version: \"$VERSION\"/" ui/LyricsForm.qml
-          echo "Updated to version $VERSION"
-          grep '"version"' manifest.json
-          grep 'version:' ui/LyricsForm.qml | head -1
-
-      - name: Commit version update
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add manifest.json ui/LyricsForm.qml
-          git diff --cached --quiet || git commit -m "Update version to ${{ steps.version.outputs.version }}"
-          git push origin HEAD:main
-
       - name: Build .mext package
-        run: |
-          zip -r lyrics-extractor.mext . \
-            -x ".git/*" \
-            -x ".github/*" \
-            -x "test/*" \
-            -x "docs/*" \
-            -x "issue-*" \
-            -x ".gitignore"
-          ls -lh lyrics-extractor.mext
+        run: bash build.sh "${{ steps.version.outputs.version }}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
