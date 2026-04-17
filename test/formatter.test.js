@@ -1525,6 +1525,19 @@ test("formatPerfLines shifts chord to space before word when gap > 960 ticks", f
 });
 
 // ========================================
+// homeChord suppression must not remove the first chord of the song
+// ========================================
+
+test("formatPerfLines does not suppress the first chord even if it matches homeChord", function() {
+    var lines = [
+        { text: "Rana.", sylMap: [{ tick: 0, pos: 0, chord: "La" }], startTick: 0, endTick: 960, sectionEnd: true }
+    ];
+    var result = fmt.formatPerfLines(lines, [], "La", "", [{ tick: 0, chord: "La" }], null, null, true);
+    var output = result.text;
+    assert.ok(output.indexOf("La") >= 0, "first chord should not be suppressed: " + output);
+});
+
+// ========================================
 // --compact flag enables abbreviation (default: full repeat)
 // ========================================
 
