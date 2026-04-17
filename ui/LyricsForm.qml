@@ -34,7 +34,7 @@ MuseScore {
     title: "Lyrics Extraction"
     categoryCode: "Pulso y Púa"
     description: "Lyrics tools for vocal scores: synalepha formatting, lyrics+chords export"
-    version: "1.0"
+    version: "1.0.0"
     pluginType: "dialog"
     width: 800
     height: 840
