@@ -48,17 +48,44 @@ while IFS=: read -r src dst; do
 done < "$FMAP"
 rm -f "$BUILD_DIR/ui/"*.bak
 
-# Shorten QML import aliases to single letters using node for reliable replacement
+# Shorten QML import aliases to single letters using node for reliable replacement.
+# Object property keys in 'mods' are preserved so orchestrator.js can find them.
 QML="$BUILD_DIR/ui/LyricsForm.qml"
 node -e "
 var fs = require('fs');
 var qml = fs.readFileSync('$QML', 'utf8');
 var imports = qml.match(/import \".*\\.js\" as (\\w+)/g) || [];
 var aliases = imports.map(function(s) { return s.replace(/.* as /, ''); });
+var map = {};
 for (var i = 0; i < aliases.length; i++) {
-  var letter = String.fromCharCode(65 + i);
-  var re = new RegExp('\\\\b' + aliases[i] + '\\\\b', 'g');
-  qml = qml.replace(re, letter);
+  map[aliases[i]] = String.fromCharCode(65 + i);
+}
+// Extract and rebuild the mods object: preserve keys, replace only values
+var modsRe = /(property var mods:\s*\(\{)([\s\S]*?)(\}\))/;
+var modsMatch = qml.match(modsRe);
+if (modsMatch) {
+  var body = modsMatch[2].replace(/(\w+):\s*(\w+)/g, function(m, key, val) {
+    return key + ': ' + (map[val] || val);
+  });
+  qml = qml.replace(modsRe, modsMatch[1] + body + modsMatch[3]);
+}
+// Replace all whole-word alias occurrences (longest first)
+var sorted = aliases.slice().sort(function(a, b) { return b.length - a.length; });
+for (var j = 0; j < sorted.length; j++) {
+  var a = sorted[j], l = map[a];
+  qml = qml.replace(new RegExp('\\\\b' + a + '\\\\b', 'g'), l);
+}
+// Restore mods keys that got replaced
+if (modsMatch) {
+  var modsMatch2 = qml.match(modsRe);
+  if (modsMatch2) {
+    var body2 = modsMatch2[2].replace(/(\w+):\s*(\w+)/g, function(m, key, val) {
+      // Find original key name from the letter
+      for (var k in map) { if (map[k] === key) return k + ': ' + val; }
+      return m;
+    });
+    qml = qml.replace(modsRe, modsMatch2[1] + body2 + modsMatch2[3]);
+  }
 }
 fs.writeFileSync('$QML', qml);
 "
