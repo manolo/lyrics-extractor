@@ -76,32 +76,27 @@ var aliases = imports.map(function(s) { return s.replace(/.* as /, ""); });
 var aliasMap = {};
 aliases.forEach(function(a, i) { aliasMap[a] = String.fromCharCode(65 + i); });
 
-// Preserve mods object keys: replace values only
-var modsRe = /(property var mods:\s*\(\{)([\s\S]*?)(\}\))/;
-var modsMatch = qmlSrc.match(modsRe);
-if (modsMatch) {
-    var body = modsMatch[2].replace(/(\w+):\s*(\w+)/g, function(m, key, val) {
-        return key + ": " + (aliasMap[val] || val);
-    });
-    qmlSrc = qmlSrc.replace(modsRe, modsMatch[1] + body + modsMatch[3]);
-}
+// Step 1: protect object literal keys that are alias names.
+// Pattern "AliasName:" in object literals must keep the original key
+// because the receiving JS module accesses them by name (e.g. opts.XmlChordReader).
+// We replace "Key: Value" with "__Key__: Value" to protect keys.
+var aliasSet = {};
+aliases.forEach(function(a) { aliasSet[a] = true; });
+qmlSrc = qmlSrc.replace(/(\b\w+)(\s*:\s*)(\w+)/g, function(m, key, sep, val) {
+    if (aliasSet[key]) return "__" + key + "__" + sep + val;
+    return m;
+});
 
-// Replace all alias occurrences (longest first to avoid partial matches)
+// Step 2: replace all alias occurrences (longest first to avoid partial matches)
 var sorted = aliases.slice().sort(function(a, b) { return b.length - a.length; });
 sorted.forEach(function(a) {
     qmlSrc = qmlSrc.replace(new RegExp("\\b" + a + "\\b", "g"), aliasMap[a]);
 });
 
-// Restore mods keys that got replaced
-var modsMatch2 = qmlSrc.match(modsRe);
-if (modsMatch2) {
-    var reverseMap = {};
-    for (var k in aliasMap) reverseMap[aliasMap[k]] = k;
-    var body2 = modsMatch2[2].replace(/(\w+):\s*(\w+)/g, function(m, key, val) {
-        return (reverseMap[key] || key) + ": " + val;
-    });
-    qmlSrc = qmlSrc.replace(modsRe, modsMatch2[1] + body2 + modsMatch2[3]);
-}
+// Step 3: restore protected object keys
+qmlSrc = qmlSrc.replace(/__(\w+?)__(\s*:)/g, function(m, key, sep) {
+    return key + sep;
+});
 
 // Strip single-line JS comments
 qmlSrc = qmlSrc.replace(/^\s*\/\/.*$/gm, "");
