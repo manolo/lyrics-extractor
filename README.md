@@ -141,7 +141,8 @@ The same extraction engine is available as a Node.js CLI (no additional dependen
 ```bash
 node cli/index.js song.mscz                          # stdout
 node cli/index.js song.mscz --save                   # save text file
-node cli/index.js song.mscz --pdf --header "My Band" # generate PDF
+node cli/index.js song.mscz --pdf --header "My Band" # PDF with header
+node cli/index.js song.mscz --pdf --footer "My Band" # PDF with footer
 node cli/index.js song.mscz --pdf --single --numbers  # PDF, one page, numbered
 node cli/index.js song.mscz --chords-only             # chord progression only
 ```
@@ -153,13 +154,16 @@ node cli/index.js song.mscz --chords-only             # chord progression only
 | `--save` | Save to `<score>-letra.txt` alongside the score |
 | `--pdf` | Generate PDF to `<score>-letra.pdf` |
 | `--single` | Shrink PDF to fit on one page |
-| `--header <name>` | Group/band name for PDF header |
+| `--header <name>` | Right-aligned header on every PDF page |
+| `--footer <name>` | Centered footer on last PDF page |
 | `--numbers` | Add line numbers in PDF |
 | `--no-diagrams` | Omit fretboard diagrams from PDF |
 | `--chords-only` | Force chord-only mode (ignore lyrics) |
 | `--anglo` | Force anglo chord names (C, D, E) |
 | `--solfeo` | Force solfeo chord names (Do, Re, Mi) |
 | `--full` | Write all D.S./D.C. repeats |
+| `--check` | Check lyrics for issues (synalepha, hyphens, syllabic) |
+| `--fix` | Fix lyrics issues in the score file |
 | `--debug` | Export raw extracted data as JSON |
 
 By default, chord names use the score's own spelling setting. Use `--anglo` or `--solfeo` to override.
@@ -178,12 +182,17 @@ By default, chord names use the score's own spelling setting. Use `--anglo` or `
 node --test test/*.test.js
 ```
 
-367 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API fallback, score file lookup, element type classification, chord line layout, punctuation handling, and integration.
+421 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, and integration.
 
-## Specs
+## Building the .mext package
 
-- [Section titles and chords](specs/section-titles-and-chords.md): which MuseScore elements are recognised as chords vs. section titles.
-- [Chord line layout](specs/chord-line-layout.md): how trailing chords are appended or split, whitespace handling in inline text, punctuation sticking to syllables.
+```bash
+bash build.sh 1.0.0
+```
+
+Compiles all JS modules with terser, generates short module IDs, shortens QML import aliases, strips comments, and packages everything into `lyrics-extractor.mext`. Only runtime files are included (no tests, CLI tools, or documentation).
+
+The release workflow (`release.yml`) runs tests and then calls `build.sh` with the version from the git tag.
 
 ## License
 
