@@ -800,7 +800,175 @@ function extractAll(xmlString, excerptXmls, spelling) {
     };
 }
 
+// Extract lyric groups and chord data for lyrics-fixer analysis and fixing.
+// Returns { lyricGroups, chords, tabStaves } where:
+//   lyricGroups: { "staff_voice_verse": [{ text, syllabic (int) }] }
+//   chords: [{ tick, text, staffIndex, isTabStaff }]
+//   tabStaves: { staffIndex: true } for tab staves
+function extractForFixer(xmlString) {
+    var lyricsFixer = require("../lib/lyrics-fixer");
+    var tree = parseXml(xmlString);
+    var score = findChild(tree, "Score") || tree;
+
+    var division = 480;
+    var divNode = findChild(score, "Division");
+    if (divNode) division = parseInt(divNode.text) || 480;
+
+    // Detect tab staves from Part definitions
+    var parts = findChildren(score, "Part");
+    var tabStaves = {};
+    var staffCounter = 0;
+    for (var p = 0; p < parts.length; p++) {
+        var partStaffs = findChildren(parts[p], "Staff");
+        for (var ps = 0; ps < partStaffs.length; ps++) {
+            var staffType = findChild(partStaffs[ps], "StaffType");
+            if (staffType && staffType.attrs.group === "tablature") {
+                tabStaves[staffCounter] = true;
+            }
+            staffCounter++;
+        }
+    }
+
+    // Read chord name from a Harmony node (handles both old <name> and new <harmonyInfo>)
+    function readHarmonyText(harmonyNode) {
+        var hInfo = findChild(harmonyNode, "harmonyInfo");
+        if (hInfo) {
+            var rootNode = findChild(hInfo, "root");
+            var rootTpc = rootNode ? parseInt(rootNode.text) : -99;
+            var quality = childText(hInfo, "name") || "";
+            var Constants = require("../lib/constants");
+            return Constants.tpcToChordName(rootTpc, quality, "standard");
+        }
+        return childText(harmonyNode, "name") || "";
+    }
+
+    // Walk staves to collect lyrics and chords
+    var staffElements = findChildren(score, "Staff");
+    var lyricGroups = {};
+    var chordList = [];
+
+    for (var si = 0; si < staffElements.length; si++) {
+        var staffNode = staffElements[si];
+        var staffId = parseInt(staffNode.attrs.id || (si + 1)) - 1;
+
+        // Walk measures manually to track voice index
+        var currentTick = 0;
+        var timeSigN = 4, timeSigD = 4;
+        var measureTicks = division * 4;
+
+        var measures = findChildren(staffNode, "Measure");
+        for (var mi = 0; mi < measures.length; mi++) {
+            var measure = measures[mi];
+            var measureStartTick = currentTick;
+            var actualMeasureTicks = measureTicks;
+            if (measure.attrs.len) {
+                var lenParts = measure.attrs.len.split("/");
+                if (lenParts.length === 2) {
+                    actualMeasureTicks = Math.round((parseInt(lenParts[0]) / parseInt(lenParts[1])) * 4 * division);
+                }
+            }
+
+            // Measure-level elements (Harmony, FretDiagram) outside voices
+            for (var mci = 0; mci < measure.children.length; mci++) {
+                var mChild = measure.children[mci];
+                if (mChild.tag === "Harmony" || mChild.tag === "FretDiagram") {
+                    var hNode = mChild.tag === "FretDiagram" ? findChild(mChild, "Harmony") : mChild;
+                    if (hNode) {
+                        var name = readHarmonyText(hNode);
+                        if (name) {
+                            chordList.push({ tick: measureStartTick, text: name,
+                                staffIndex: staffId, isTabStaff: tabStaves[staffId] || false });
+                        }
+                    }
+                }
+            }
+
+            var voiceNodes = findChildren(measure, "voice");
+            var maxTick = currentTick;
+
+            for (var vi = 0; vi < voiceNodes.length; vi++) {
+                var voiceNode = voiceNodes[vi];
+                var voiceTick = currentTick;
+                var tupletRatio = null;
+
+                for (var ci = 0; ci < voiceNode.children.length; ci++) {
+                    var elem = voiceNode.children[ci];
+
+                    if (elem.tag === "TimeSig") {
+                        var newN = parseInt(childText(elem, "sigN"));
+                        var newD = parseInt(childText(elem, "sigD"));
+                        if (newN > 0 && newD > 0) {
+                            timeSigN = newN; timeSigD = newD;
+                            measureTicks = Math.round((timeSigN / timeSigD) * 4 * division);
+                            if (!measure.attrs.len) actualMeasureTicks = measureTicks;
+                        }
+                        continue;
+                    }
+                    if (elem.tag === "Tuplet") {
+                        var normalNotes = parseInt(childText(elem, "normalNotes")) || 1;
+                        var actualNotes = parseInt(childText(elem, "actualNotes")) || 1;
+                        tupletRatio = normalNotes / actualNotes;
+                        continue;
+                    }
+                    if (elem.tag === "endTuplet") { tupletRatio = null; continue; }
+
+                    if (elem.tag === "Chord" || elem.tag === "Rest") {
+                        var durType = childText(elem, "durationType") || "quarter";
+                        var dotsNode = findChild(elem, "dots");
+                        var dots = dotsNode ? parseInt(dotsNode.text) || 0 : 0;
+                        var durationQ = durationToTicks(durType, dots, division, actualMeasureTicks) / division;
+                        if (tupletRatio !== null) durationQ *= tupletRatio;
+                        var advanceTicks = Math.round(durationQ * division);
+
+                        if (elem.tag === "Chord") {
+                            // Lyrics
+                            var lyrics = findChildren(elem, "Lyrics");
+                            for (var li = 0; li < lyrics.length; li++) {
+                                var lyricNode = lyrics[li];
+                                var lyricText = childText(lyricNode, "text");
+                                if (!lyricText) continue;
+                                var verse = parseInt(childText(lyricNode, "no")) || 0;
+                                var syllabicRaw = childText(lyricNode, "syllabic") || "single";
+                                var key = staffId + "_" + vi + "_" + verse;
+                                if (!lyricGroups[key]) lyricGroups[key] = [];
+                                lyricGroups[key].push({
+                                    text: lyricText.trim(),
+                                    syllabic: lyricsFixer.syllabicFromString(syllabicRaw)
+                                });
+                            }
+                        }
+                        voiceTick += advanceTicks;
+                        continue;
+                    }
+
+                    // Harmony and FretDiagram elements
+                    if (elem.tag === "Harmony" || elem.tag === "FretDiagram") {
+                        var hNode = elem.tag === "FretDiagram" ? findChild(elem, "Harmony") : elem;
+                        if (hNode) {
+                            var hName = readHarmonyText(hNode);
+                            if (hName) {
+                                chordList.push({ tick: voiceTick, text: hName,
+                                    staffIndex: staffId, isTabStaff: tabStaves[staffId] || false });
+                            }
+                        }
+                        continue;
+                    }
+                }
+                if (voiceTick > maxTick) maxTick = voiceTick;
+            }
+            currentTick = Math.max(maxTick, currentTick + actualMeasureTicks);
+        }
+    }
+
+    return {
+        lyricGroups: lyricGroups,
+        chords: chordList,
+        tabStaves: tabStaves
+    };
+}
+
 module.exports = {
     extractAll: extractAll,
+    extractForFixer: extractForFixer,
     parseXml: parseXml
 };

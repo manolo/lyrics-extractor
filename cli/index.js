@@ -8,6 +8,8 @@ var msczReader = require("./mscz-reader");
 var xmlExtractor = require("../extractors/xml-extractor");
 var orchestrator = require("../lib/orchestrator");
 var pdfWriter = require("../lib/pdf-writer");
+var lyricsFixer = require("../lib/lyrics-fixer");
+var xmlPatcher = require("./xml-patcher");
 
 function main() {
     var args = process.argv.slice(2);
@@ -47,6 +49,8 @@ function main() {
         console.log("  --no-diagrams       Omit fretboard diagrams from PDF");
         console.log("  --chords-only       List chords even if the score has no lyrics");
         console.log("  --debug             Export raw extracted data as JSON");
+        console.log("  --check             Check lyrics for issues (synalepha, hyphens, syllabic)");
+        console.log("  --fix               Fix lyrics issues in the score file");
         console.log("");
         console.log("Examples:");
         console.log("  cli/index.js song.mscz                          # stdout");
@@ -67,6 +71,8 @@ function main() {
     var lineNumbers = flags.indexOf("--numbers") >= 0 || flags.indexOf("--line-numbers") >= 0;
     var noDiagrams = flags.indexOf("--no-diagrams") >= 0;
     var chordsOnly = flags.indexOf("--chords-only") >= 0;
+    var checkMode = flags.indexOf("--check") >= 0;
+    var fixMode = flags.indexOf("--fix") >= 0;
     var headerName = "";
     var headerIdx = flags.indexOf("--header");
     if (headerIdx >= 0 && headerIdx + 1 < flags.length) {
@@ -84,6 +90,52 @@ function main() {
     if (!fs.existsSync(inputPath)) {
         console.error("Error: file not found: " + inputPath);
         process.exit(1);
+    }
+
+    // --check: analyze lyrics for issues
+    if (checkMode) {
+        var checkXml = msczReader.readScore(inputPath);
+        var checkData = xmlExtractor.extractForFixer(checkXml);
+        var lyricResult = lyricsFixer.checkLyrics(checkData.lyricGroups);
+        var syncResult = lyricsFixer.checkChordSync(checkData.chords);
+
+        var total = lyricResult.synalepha + lyricResult.hyphens + lyricResult.syllabic +
+                    lyricResult.punctuation + syncResult.chordSync;
+
+        if (total === 0) {
+            console.log("No issues found");
+        } else {
+            if (lyricResult.synalepha > 0) console.log("Synalepha candidates: " + lyricResult.synalepha);
+            if (lyricResult.hyphens > 0) console.log("Manual hyphens: " + lyricResult.hyphens);
+            if (lyricResult.syllabic > 0) {
+                var detail = lyricResult.syllabicExamples.join(", ");
+                if (lyricResult.syllabic > 4) detail += ", ...";
+                console.log("Broken syllabic chains: " + lyricResult.syllabic + " (" + detail + ")");
+            }
+            if (lyricResult.punctuation > 0) console.log("Punctuation issues: " + lyricResult.punctuation);
+            if (syncResult.chordSync > 0) console.log("Chord sync mismatches: " + syncResult.chordSync);
+            console.log("Total: " + total + " issues");
+        }
+        process.exit(0);
+    }
+
+    // --fix: apply lyrics fixes to the score file
+    if (fixMode) {
+        var fixXml = msczReader.readScore(inputPath);
+        var patchResult = xmlPatcher.patchLyrics(fixXml);
+
+        if (patchResult.fixCount === 0) {
+            console.log("No issues to fix");
+            process.exit(0);
+        }
+
+        if (inputPath.match(/\.mscz$/i)) {
+            msczReader.writeMscz(inputPath, inputPath, patchResult.xml);
+        } else {
+            fs.writeFileSync(inputPath, patchResult.xml, "utf8");
+        }
+        console.log("Fixed " + patchResult.fixCount + " issues in " + path.basename(inputPath));
+        process.exit(0);
     }
 
     // Text file input: generate PDF directly from existing text

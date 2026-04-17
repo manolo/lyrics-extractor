@@ -26,6 +26,7 @@ import "../extractors/musescore-extractor.js" as Extractor
 import "../extractors/fretdiagram-fallback.js" as FretFallback
 import "../extractors/xml-chord-reader.js" as XmlChordReader
 import "../lib/constants.js" as Constants
+import "../lib/lyrics-fixer.js" as LyricsFixer
 import "help-text.js" as HelpText
 
 MuseScore {
@@ -147,13 +148,9 @@ MuseScore {
     function checkScore() {
         if (!curScore) { issueCount = 0; return; }
 
-        var synalepha = 0, hyphens = 0, syllabic = 0, punctuation = 0, chordSync = 0;
-        var syllabicExamples = [];
-
-        // Check lyrics: synalepha, hyphens, syllabic chains
+        // Build lyric groups from score
+        var lyricGroups = {};
         var segment = curScore.firstSegment();
-        var prevSyllabic = {};
-        var prevText = {};
         while (segment) {
             for (var staff = 0; staff < curScore.nstaves; staff++) {
                 for (var voice = 0; voice < 4; voice++) {
@@ -165,37 +162,24 @@ MuseScore {
                         var lyric = lyr[l];
                         var text = TextUtils.stripHtml(lyric.text || "");
                         if (!text) continue;
-
-                        if (TextUtils.replaceSynalepha(text) !== text) synalepha++;
-                        if (text.charAt(0) === '-' || text.charAt(text.length - 1) === '-') hyphens++;
-                        if (text.indexOf(';') >= 0 || text.match(/\.{2,}/) || text.match(/,,/)) punctuation++;
-
                         var verse = lyric.verse || 0;
                         var key = staff + "_" + voice + "_" + verse;
-                        var currSyl = lyric.syllabic || 0;
-                        var prev = prevSyllabic[key] || 0;
-                        if ((prev === 1 || prev === 3) && (currSyl === 0 || currSyl === 1)) {
-                            syllabic++;
-                            if (syllabicExamples.length < 4) {
-                                var pt = prevText[key] || "?";
-                                syllabicExamples.push(pt + "--" + text);
-                            }
-                        }
-                        prevSyllabic[key] = currSyl;
-                        prevText[key] = text;
+                        if (!lyricGroups[key]) lyricGroups[key] = [];
+                        lyricGroups[key].push({
+                            text: text,
+                            syllabic: lyric.syllabic || 0
+                        });
                     }
                 }
             }
             segment = segment.next;
         }
 
-        // Check chord sync: principal staff vs linked tab staves
+        // Build chord list for sync check
+        var chordList = [];
         try {
             var staves = curScore.staves;
             if (staves) {
-                var principalHarmony = {};
-                var linkedChords = {};
-
                 var seg2 = curScore.firstSegment();
                 while (seg2) {
                     var anns = seg2.annotations;
@@ -204,41 +188,35 @@ MuseScore {
                             var ann = anns[a];
                             if (ann && ann.type === Element.HARMONY) {
                                 var hStaff = Math.floor(ann.track / 4);
-                                if (staves[hStaff] && !staves[hStaff].isTabStaff) {
-                                    principalHarmony[seg2.tick] = ann.text || "";
-                                } else if (staves[hStaff] && staves[hStaff].isTabStaff) {
-                                    if (!linkedChords[seg2.tick]) linkedChords[seg2.tick] = "";
-                                    linkedChords[seg2.tick] = ann.text || "";
+                                if (staves[hStaff]) {
+                                    chordList.push({
+                                        tick: seg2.tick,
+                                        text: ann.text || "",
+                                        staffIndex: hStaff,
+                                        isTabStaff: staves[hStaff].isTabStaff || false
+                                    });
                                 }
                             }
                         }
                     }
                     seg2 = seg2.next;
                 }
-
-                // Only check sync if there is at least one tab staff with chords
-                var hasLinkedTab = Object.keys(linkedChords).length > 0;
-                if (hasLinkedTab) {
-                    var principalTicks = Object.keys(principalHarmony);
-                    for (var pt = 0; pt < principalTicks.length; pt++) {
-                        var tick = principalTicks[pt];
-                        if (linkedChords[tick] === undefined || linkedChords[tick] !== principalHarmony[tick]) {
-                            chordSync++;
-                        }
-                    }
-                }
             }
         } catch (e) { /* chord sync check failed, ignore */ }
 
-        issueSynalepha = synalepha;
-        issueHyphens = hyphens;
-        issueSyllabic = syllabic;
-        var detail = syllabicExamples.join(", ");
-        if (syllabic > 4) detail += ", ...";
+        var lyricResult = LyricsFixer.checkLyrics(lyricGroups);
+        var syncResult = LyricsFixer.checkChordSync(chordList);
+
+        issueSynalepha = lyricResult.synalepha;
+        issueHyphens = lyricResult.hyphens;
+        issueSyllabic = lyricResult.syllabic;
+        var detail = lyricResult.syllabicExamples.join(", ");
+        if (lyricResult.syllabic > 4) detail += ", ...";
         issueSyllabicDetail = detail;
-        issuePunctuation = punctuation;
-        issueChordSync = chordSync;
-        issueCount = synalepha + hyphens + syllabic + punctuation + chordSync;
+        issuePunctuation = lyricResult.punctuation;
+        issueChordSync = syncResult.chordSync;
+        issueCount = lyricResult.synalepha + lyricResult.hyphens + lyricResult.syllabic +
+                     lyricResult.punctuation + syncResult.chordSync;
     }
 
     // ========================================
@@ -252,9 +230,10 @@ MuseScore {
         }
 
         var useSelection = hasSelection;
-        var fixCount = 0;
 
+        // Build lyric groups from score (each entry keeps a ref to the live lyric object)
         var lyricGroups = {};
+        var lyricRefs = {};
 
         var segment = curScore.firstSegment();
         while (segment) {
@@ -280,102 +259,35 @@ MuseScore {
                         var verse = lyric.verse || 0;
                         var key = staff + "_" + voice + "_" + verse;
 
-                        if (!lyricGroups[key]) lyricGroups[key] = [];
+                        if (!lyricGroups[key]) { lyricGroups[key] = []; lyricRefs[key] = []; }
 
                         lyricGroups[key].push({
-                            lyric: lyric,
                             text: text,
-                            hasTrailingHyphen: text.charAt(text.length - 1) === '-',
-                            hasLeadingHyphen: text.charAt(0) === '-'
+                            syllabic: lyric.syllabic || 0
                         });
+                        lyricRefs[key].push(lyric);
                     }
                 }
             }
             segment = segment.next;
         }
 
+        // Run shared fixer logic
+        var result = LyricsFixer.fixAll(lyricGroups);
+        var fixCount = result.fixCount;
+
+        // Apply patches to score
         curScore.startCmd();
 
-        var keys = Object.keys(lyricGroups);
-        for (var k = 0; k < keys.length; k++) {
-            var group = lyricGroups[keys[k]];
-
-            for (var i = 0; i < group.length; i++) {
-                var entry = group[i];
-                var hasHyphen = entry.hasTrailingHyphen || entry.hasLeadingHyphen;
-
-                var changed = false;
-                var cleanText = entry.text;
-
-                // FIRST: Convert punctuation sequences BEFORE replaceSynalepha
-                cleanText = TextUtils.convertPunctuation(cleanText);
-                // Convert semicolons to fullwidth comma (phrase separator, stanza break)
-                cleanText = cleanText.replace(/;/g, "\uFF0C");
-
-                // SECOND: Apply synalepha replacement (only to single dots between letters)
-                cleanText = TextUtils.replaceSynalepha(cleanText);
-                
-                if (cleanText !== entry.text) {
-                    entry.lyric.text = cleanText;
-                    changed = true;
-                }
-
-                var prevHasTrailing = (i > 0) && group[i - 1].hasTrailingHyphen;
-                var needsSyllabicFix = hasHyphen || prevHasTrailing;
-
-                if (needsSyllabicFix) {
-                    var connectsToNext = entry.hasTrailingHyphen;
-                    var connectsFromPrev = prevHasTrailing || entry.hasLeadingHyphen;
-
-                    var newSyllabic;
-                    if (connectsFromPrev && connectsToNext) {
-                        newSyllabic = 3;
-                    } else if (connectsFromPrev && !connectsToNext) {
-                        newSyllabic = 2;
-                    } else if (!connectsFromPrev && connectsToNext) {
-                        newSyllabic = 1;
-                    } else {
-                        newSyllabic = 0;
-                    }
-
-                    cleanText = TextUtils.stripHyphens(cleanText);
-                    if (cleanText !== entry.lyric.text) {
-                        entry.lyric.text = cleanText;
-                        changed = true;
-                    }
-
-                    var currentSyllabic = entry.lyric.syllabic || 0;
-                    if (currentSyllabic !== newSyllabic) {
-                        entry.lyric.syllabic = newSyllabic;
-                        changed = true;
-                    }
-                }
-
-                if (changed) fixCount++;
-            }
-
-            // Repair broken syllabic chains
-            for (var j = 0; j < group.length; j++) {
-                var curr = group[j];
-                var currSyllabic = curr.lyric.syllabic || 0;
-
-                if (currSyllabic === 1 || currSyllabic === 3) {
-                    if (j + 1 < group.length) {
-                        var next = group[j + 1];
-                        var nextSyllabic = next.lyric.syllabic || 0;
-                        if (nextSyllabic === 0 || nextSyllabic === 1) {
-                            var nextNext = (j + 2 < group.length) ? group[j + 2] : null;
-                            var nextNextSyllabic = nextNext ? (nextNext.lyric.syllabic || 0) : 0;
-
-                            if (nextNextSyllabic === 3 || nextNextSyllabic === 2) {
-                                next.lyric.syllabic = 3;
-                            } else {
-                                next.lyric.syllabic = 2;
-                            }
-                            fixCount++;
-                        }
-                    }
-                }
+        var patchKeys = Object.keys(result.patches);
+        for (var pk = 0; pk < patchKeys.length; pk++) {
+            var pKey = patchKeys[pk];
+            var patches = result.patches[pKey];
+            var refs = lyricRefs[pKey];
+            for (var pi = 0; pi < patches.length; pi++) {
+                var patch = patches[pi];
+                refs[patch.index].text = patch.newText;
+                refs[patch.index].syllabic = patch.newSyllabic;
             }
         }
 
@@ -1345,6 +1257,7 @@ MuseScore {
         Extractor.setTextUtils(TextUtils);
         LineBuilder.setTextUtils(TextUtils);
         Formatter.setLineBuilder(LineBuilder);
+        LyricsFixer.setTextUtils(TextUtils);
         if (settings.scoresDirectory && settings.scoresDirectory.length > 0) {
             scoresDirectory = settings.scoresDirectory;
         } else {

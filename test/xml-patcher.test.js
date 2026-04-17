@@ -1,0 +1,274 @@
+var test = require("node:test");
+var assert = require("node:assert/strict");
+var path = require("path");
+var fs = require("fs");
+var msczReader = require("../cli/mscz-reader");
+var xmlExtractor = require("../extractors/xml-extractor");
+var xmlPatcher = require("../cli/xml-patcher");
+var lyricsFixer = require("../lib/lyrics-fixer");
+
+// ============================================================
+// extractForFixer
+// ============================================================
+
+test("extractForFixer returns lyricGroups from inline XML", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>hel</text><syllabic>begin</syllabic></Lyrics>',
+        '<Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>lo</text><syllabic>end</syllabic></Lyrics>',
+        '<Note><pitch>62</pitch><tpc>16</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var data = xmlExtractor.extractForFixer(xml);
+    var keys = Object.keys(data.lyricGroups);
+    assert.equal(keys.length, 1);
+    assert.equal(keys[0], "0_0_0");
+    assert.equal(data.lyricGroups[keys[0]].length, 2);
+    assert.equal(data.lyricGroups[keys[0]][0].text, "hel");
+    assert.equal(data.lyricGroups[keys[0]][0].syllabic, 1); // begin
+    assert.equal(data.lyricGroups[keys[0]][1].text, "lo");
+    assert.equal(data.lyricGroups[keys[0]][1].syllabic, 2); // end
+});
+
+test("extractForFixer detects tab staves", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part>',
+        '<Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff>',
+        '<Staff><linkedTo>0</linkedTo><StaffType group="tablature"><name>tab6</name></StaffType></Staff>',
+        '</Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '<Staff id="2"><Measure><voice>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var data = xmlExtractor.extractForFixer(xml);
+    assert.equal(data.tabStaves[0], undefined);
+    assert.equal(data.tabStaves[1], true);
+});
+
+test("extractForFixer groups by verse", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>one</text></Lyrics>',
+        '<Lyrics><no>1</no><text>dos</text></Lyrics>',
+        '<Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var data = xmlExtractor.extractForFixer(xml);
+    var keys = Object.keys(data.lyricGroups);
+    assert.equal(keys.length, 2);
+    assert.ok(data.lyricGroups["0_0_0"]);
+    assert.ok(data.lyricGroups["0_0_1"]);
+});
+
+test("extractForFixer extracts chords with harmonyInfo format", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Harmony><harmonyInfo><root>14</root><name></name></harmonyInfo></Harmony>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var data = xmlExtractor.extractForFixer(xml);
+    assert.equal(data.chords.length, 1);
+    assert.equal(data.chords[0].text, "C");
+    assert.equal(data.chords[0].isTabStaff, false);
+});
+
+// ============================================================
+// writeMscz round-trip
+// ============================================================
+
+var FIXTURE_PATH = path.join(__dirname, "fixture.mscz");
+
+test("writeMscz preserves content in round-trip", function() {
+    var original = msczReader.readScore(FIXTURE_PATH);
+    var tmpPath = path.join(__dirname, "_roundtrip_test.mscz");
+
+    try {
+        msczReader.writeMscz(FIXTURE_PATH, tmpPath, original);
+        var roundtrip = msczReader.readScore(tmpPath);
+        assert.equal(roundtrip, original, "Round-trip should preserve XML content");
+    } finally {
+        try { fs.unlinkSync(tmpPath); } catch (e) {}
+    }
+});
+
+test("writeMscz replaces mscx content", function() {
+    var original = msczReader.readScore(FIXTURE_PATH);
+    var marker = "PATCHER_TEST_MARKER";
+    var modified = original.replace("</Score>", "<!-- " + marker + " --></Score>");
+    var tmpPath = path.join(__dirname, "_replace_test.mscz");
+
+    try {
+        msczReader.writeMscz(FIXTURE_PATH, tmpPath, modified);
+        var result = msczReader.readScore(tmpPath);
+        assert.ok(result.indexOf(marker) >= 0, "Should contain injected marker");
+    } finally {
+        try { fs.unlinkSync(tmpPath); } catch (e) {}
+    }
+});
+
+// ============================================================
+// xmlPatcher.patchLyrics
+// ============================================================
+
+test("patchLyrics fixes synalepha in XML", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>da.es</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchLyrics(xml);
+    assert.equal(result.fixCount, 1);
+    assert.ok(result.xml.indexOf("da\u203Fes") >= 0, "Should contain undertie synalepha");
+    assert.ok(result.xml.indexOf("da.es") < 0, "Should not contain original dot synalepha");
+});
+
+test("patchLyrics fixes hyphens and syllabic", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>can-</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>tar</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>62</pitch><tpc>16</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchLyrics(xml);
+    assert.ok(result.fixCount >= 2);
+    assert.ok(result.xml.indexOf("<text>can</text>") >= 0, "Hyphen should be stripped");
+    assert.ok(result.xml.indexOf("<syllabic>begin</syllabic>") >= 0, "Should set syllabic to begin");
+    assert.ok(result.xml.indexOf("<syllabic>end</syllabic>") >= 0, "Should set syllabic to end");
+});
+
+test("patchLyrics returns 0 fixCount for clean XML", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>hello</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchLyrics(xml);
+    assert.equal(result.fixCount, 0);
+    assert.equal(result.xml, xml);
+});
+
+test("patchLyrics fixes punctuation sequences", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>fin...</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchLyrics(xml);
+    assert.equal(result.fixCount, 1);
+    assert.ok(result.xml.indexOf("\u2026") >= 0, "Should contain ellipsis character");
+});
+
+// ============================================================
+// Integration: check + fix + recheck on fixture
+// ============================================================
+
+test("integration: fixture.mscz extractForFixer returns valid data", function() {
+    var xml = msczReader.readScore(FIXTURE_PATH);
+    var data = xmlExtractor.extractForFixer(xml);
+
+    assert.ok(Object.keys(data.lyricGroups).length > 0, "Should have lyric groups");
+    var keys = Object.keys(data.lyricGroups);
+    for (var k = 0; k < keys.length; k++) {
+        var group = data.lyricGroups[keys[k]];
+        for (var i = 0; i < group.length; i++) {
+            assert.ok(typeof group[i].text === "string", "entry should have text");
+            assert.ok(typeof group[i].syllabic === "number", "entry should have numeric syllabic");
+        }
+    }
+});
