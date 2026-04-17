@@ -49,9 +49,14 @@ test("generatePdf renders chord lines in green", function() {
     assert.ok(result.indexOf("0 0 0 rg") >= 0, "should have black color for text");
 });
 
-test("generatePdf includes group header", function() {
-    var result = pdf.generatePdf("TITLE\n\n" + M + "Lam\nHello.\n", { header: "Tuna de Alcala" });
-    assert.ok(result.indexOf("Tuna de Alcala") >= 0, "should contain group name");
+test("generatePdf includes footer", function() {
+    var result = pdf.generatePdf("TITLE\n\n" + M + "Lam\nHello.\n", { footer: "Tuna de Alcala" });
+    assert.ok(result.indexOf("Tuna de Alcala") >= 0, "should contain footer text");
+});
+
+test("generatePdf includes header on every page", function() {
+    var result = pdf.generatePdf("TITLE\n\n" + M + "Lam\nHello.\n", { header: "My Group" });
+    assert.ok(result.indexOf("My Group") >= 0, "should contain header text");
 });
 
 test("generatePdf handles empty input", function() {

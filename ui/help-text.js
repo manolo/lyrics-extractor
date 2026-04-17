@@ -15,7 +15,7 @@ var es =
     "<tr><td width='150' nowrap><b>T\u00edtulo</b></td><td>A\u00f1ade un t\u00edtulo a tu proyecto. " +
     "El plugin lo muestra como encabezado en may\u00fasculas.</td></tr>" +
     "<tr><td width='150' nowrap><b>Texto de sistema</b></td><td><code>Ctrl+Shift+T</code>. Marca secciones (Intro, Estrofa, Estribillo, M\u00fasica). " +
-    "Aparecen como <code>- ETIQUETA -</code> en la salida. Usa <code>#</code> para numeraci\u00f3n autom\u00e1tica: <code>Coro #</code> produce Coro 1, Coro 2, etc.</td></tr>" +
+    "Aparecen como nueva secci\u00f3n<b>ETIQUETA</b> en la salida. Usa <code>#</code> para numeraci\u00f3n autom\u00e1tica: <code>Coro #</code> produce Coro 1, Coro 2, etc.</td></tr>" +
     "<tr><td width='150' nowrap><b>Marca de ensayo</b></td><td><code>Ctrl+M</code>. Se tratan igual que los textos de sistema (generan etiquetas de secci\u00f3n).</td></tr>" +
     "<tr><td width='150' nowrap><b>Repeticiones</b></td><td>Las barras de repetici\u00f3n, casillas de volta, Da Capo, Da Segno y saltos se respetan. " +
     "El plugin expande las repeticiones en orden de ejecuci\u00f3n.</td></tr>" +

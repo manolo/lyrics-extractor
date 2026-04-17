@@ -21,8 +21,8 @@ function main() {
     for (var ai = 0; ai < args.length; ai++) {
         if (args[ai].charAt(0) === "-") {
             flags.push(args[ai]);
-            // --header takes a value argument
-            if (args[ai] === "--header" && ai + 1 < args.length) {
+            // --header and --footer take a value argument
+            if ((args[ai] === "--header" || args[ai] === "--footer") && ai + 1 < args.length) {
                 flags.push(args[ai + 1]);
                 ai++;
             }
@@ -40,7 +40,8 @@ function main() {
         console.log("Flags:");
         console.log("  --save              Save to <score>-letra.txt alongside the score");
         console.log("  --pdf               Generate PDF to <score>-letra.pdf");
-        console.log("  --header <name>     Group name for PDF header");
+        console.log("  --header <name>     Right-aligned header on every PDF page");
+        console.log("  --footer <name>     Centered footer on last PDF page");
         console.log("  --numbers           Add line numbers in PDF output");
         console.log("  --anglo             Force anglo chord names (C, D, E)");
         console.log("  --solfeo            Force solfeo chord names (Do, Re, Mi)");
@@ -57,6 +58,7 @@ function main() {
         console.log("  cli/index.js song.mscz --save                   # writes song-letra.txt");
         console.log("  cli/index.js --pdf song.mscz                    # writes song-letra.pdf");
         console.log("  cli/index.js --pdf --header \"My Band\" song.mscz # PDF with header");
+        console.log("  cli/index.js --pdf --footer \"My Band\" song.mscz # PDF with footer");
         console.log("  cli/index.js --full song.mscz                   # full repeats");
         process.exit(0);
     }
@@ -77,6 +79,11 @@ function main() {
     var headerIdx = flags.indexOf("--header");
     if (headerIdx >= 0 && headerIdx + 1 < flags.length) {
         headerName = flags[headerIdx + 1];
+    }
+    var footerName = "";
+    var footerIdx = flags.indexOf("--footer");
+    if (footerIdx >= 0 && footerIdx + 1 < flags.length) {
+        footerName = flags[footerIdx + 1];
     }
     var outputPath = null;
     if (flags.indexOf("--save") >= 0) {
@@ -142,7 +149,7 @@ function main() {
     if (inputPath.match(/\.txt$/i) && pdfMode) {
         var textContent = fs.readFileSync(inputPath, "utf8");
         var pdfOut = inputPath.replace(/\.txt$/i, ".pdf");
-        var pdfBytes = pdfWriter.generatePdf(textContent, { header: headerName, onePage: onePage });
+        var pdfBytes = pdfWriter.generatePdf(textContent, { header: headerName, footer: footerName, onePage: onePage });
         fs.writeFileSync(pdfOut, pdfBytes, "binary");
         console.error("PDF written to: " + pdfOut);
         return;
@@ -223,6 +230,7 @@ function main() {
         var pdfPath = inputPath.replace(pdfExt, "-letra.pdf");
         var pdfOptions = {
             header: headerName,
+            footer: footerName,
             onePage: onePage,
             lineNumbers: lineNumbers,
             fretDiagrams: noDiagrams ? [] : (data.fretDiagrams || [])

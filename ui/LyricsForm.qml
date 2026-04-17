@@ -67,6 +67,7 @@ MuseScore {
         property bool lineNumbers: false
         property bool noDiagrams: false
         property string pdfHeader: ""
+        property string pdfFooter: ""
         property string scoresDirectory: ""
     }
 
@@ -665,6 +666,7 @@ MuseScore {
 
         var pdfOptions = {
             header: settings.pdfHeader,
+            footer: settings.pdfFooter,
             onePage: settings.onePage,
             lineNumbers: settings.lineNumbers,
             fretDiagrams: settings.noDiagrams ? [] : extractedFretDiagrams
@@ -1088,7 +1090,7 @@ MuseScore {
                         spacing: 6
 
                         Text {
-                            text: tr("Pie de pagina:", "Footer:")
+                            text: tr("Cabecera:", "Header:")
                             color: systemPalette.windowText
                             font.pixelSize: 11
                         }
@@ -1099,6 +1101,20 @@ MuseScore {
                             placeholderText: tr("Nombre del grupo", "Group name")
                             font.pixelSize: 11
                             onTextChanged: settings.pdfHeader = text
+                        }
+
+                        Text {
+                            text: tr("Pie:", "Footer:")
+                            color: systemPalette.windowText
+                            font.pixelSize: 11
+                        }
+
+                        TextField {
+                            id: footerField
+                            Layout.fillWidth: true
+                            placeholderText: tr("Nombre del grupo", "Group name")
+                            font.pixelSize: 11
+                            onTextChanged: settings.pdfFooter = text
                         }
                     }
 
@@ -1283,5 +1299,6 @@ MuseScore {
         lineNumbersCheck.checked = settings.lineNumbers;
         noDiagramsCheck.checked = settings.noDiagrams;
         headerField.text = settings.pdfHeader;
+        footerField.text = settings.pdfFooter;
     }
 }
