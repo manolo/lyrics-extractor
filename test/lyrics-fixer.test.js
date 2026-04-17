@@ -114,7 +114,7 @@ test("checkChordSync detects missing chords on tab staff", function() {
         { tick: 0, text: "Am", staffIndex: 1, isTabStaff: true }
         // tick 480 missing on tab
     ];
-    var result = fixer.checkChordSync(chords);
+    var result = fixer.checkChordSync(chords, { 1: true });
     assert.equal(result.chordSync, 1);
 });
 
@@ -123,7 +123,7 @@ test("checkChordSync detects mismatched chord text", function() {
         { tick: 0, text: "Am", staffIndex: 0, isTabStaff: false },
         { tick: 0, text: "Em", staffIndex: 1, isTabStaff: true }
     ];
-    var result = fixer.checkChordSync(chords);
+    var result = fixer.checkChordSync(chords, { 1: true });
     assert.equal(result.chordSync, 1);
 });
 
@@ -131,7 +131,7 @@ test("checkChordSync returns 0 when no tab staves", function() {
     var chords = [
         { tick: 0, text: "Am", staffIndex: 0, isTabStaff: false }
     ];
-    var result = fixer.checkChordSync(chords);
+    var result = fixer.checkChordSync(chords, {});
     assert.equal(result.chordSync, 0);
 });
 
@@ -142,8 +142,18 @@ test("checkChordSync returns 0 when all synced", function() {
         { tick: 480, text: "C", staffIndex: 0, isTabStaff: false },
         { tick: 480, text: "C", staffIndex: 1, isTabStaff: true }
     ];
-    var result = fixer.checkChordSync(chords);
+    var result = fixer.checkChordSync(chords, { 1: true });
     assert.equal(result.chordSync, 0);
+});
+
+test("checkChordSync detects all missing when tab staff has zero chords", function() {
+    var chords = [
+        { tick: 0, text: "Am", staffIndex: 7, isTabStaff: false },
+        { tick: 480, text: "C", staffIndex: 7, isTabStaff: false }
+        // tab staff 8 exists but has no chords at all
+    ];
+    var result = fixer.checkChordSync(chords, { 8: true });
+    assert.equal(result.chordSync, 2);
 });
 
 // ============================================================

@@ -205,8 +205,18 @@ MuseScore {
             }
         } catch (e) { /* chord sync check failed, ignore */ }
 
+        var tabStavesMap = {};
+        try {
+            var staves2 = curScore.staves;
+            if (staves2) {
+                for (var ts = 0; ts < staves2.length; ts++) {
+                    if (staves2[ts] && staves2[ts].isTabStaff) tabStavesMap[ts] = true;
+                }
+            }
+        } catch (e2) { /* ignore */ }
+
         var lyricResult = LyricsFixer.checkLyrics(lyricGroups);
-        var syncResult = LyricsFixer.checkChordSync(chordList);
+        var syncResult = LyricsFixer.checkChordSync(chordList, tabStavesMap);
 
         issueSynalepha = lyricResult.synalepha;
         issueHyphens = lyricResult.hyphens;

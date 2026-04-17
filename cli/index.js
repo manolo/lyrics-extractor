@@ -104,7 +104,7 @@ function main() {
         var checkXml = msczReader.readScore(inputPath);
         var checkData = xmlExtractor.extractForFixer(checkXml);
         var lyricResult = lyricsFixer.checkLyrics(checkData.lyricGroups);
-        var syncResult = lyricsFixer.checkChordSync(checkData.chords);
+        var syncResult = lyricsFixer.checkChordSync(checkData.chords, checkData.tabStaves);
 
         var total = lyricResult.synalepha + lyricResult.hyphens + lyricResult.syllabic +
                     lyricResult.punctuation + syncResult.chordSync;
