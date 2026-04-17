@@ -1866,3 +1866,84 @@ test("formatPerfLines respects endChordTick to cap coda chords", function() {
     assert.equal(output.indexOf("Mim"), -1, "Mim (beyond endChordTick) should NOT appear: " + output);
     assert.equal(output.indexOf("La"), -1, "La (beyond endChordTick) should NOT appear: " + output);
 });
+
+// ============================================================
+// AlcalaDeHenares-like: repeat with intro inside, numbered labels
+// ============================================================
+
+test("formatPerfLines numbered label re-emits on each repeat pass (AlcalaDeHenares)", function() {
+    // Repeat starts at tick 100 (same as intro). Estrofa # at tick 300, Estribillo at 600.
+    // Pass 1: Estrofa 1, Estribillo. Pass 2: Estrofa 2, Estribillo.
+    var lines = [
+        { text: "verse one.", sylMap: [{tick:300,pos:0,chord:"Lam"}], startTick: 300, endTick: 500, sectionEnd: true },
+        { text: "chorus.", sylMap: [{tick:600,pos:0,chord:"Sol"}], startTick: 600, endTick: 800, sectionEnd: true },
+        // Backwards (second pass)
+        { text: "verse two.", sylMap: [{tick:300,pos:0,chord:"Re"}], startTick: 300, endTick: 500, sectionEnd: true },
+        { text: "chorus.", sylMap: [{tick:600,pos:0,chord:"Mi"}], startTick: 600, endTick: 800, sectionEnd: false }
+    ];
+    var chords = [{tick:100, chord:"La"}, {tick:150, chord:"Mi7"}, {tick:300, chord:"Lam"}, {tick:600, chord:"Sol"}];
+    var systemTexts = [{tick:100, text:"Intro"}, {tick:300, text:"Estrofa #"}, {tick:600, text:"Estribillo"}];
+    var introChords = ["La", "Mi7"];
+    // repeatStartTick = 100 (intro is inside repeat)
+    var result = fmt.formatPerfLines(lines, introChords, null, "", chords, null, systemTexts, false, 100);
+    var output = result.text;
+    assert.ok(output.indexOf("- ESTROFA 1 -") >= 0, "should have ESTROFA 1: " + output);
+    assert.ok(output.indexOf("- ESTROFA 2 -") >= 0, "should have ESTROFA 2: " + output);
+    assert.equal((output.match(/- ESTRIBILLO -/g) || []).length, 2, "ESTRIBILLO twice: " + output);
+});
+
+test("formatPerfLines intro label re-emits without chords on repeat when not fullRepeat", function() {
+    // Intro at tick 100 inside repeat (repeatStartTick=100). Without fullRepeat,
+    // second pass shows INTRO label but no chords.
+    var lines = [
+        { text: "verse one.", sylMap: [{tick:300,pos:0,chord:"Lam"}], startTick: 300, endTick: 500, sectionEnd: true },
+        // Backwards (second pass)
+        { text: "verse two.", sylMap: [{tick:300,pos:0,chord:"Re"}], startTick: 300, endTick: 500, sectionEnd: false }
+    ];
+    var chords = [{tick:100, chord:"La"}, {tick:150, chord:"Mi7"}, {tick:300, chord:"Lam"}];
+    var systemTexts = [{tick:100, text:"Intro"}, {tick:300, text:"Estrofa #"}];
+    var introChords = ["La", "Mi7"];
+    var result = fmt.formatPerfLines(lines, introChords, null, "", chords, null, systemTexts, false, 100);
+    var output = result.text;
+    // INTRO label appears twice
+    assert.equal((output.match(/- INTRO -/g) || []).length, 2, "INTRO should appear twice: " + output);
+    // Intro chords appear only once (at the top)
+    var firstIntro = output.indexOf("La  Mi7");
+    var secondIntro = output.indexOf("La  Mi7", firstIntro + 1);
+    assert.equal(secondIntro, -1, "intro chords should not repeat without fullRepeat: " + output);
+});
+
+test("formatPerfLines with fullRepeat re-emits intro chords on repeat pass", function() {
+    // Same as above but with fullRepeat=true: second pass shows intro chords again.
+    var lines = [
+        { text: "verse one.", sylMap: [{tick:300,pos:0,chord:"Lam"}], startTick: 300, endTick: 500, sectionEnd: true },
+        // Backwards (second pass)
+        { text: "verse two.", sylMap: [{tick:300,pos:0,chord:"Re"}], startTick: 300, endTick: 500, sectionEnd: false }
+    ];
+    var chords = [{tick:100, chord:"La"}, {tick:150, chord:"Mi7"}, {tick:300, chord:"Lam"}];
+    var systemTexts = [{tick:100, text:"Intro"}, {tick:300, text:"Estrofa #"}];
+    var introChords = ["La", "Mi7"];
+    var result = fmt.formatPerfLines(lines, introChords, null, "", chords, null, systemTexts, true, 100);
+    var output = result.text;
+    // Intro chords appear twice (once at top, once in interlude)
+    var firstIntro = output.indexOf("La  Mi7");
+    var secondIntro = output.indexOf("La  Mi7", firstIntro + 1);
+    assert.ok(secondIntro >= 0, "intro chords should repeat with fullRepeat: " + output);
+});
+
+test("formatPerfLines intro outside repeat: INTRO once, numbered labels increment", function() {
+    // Intro at tick 0, repeat starts at tick 200. Intro is outside repeat.
+    var lines = [
+        { text: "verse one.", sylMap: [{tick:200,pos:0,chord:"Lam"}], startTick: 200, endTick: 400, sectionEnd: true },
+        // Backwards (second pass to tick 200, not to tick 0)
+        { text: "verse two.", sylMap: [{tick:200,pos:0,chord:"Re"}], startTick: 200, endTick: 400, sectionEnd: false }
+    ];
+    var chords = [{tick:0, chord:"Re"}, {tick:50, chord:"Sol"}, {tick:200, chord:"Lam"}];
+    var systemTexts = [{tick:0, text:"Intro"}, {tick:200, text:"Estrofa #"}];
+    var introChords = ["Re", "Sol"];
+    var result = fmt.formatPerfLines(lines, introChords, null, "", chords, null, systemTexts, false, 200);
+    var output = result.text;
+    // INTRO appears only once (outside repeat)
+    assert.equal((output.match(/- INTRO -/g) || []).length, 1, "INTRO once (outside repeat): " + output);
+    assert.ok(output.indexOf("- ESTROFA 1 -") >= 0, "should have ESTROFA 1: " + output);
+});
