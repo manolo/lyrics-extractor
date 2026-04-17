@@ -87,7 +87,8 @@ Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) a
 
 | Option | Description |
 |--------|-------------|
-| Footer | Group/band name shown at the bottom of the last page |
+| Header | Right-aligned text on every PDF page (e.g. group name) |
+| Footer | Centered text at the bottom of the last page |
 | Fit in 1 page | Shrink to fit on one page (gaps, margins, then font) |
 | Line numbers | Sequential numbers on lyric lines |
 | No chord diagrams | Omit fretboard diagrams from the header |
