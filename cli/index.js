@@ -45,7 +45,7 @@ function main() {
         console.log("  --numbers           Add line numbers in PDF output");
         console.log("  --anglo             Force anglo chord names (C, D, E)");
         console.log("  --solfeo            Force solfeo chord names (Do, Re, Mi)");
-        console.log("  --full              Write all D.S./D.C. repeats even without new lyrics");
+        console.log("  --compact           Abbreviate repeated stanzas (omit chords on repeats)");
         console.log("  --single            Auto-fit to one page (gaps first, then font)");
         console.log("  --no-diagrams       Omit fretboard diagrams from PDF");
         console.log("  --chords-only       List chords even if the score has no lyrics");
@@ -59,7 +59,7 @@ function main() {
         console.log("  cli/index.js --pdf song.mscz                    # writes song-letra.pdf");
         console.log("  cli/index.js --pdf --header \"My Band\" song.mscz # PDF with header");
         console.log("  cli/index.js --pdf --footer \"My Band\" song.mscz # PDF with footer");
-        console.log("  cli/index.js --full song.mscz                   # full repeats");
+        console.log("  cli/index.js --compact song.mscz                # abbreviate repeats");
         process.exit(0);
     }
 
@@ -68,7 +68,7 @@ function main() {
     var angloMode = flags.indexOf("--anglo") >= 0;
     var solfeoMode = flags.indexOf("--solfeo") >= 0;
     var pdfMode = flags.indexOf("--pdf") >= 0;
-    var fullRepeat = flags.indexOf("--full") >= 0;
+    var fullRepeat = flags.indexOf("--compact") < 0;
     var onePage = flags.indexOf("--single") >= 0 || flags.indexOf("--one-page") >= 0;
     var lineNumbers = flags.indexOf("--numbers") >= 0 || flags.indexOf("--line-numbers") >= 0;
     var noDiagrams = flags.indexOf("--no-diagrams") >= 0;

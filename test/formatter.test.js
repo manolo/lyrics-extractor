@@ -1525,11 +1525,11 @@ test("formatPerfLines shifts chord to space before word when gap > 960 ticks", f
 });
 
 // ========================================
-// --full flag disables abbreviation
+// --compact flag enables abbreviation (default: full repeat)
 // ========================================
 
 test("formatPerfLines with fullRepeat=true does not abbreviate repeated stanzas", function() {
-    // Two identical stanzas: with fullRepeat=true, both should appear in full
+    // Two identical stanzas: with fullRepeat=true (default), both should appear in full
     var lines = [
         { text: "Verse one text here with enough words.", sylMap: [{ tick: 0, pos: 0, chord: "Lam" }], startTick: 0, endTick: 480, sectionEnd: true },
         { text: "Estribillo text that will repeat later.", sylMap: [{ tick: 480, pos: 0, chord: "Re" }], startTick: 480, endTick: 960, sectionEnd: true },
@@ -1553,7 +1553,7 @@ test("formatPerfLines with fullRepeat=true does not abbreviate repeated stanzas"
 });
 
 test("formatPerfLines with fullRepeat=false abbreviates repeated stanzas", function() {
-    // Same data as above, but with fullRepeat=false (default)
+    // Same data as above, but with fullRepeat=false (--compact mode)
     var lines = [
         { text: "Verse one text here with enough words.", sylMap: [{ tick: 0, pos: 0, chord: "Lam" }], startTick: 0, endTick: 480, sectionEnd: true },
         { text: "Estribillo text that will repeat later.", sylMap: [{ tick: 480, pos: 0, chord: "Re" }], startTick: 480, endTick: 960, sectionEnd: true },

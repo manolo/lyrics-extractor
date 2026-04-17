@@ -62,13 +62,14 @@ MuseScore {
         id: settings
         category: "LyricsExtractor"
         property bool useSolfeo: true
-        property bool fullRepeat: false
+        property bool fullRepeat: true
         property bool onePage: false
         property bool lineNumbers: false
         property bool noDiagrams: false
         property string pdfHeader: ""
         property string pdfFooter: ""
         property string scoresDirectory: ""
+        property int settingsVersion: 0
     }
 
     function tr(es, en) {
@@ -1280,6 +1281,11 @@ MuseScore {
     }
 
     Component.onCompleted: {
+        // Migrate settings when defaults change across versions
+        if (settings.settingsVersion < 1) {
+            settings.fullRepeat = true;
+            settings.settingsVersion = 1;
+        }
         Extractor.setTextUtils(TextUtils);
         LineBuilder.setTextUtils(TextUtils);
         Formatter.setLineBuilder(LineBuilder);
