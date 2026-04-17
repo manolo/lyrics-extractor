@@ -19,8 +19,9 @@ for f in lib/*.js extractors/*.js ui/help-text.js; do
 done
 
 # Compile JS modules into m/
+# Use ecma=5 to avoid variable hoisting issues in QML's JS engine
 while IFS=: read -r src dst; do
-  npx -y terser "$src" --compress --mangle > "$BUILD_DIR/m/$dst"
+  npx -y terser "$src" --compress --mangle --ecma 5 > "$BUILD_DIR/m/$dst"
 done < "$FMAP"
 
 # Update require() paths to compiled module IDs
@@ -47,19 +48,20 @@ while IFS=: read -r src dst; do
 done < "$FMAP"
 rm -f "$BUILD_DIR/ui/"*.bak
 
-# Shorten QML import aliases to single letters
+# Shorten QML import aliases to single letters using node for reliable replacement
 QML="$BUILD_DIR/ui/LyricsForm.qml"
-ALIASES=$(grep 'import ".*\.js" as ' "$QML" | sed 's/.* as //' | tr -d '\r')
-IDX=0
-SED_ARGS=""
-for ALIAS in $ALIASES; do
-  LETTER=$(printf "\\$(printf '%03o' $((65 + IDX)))")
-  SED_ARGS="$SED_ARGS -e 's/ as ${ALIAS}/ as ${LETTER}/'"
-  SED_ARGS="$SED_ARGS -e 's/${ALIAS}\\./${LETTER}./g'"
-  IDX=$((IDX + 1))
-done
-eval sed -i.bak $SED_ARGS "\"$QML\""
-rm -f "$QML.bak"
+node -e "
+var fs = require('fs');
+var qml = fs.readFileSync('$QML', 'utf8');
+var imports = qml.match(/import \".*\\.js\" as (\\w+)/g) || [];
+var aliases = imports.map(function(s) { return s.replace(/.* as /, ''); });
+for (var i = 0; i < aliases.length; i++) {
+  var letter = String.fromCharCode(65 + i);
+  var re = new RegExp('\\\\b' + aliases[i] + '\\\\b', 'g');
+  qml = qml.replace(re, letter);
+}
+fs.writeFileSync('$QML', qml);
+"
 
 # Remove development comments from QML
 sed -i.bak '/^[[:space:]]*\/\//d' "$QML"
