@@ -30,7 +30,7 @@ jobs:
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Build .mext package
-        run: bash build.sh "${{ steps.version.outputs.version }}"
+        run: node build.js "${{ steps.version.outputs.version }}"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

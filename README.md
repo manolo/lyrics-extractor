@@ -187,12 +187,12 @@ node --test test/*.test.js
 ## Building the .mext package
 
 ```bash
-bash build.sh 1.0.0
+node build.js 1.0.0
 ```
 
 Compiles all JS modules with terser, generates short module IDs, shortens QML import aliases, strips comments, and packages everything into `lyrics-extractor.mext`. Only runtime files are included (no tests, CLI tools, or documentation).
 
-The release workflow (`release.yml`) runs tests and then calls `build.sh` with the version from the git tag.
+The release workflow (`release.yml`) runs tests and then calls `build.js` with the version from the git tag.
 
 ## License
 
