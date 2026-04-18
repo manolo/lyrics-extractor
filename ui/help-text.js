@@ -12,8 +12,9 @@ var es =
     "o <b>Guardar pdf</b> para generar un PDF con formato.</li>" +
     "</ol></td></tr>" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Preparar la partitura General</h3></td></tr>" +
-    "<tr><td width='150' nowrap><b>T\u00edtulo</b></td><td>A\u00f1ade un t\u00edtulo a tu proyecto. " +
-    "El plugin lo muestra como encabezado en may\u00fasculas.</td></tr>" +
+    "<tr><td width='150' nowrap><b>T\u00edtulo</b></td><td>El plugin busca el t\u00edtulo en: 1) Propiedades del proyecto, " +
+    "2) Texto del VBox (marco superior), 3) Nombre del archivo. " +
+    "El bot\u00f3n <b>Corregir</b> sincroniza los campos del VBox (t\u00edtulo, subt\u00edtulo, compositor, letrista) a las propiedades del proyecto.</td></tr>" +
     "<tr><td width='150' nowrap><b>Texto de sistema</b></td><td><code>Ctrl+Shift+T</code>. Marca secciones (Intro, Estrofa, Estribillo, M\u00fasica). " +
     "Aparecen como nueva secci\u00f3n <b>ETIQUETA</b> en la salida. Usa <code>#</code> para numeraci\u00f3n autom\u00e1tica: <code>Coro #</code> produce Coro 1, Coro 2, etc. " +
     "Usa <code>:</code> o <code>-</code> para secuencias expl\u00edcitas: <code>Solista manolo:juan</code> produce Solista Manolo, Solista Juan, luego Solista.</td></tr>" +
@@ -75,8 +76,9 @@ var en =
     "or <b>Save pdf</b> to generate a formatted PDF.</li>" +
     "</ol></td></tr>" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Preparing the score: General</h3></td></tr>" +
-    "<tr><td width='150' nowrap><b>Title</b></td><td>Add a title to your project. " +
-    "The plugin displays it as an uppercase header.</td></tr>" +
+    "<tr><td width='150' nowrap><b>Title</b></td><td>The plugin looks for the title in: 1) Project Properties, " +
+    "2) VBox text (top frame), 3) File name. " +
+    "The <b>Fix</b> button syncs VBox fields (title, subtitle, composer, lyricist) to project properties.</td></tr>" +
     "<tr><td width='150' nowrap><b>System text</b></td><td><code>Ctrl+Shift+T</code>. Mark sections (Intro, Verse, Chorus, Music). " +
     "They appear as <code>- LABEL -</code> in the output. Use <code>#</code> for auto-numbering: <code>Chorus #</code> produces Chorus 1, Chorus 2, etc. " +
     "Use <code>:</code> or <code>-</code> for explicit sequences: <code>Solo manolo:juan</code> produces Solo Manolo, Solo Juan, then Solo.</td></tr>" +

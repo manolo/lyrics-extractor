@@ -381,6 +381,101 @@ test("patchChordSync strips eid from copied harmony", function() {
 });
 
 // ============================================================
+// xmlPatcher.patchMetaTags
+// ============================================================
+
+test("patchMetaTags copies VBox title to empty workTitle metaTag", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<metaTag name="workTitle"></metaTag>',
+        '<metaTag name="composer"></metaTag>',
+        '<Staff id="1">',
+        '<VBox><Text><style>title</style><text>My Song</text></Text></VBox>',
+        '<Measure><voice><Chord><durationType>quarter</durationType>',
+        '<Note><pitch>60</pitch><tpc>14</tpc></Note></Chord></voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchMetaTags(xml);
+    assert.equal(result.metaCount, 1);
+    assert.ok(result.xml.indexOf('<metaTag name="workTitle">My Song</metaTag>') >= 0,
+        "workTitle should be updated: " + result.xml);
+});
+
+test("patchMetaTags copies all four VBox fields", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<metaTag name="workTitle"></metaTag>',
+        '<metaTag name="subtitle"></metaTag>',
+        '<metaTag name="composer"></metaTag>',
+        '<metaTag name="lyricist"></metaTag>',
+        '<Staff id="1">',
+        '<VBox>',
+        '<Text><style>title</style><text>The Title</text></Text>',
+        '<Text><style>subtitle</style><text>The Subtitle</text></Text>',
+        '<Text><style>composer</style><text>Bach</text></Text>',
+        '<Text><style>lyricist</style><text>Goethe</text></Text>',
+        '</VBox>',
+        '<Measure><voice><Chord><durationType>quarter</durationType>',
+        '<Note><pitch>60</pitch><tpc>14</tpc></Note></Chord></voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchMetaTags(xml);
+    assert.equal(result.metaCount, 4);
+    assert.ok(result.xml.indexOf('<metaTag name="workTitle">The Title</metaTag>') >= 0);
+    assert.ok(result.xml.indexOf('<metaTag name="subtitle">The Subtitle</metaTag>') >= 0);
+    assert.ok(result.xml.indexOf('<metaTag name="composer">Bach</metaTag>') >= 0);
+    assert.ok(result.xml.indexOf('<metaTag name="lyricist">Goethe</metaTag>') >= 0);
+});
+
+test("patchMetaTags returns 0 when metaTags already match VBox", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<metaTag name="workTitle">Same Title</metaTag>',
+        '<Staff id="1">',
+        '<VBox><Text><style>title</style><text>Same Title</text></Text></VBox>',
+        '<Measure><voice><Chord><durationType>quarter</durationType>',
+        '<Note><pitch>60</pitch><tpc>14</tpc></Note></Chord></voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchMetaTags(xml);
+    assert.equal(result.metaCount, 0);
+    assert.equal(result.xml, xml);
+});
+
+test("patchMetaTags returns 0 when no VBox exists", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<metaTag name="workTitle"></metaTag>',
+        '<Staff id="1">',
+        '<Measure><voice><Chord><durationType>quarter</durationType>',
+        '<Note><pitch>60</pitch><tpc>14</tpc></Note></Chord></voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchMetaTags(xml);
+    assert.equal(result.metaCount, 0);
+});
+
+// ============================================================
 // Integration: check + fix + recheck on fixture
 // ============================================================
 

@@ -43,6 +43,7 @@ The **Fix** button corrects all issues automatically:
 - Removes manual hyphens from syllables
 - Repairs broken syllabic chains (begin/middle/end)
 - Syncs chords from the principal staff to linked tab staves
+- Syncs VBox text fields (title, subtitle, composer, lyricist) to project properties
 
 ### Lyrics and chords extraction
 - Extracts lyrics with chord symbols aligned above the corresponding syllables
@@ -135,6 +136,15 @@ For songs with repeat bars and different lyrics per pass, use MuseScore's verse 
 ### Chord symbols
 
 Add chords (`Cmd+K`) to any staff. The extractor auto-detects the staff with the most chord symbols. Linked/tab staves and hidden staves are excluded automatically. Chord names use the score's spelling setting (Format > Style > Chord Symbols).
+
+### Title detection
+
+The plugin resolves the song title in this order:
+1. **Project properties** (File > Project Properties > Title)
+2. **VBox title** (the title text element in the score's top frame)
+3. **File name** (derived from the .mscz file name, splitting camelCase/hyphens)
+
+The **Fix** button also syncs VBox text fields (title, subtitle, composer, lyricist) to the project properties, so both stay in sync.
 
 ## CLI Usage
 

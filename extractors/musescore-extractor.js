@@ -25,12 +25,35 @@ function _titleFromFileName(name) {
     return spaced;
 }
 
-// Get score title: metaTags first, then derive from file name.
+// Get score title: metaTags first, then VBox title text, then file name.
 function _getTitle() {
     var s = _getScore();
+    // 1. Project properties (metaTags)
     var t = s.metaTag("workTitle") || s.metaTag("movementTitle") || s.title;
     if (t) return t;
+    // 2. VBox: first frame's text element with "title" style
+    t = _getTitleFromVBox(s);
+    if (t) return t;
+    // 3. Derive from file name
     return _titleFromFileName(s.scoreName || "");
+}
+
+// Read a text element from the first VBox frame by its style name.
+// styleName: "title", "subtitle", "composer", "lyricist"
+function _getVBoxText(score, styleName) {
+    try {
+        var mb = score.firstMeasure;
+        while (mb.prev) mb = mb.prev;
+        var elems = mb.elements;
+        for (var i = 0; i < elems.length; i++) {
+            if (elems[i].text && elems[i].subtypeName === styleName) return elems[i].text;
+        }
+    } catch (e) {}
+    return "";
+}
+
+function _getTitleFromVBox(score) {
+    return _getVBoxText(score, "title");
 }
 
 // --- Global debug variables ---
@@ -1082,6 +1105,9 @@ if (typeof exports !== "undefined") {
     _textUtils = require("../lib/text-utils");
 
     exports._titleFromFileName = _titleFromFileName;
+    exports._getTitle = _getTitle;
+    exports._getTitleFromVBox = _getTitleFromVBox;
+    exports._setScore = function(s) { _score = s; };
     exports.extractAll = extractAll;
     exports.findStaves = findStaves;
     exports.extractSyllables = extractSyllables;

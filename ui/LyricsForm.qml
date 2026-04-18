@@ -304,12 +304,19 @@ MuseScore {
         // Sync chords from principal staff to linked staves
         var syncCount = syncChordsToLinkedStaves();
 
-        if (fixCount > 0 || syncCount > 0) {
+        // Sync VBox text fields to project metaTags
+        var metaCount = syncVBoxToMetaTags();
+
+        if (fixCount > 0 || syncCount > 0 || metaCount > 0) {
             var msg = "";
             if (fixCount > 0) msg += fixCount + (isSpanish ? " silaba(s) corregida(s)" : " syllable(s) fixed");
             if (syncCount > 0) {
                 if (msg) msg += ", ";
                 msg += syncCount + (isSpanish ? " acorde(s) sincronizado(s)" : " chord(s) synced");
+            }
+            if (metaCount > 0) {
+                if (msg) msg += ", ";
+                msg += (isSpanish ? "propiedades actualizadas" : "properties updated");
             }
             statusText.text = msg;
         } else {
@@ -318,6 +325,52 @@ MuseScore {
                 "Lyrics are correct, no changes needed"
             );
         }
+    }
+
+    // ========================================
+    // SYNC VBOX TO METATAGS: copy VBox text fields to project properties
+    // ========================================
+
+    function syncVBoxToMetaTags() {
+        if (!curScore) return 0;
+        // VBox subtypeName -> metaTag key
+        var mapping = [
+            { style: "title",    tag: "workTitle" },
+            { style: "subtitle", tag: "subtitle" },
+            { style: "composer", tag: "composer" },
+            { style: "lyricist", tag: "lyricist" }
+        ];
+        var count = 0;
+        try {
+            var mb = curScore.firstMeasure;
+            if (!mb) return 0;
+            while (mb.prev) mb = mb.prev;
+            var elems = mb.elements;
+            if (!elems) return 0;
+            // Collect VBox values
+            var vboxValues = {};
+            for (var i = 0; i < elems.length; i++) {
+                var el = elems[i];
+                if (!el || !el.subtypeName) continue;
+                for (var m = 0; m < mapping.length; m++) {
+                    if (el.subtypeName === mapping[m].style && el.text) {
+                        vboxValues[mapping[m].tag] = el.text;
+                    }
+                }
+            }
+            // Update metaTags where VBox has a value and metaTag differs
+            for (var m2 = 0; m2 < mapping.length; m2++) {
+                var tag = mapping[m2].tag;
+                var vboxVal = vboxValues[tag];
+                if (!vboxVal) continue;
+                var current = curScore.metaTag(tag) || "";
+                if (current !== vboxVal) {
+                    curScore.setMetaTag(tag, vboxVal);
+                    count++;
+                }
+            }
+        } catch (e) { /* VBox access failed */ }
+        return count;
     }
 
     // ========================================

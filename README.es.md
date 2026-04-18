@@ -41,6 +41,7 @@ El boton **Corregir** arregla todos los problemas automaticamente:
 - Elimina guiones manuales de las silabas
 - Repara cadenas silabicas rotas (begin/middle/end)
 - Sincroniza acordes del pentagrama principal a pentagramas enlazados (tab)
+- Sincroniza campos del VBox (titulo, subtitulo, compositor, letrista) a las propiedades del proyecto
 
 ### Extraccion de letras y acordes
 - Extrae letras con simbolos de acorde alineados sobre las silabas correspondientes
@@ -133,6 +134,15 @@ Para canciones con barras de repeticion y letras diferentes por pasada, usar la 
 ### Simbolos de acorde
 
 Agregar acordes (`Cmd+K`) en cualquier pentagrama. El extractor detecta automaticamente el pentagrama con mas simbolos de acorde. Los pentagramas enlazados/tab y ocultos se excluyen automaticamente. Los nombres de acorde usan la ortografia de la partitura (Formato > Estilo > Simbolos de acorde).
+
+### Deteccion del titulo
+
+El plugin resuelve el titulo de la cancion en este orden:
+1. **Propiedades del proyecto** (Archivo > Propiedades del proyecto > Titulo)
+2. **Titulo del VBox** (el elemento de texto titulo en el marco superior de la partitura)
+3. **Nombre del archivo** (derivado del nombre del .mscz, separando camelCase/guiones)
+
+El boton **Corregir** tambien sincroniza los campos del VBox (titulo, subtitulo, compositor, letrista) a las propiedades del proyecto para mantenerlos en sincronizacion.
 
 ## Uso por linea de comandos (CLI)
 

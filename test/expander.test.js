@@ -442,6 +442,90 @@ test("titleFromFileName lowercases minor words but not at start", function() {
 });
 
 // ========================================
+// _getTitleFromVBox
+// ========================================
+
+test("getTitleFromVBox returns title from VBox elements", function() {
+    var mockScore = {
+        firstMeasure: {
+            prev: {
+                prev: null,
+                elements: [
+                    { text: "My Song Title", subtypeName: "title" },
+                    { text: "John Doe", subtypeName: "composer" }
+                ]
+            }
+        }
+    };
+    assert.equal(extractor._getTitleFromVBox(mockScore), "My Song Title");
+});
+
+test("getTitleFromVBox returns empty when no title element", function() {
+    var mockScore = {
+        firstMeasure: {
+            prev: {
+                prev: null,
+                elements: [
+                    { text: "John Doe", subtypeName: "composer" },
+                    { text: "Some subtitle", subtypeName: "subtitle" }
+                ]
+            }
+        }
+    };
+    assert.equal(extractor._getTitleFromVBox(mockScore), "");
+});
+
+test("getTitleFromVBox returns empty when no VBox", function() {
+    var mockScore = {
+        firstMeasure: { prev: null }
+    };
+    assert.equal(extractor._getTitleFromVBox(mockScore), "");
+});
+
+test("getTitleFromVBox returns empty on error", function() {
+    assert.equal(extractor._getTitleFromVBox({}), "");
+    assert.equal(extractor._getTitleFromVBox(null), "");
+});
+
+// ========================================
+// _getTitle (priority: metaTag > VBox > fileName)
+// ========================================
+
+test("getTitle uses metaTag workTitle first", function() {
+    extractor._setScore({
+        metaTag: function(k) { return k === "workTitle" ? "Meta Title" : ""; },
+        title: "",
+        scoreName: "FileName",
+        firstMeasure: null
+    });
+    assert.equal(extractor._getTitle(), "Meta Title");
+    extractor._setScore(null);
+});
+
+test("getTitle falls back to VBox when metaTags empty", function() {
+    var vbox = { prev: null, elements: [{ text: "VBox Title", subtypeName: "title" }] };
+    extractor._setScore({
+        metaTag: function() { return ""; },
+        title: "",
+        scoreName: "FileName",
+        firstMeasure: { prev: vbox }
+    });
+    assert.equal(extractor._getTitle(), "VBox Title");
+    extractor._setScore(null);
+});
+
+test("getTitle falls back to fileName when metaTags and VBox empty", function() {
+    extractor._setScore({
+        metaTag: function() { return ""; },
+        title: "",
+        scoreName: "MiCancion",
+        firstMeasure: { prev: null }
+    });
+    assert.equal(extractor._getTitle(), "Mi Cancion");
+    extractor._setScore(null);
+});
+
+// ========================================
 // MuseScore-derived unwind tests
 // ========================================
 // These tests validate measure playback order against MuseScore's

@@ -484,7 +484,61 @@ function _findNodeXmlRange(xmlString, node) {
     return null;
 }
 
+// Sync VBox text fields to metaTags in the XML.
+// Copies title, subtitle, composer, lyricist from VBox <Text> elements
+// to the corresponding <metaTag> elements when they differ.
+// Returns { xml: modifiedXml, metaCount: N }
+function patchMetaTags(xmlString) {
+    var mapping = [
+        { style: "title",    tag: "workTitle" },
+        { style: "subtitle", tag: "subtitle" },
+        { style: "composer", tag: "composer" },
+        { style: "lyricist", tag: "lyricist" }
+    ];
+
+    // Extract VBox text values
+    var vboxValues = {};
+    var vboxMatch = xmlString.match(/<VBox>[\s\S]*?<\/VBox>/);
+    if (vboxMatch) {
+        var vbox = vboxMatch[0];
+        // Find each <Text> block with <style> and <text>
+        var textBlocks = vbox.match(/<Text>[\s\S]*?<\/Text>/g) || [];
+        for (var i = 0; i < textBlocks.length; i++) {
+            var styleMatch = textBlocks[i].match(/<style>([^<]*)<\/style>/);
+            var textMatch = textBlocks[i].match(/<text>([\s\S]*?)<\/text>/);
+            if (styleMatch && textMatch) {
+                for (var m = 0; m < mapping.length; m++) {
+                    if (styleMatch[1] === mapping[m].style) {
+                        vboxValues[mapping[m].tag] = textMatch[1];
+                    }
+                }
+            }
+        }
+    }
+
+    // Update metaTags
+    var modified = xmlString;
+    var count = 0;
+    for (var m2 = 0; m2 < mapping.length; m2++) {
+        var tag = mapping[m2].tag;
+        var vboxVal = vboxValues[tag];
+        if (!vboxVal) continue;
+        var metaPattern = new RegExp('<metaTag name="' + tag + '">[^<]*</metaTag>');
+        var metaMatch2 = modified.match(metaPattern);
+        if (metaMatch2) {
+            var currentVal = metaMatch2[0].replace(/<metaTag[^>]*>/, "").replace(/<\/metaTag>/, "");
+            if (currentVal !== vboxVal) {
+                modified = modified.replace(metaPattern, '<metaTag name="' + tag + '">' + vboxVal + '</metaTag>');
+                count++;
+            }
+        }
+    }
+
+    return { xml: modified, metaCount: count };
+}
+
 module.exports = {
     patchLyrics: patchLyrics,
-    patchChordSync: patchChordSync
+    patchChordSync: patchChordSync,
+    patchMetaTags: patchMetaTags
 };
