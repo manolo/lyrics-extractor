@@ -607,7 +607,12 @@ function extractSystemTexts() {
                 if (ann.type === Element.SYSTEM_TEXT || ann.type === 60) {
                     var txt = ann.text || "";
                     if (txt) {
-                        texts.push({ tick: segment.tick, text: txt });
+                        // Deduplicate: same tick+text can appear on multiple staves
+                        var dup = false;
+                        for (var d = texts.length - 1; d >= 0 && texts[d].tick === segment.tick; d--) {
+                            if (texts[d].text === txt) { dup = true; break; }
+                        }
+                        if (!dup) texts.push({ tick: segment.tick, text: txt });
                     }
                 }
             }
