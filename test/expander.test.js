@@ -526,6 +526,46 @@ test("getTitle falls back to fileName when metaTags and VBox empty", function() 
 });
 
 // ========================================
+// _dedup (annotation deduplication)
+// ========================================
+
+test("dedup removes consecutive duplicates by custom equality", function() {
+    var items = [
+        { tick: 0, label: "segno" },
+        { tick: 0, label: "segno" },
+        { tick: 480, label: "fine" },
+        { tick: 480, label: "fine" },
+        { tick: 480, label: "fine" }
+    ];
+    var result = extractor._dedup(items, function(a, b) { return a.tick === b.tick && a.label === b.label; });
+    assert.equal(result.length, 2);
+    assert.equal(result[0].label, "segno");
+    assert.equal(result[1].label, "fine");
+});
+
+test("dedup keeps different items at same tick", function() {
+    var items = [
+        { tick: 0, label: "segno" },
+        { tick: 0, label: "coda" }
+    ];
+    var result = extractor._dedup(items, function(a, b) { return a.tick === b.tick && a.label === b.label; });
+    assert.equal(result.length, 2);
+});
+
+test("dedup returns empty for empty input", function() {
+    assert.equal(extractor._dedup([], function() { return true; }).length, 0);
+});
+
+test("dedup removes duplicate jumps at same tick", function() {
+    var jumps = [
+        { tick: 960, jumpTo: "start", playUntil: "end" },
+        { tick: 960, jumpTo: "start", playUntil: "end" }
+    ];
+    var result = extractor._dedup(jumps, function(a, b) { return a.tick === b.tick && a.jumpTo === b.jumpTo && a.playUntil === b.playUntil; });
+    assert.equal(result.length, 1);
+});
+
+// ========================================
 // MuseScore-derived unwind tests
 // ========================================
 // These tests validate measure playback order against MuseScore's

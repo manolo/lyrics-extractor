@@ -48,7 +48,7 @@ El boton **Corregir** arregla todos los problemas automaticamente:
 - Maneja repeticiones, voltas, D.S., D.C., Coda, Fine
 - Expande secciones multi-verso (verso 0, verso 1, etc.)
 - Abrevia secciones repetidas con "..." o etiquetas de seccion
-- Detecta textos de sistema (INTRO, SOLISTA, ESTRIBILLO) y guias de ensayo como marcadores de seccion
+- Detecta textos de sistema (INTRO, SOLISTA, ESTRIBILLO) y guias de ensayo como marcadores de seccion (deduplica automaticamente cuando aparecen en multiples pentagramas)
 - Los nombres de acordes siguen la ortografia de la partitura (solfeo o anglo), sin conversion manual
 - Funciona desde cualquier pestana, incluyendo vistas de excerpt/particella (usa masterScore automaticamente)
 

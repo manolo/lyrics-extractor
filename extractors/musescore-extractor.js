@@ -38,6 +38,15 @@ function _getTitle() {
     return _titleFromFileName(s.scoreName || "");
 }
 
+// Remove consecutive duplicates from a sorted array using a custom equality check.
+function _dedup(arr, eq) {
+    var result = [];
+    for (var i = 0; i < arr.length; i++) {
+        if (i === 0 || !eq(arr[i], arr[i - 1])) result.push(arr[i]);
+    }
+    return result;
+}
+
 // Read a text element from the first VBox frame by its style name.
 // styleName: "title", "subtitle", "composer", "lyricist"
 function _getVBoxText(score, styleName) {
@@ -588,6 +597,10 @@ function extractNavigation() {
     markers.sort(function(a, b) { return a.tick - b.tick; });
     jumps.sort(function(a, b) { return a.tick - b.tick; });
 
+    // Deduplicate: same tick+label for markers, same tick+jumpTo for jumps
+    markers = _dedup(markers, function(a, b) { return a.tick === b.tick && a.label === b.label; });
+    jumps = _dedup(jumps, function(a, b) { return a.tick === b.tick && a.jumpTo === b.jumpTo && a.playUntil === b.playUntil; });
+
     return { markers: markers, jumps: jumps, _annTypes: _annTypes };
 }
 
@@ -1113,6 +1126,7 @@ if (typeof exports !== "undefined") {
     exports._getTitle = _getTitle;
     exports._getTitleFromVBox = _getTitleFromVBox;
     exports._setScore = function(s) { _score = s; };
+    exports._dedup = _dedup;
     exports.extractAll = extractAll;
     exports.findStaves = findStaves;
     exports.extractSyllables = extractSyllables;
