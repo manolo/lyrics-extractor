@@ -1991,3 +1991,24 @@ test("formatPerfLines intro outside repeat: INTRO once, numbered labels incremen
     assert.equal((output.match(/- INTRO -/g) || []).length, 1, "INTRO once (outside repeat): " + output);
     assert.ok(output.indexOf("- ESTROFA 1 -") >= 0, "should have ESTROFA 1: " + output);
 });
+
+// ============================================================
+// stripChordMarkers
+// ============================================================
+
+test("stripChordMarkers removes zero-width space from chord lines", function() {
+    var input = M + "Lam  Re\nhello world\n" + M + "Sol  Mi\ngoodbye";
+    var result = fmt.stripChordMarkers(input);
+    assert.ok(result.indexOf("\u200B") < 0, "should not contain zero-width space");
+    assert.ok(result.indexOf("Lam  Re") >= 0, "should keep chord text");
+    assert.ok(result.indexOf("hello world") >= 0, "should keep lyrics");
+});
+
+test("stripChordMarkers returns unchanged text without markers", function() {
+    var input = "hello world\ngoodbye";
+    assert.equal(fmt.stripChordMarkers(input), input);
+});
+
+test("stripChordMarkers handles empty string", function() {
+    assert.equal(fmt.stripChordMarkers(""), "");
+});

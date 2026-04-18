@@ -43,6 +43,7 @@ MuseScore {
     property int selectionStartTick: 0
     property int selectionEndTick: 0
     property var extractedFretDiagrams: []
+    property string extractedOutput: "" // output with chord markers for PDF
     property string scoresDirectory: ""
     property bool scoresDirectoryExists: false
     property string lastScorePath: ""
@@ -618,7 +619,8 @@ MuseScore {
         }
         extractedFretDiagrams = diagrams;
 
-        lyricsPreview.text = output;
+        extractedOutput = output; // keep markers for PDF
+        lyricsPreview.text = Formatter.stripChordMarkers(output);
         var sylCount = data.syllables ? data.syllables.length : 0;
         var chordCount = data.chords ? data.chords.length : 0;
         var diagramCount = extractedFretDiagrams.length;
@@ -1238,7 +1240,7 @@ MuseScore {
                         Button {
                             id: pdfButton
                             text: tr("Guardar pdf", "Save pdf")
-                            onClicked: savePdfFile(lyricsPreview.text)
+                            onClicked: savePdfFile(extractedOutput || lyricsPreview.text)
                         }
                     }
                 }

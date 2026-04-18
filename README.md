@@ -175,7 +175,7 @@ node cli/index.js song.mscz --chords-only             # chord progression only
 | `--solfeo` | Force solfeo chord names (Do, Re, Mi) |
 | `--full` | Write all D.S./D.C. repeats |
 | `--check` | Check lyrics for issues (synalepha, hyphens, syllabic) |
-| `--fix` | Fix lyrics issues in the score file |
+| `--fix` | Fix lyrics issues, sync chords, sync VBox to project properties |
 | `--debug` | Export raw extracted data as JSON |
 
 By default, chord names use the score's own spelling setting. Use `--anglo` or `--solfeo` to override.

@@ -173,7 +173,7 @@ node cli/index.js cancion.mscz --chords-only                # solo progresion de
 | `--solfeo` | Forzar nombres de acorde solfeo (Do, Re, Mi) |
 | `--full` | Expandir todas las repeticiones D.S./D.C. |
 | `--check` | Analizar letras (sinalefa, guiones, silabico, puntuacion) |
-| `--fix` | Corregir problemas de letras en el archivo |
+| `--fix` | Corregir letras, sincronizar acordes y propiedades del proyecto |
 | `--debug` | Exportar datos crudos como JSON |
 
 Por defecto, los nombres de acorde usan la ortografia de la partitura. Usar `--anglo` o `--solfeo` para forzar.

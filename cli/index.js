@@ -249,13 +249,14 @@ function main() {
         if (!outputPath) return;
     }
 
-    // Text output
+    // Text output (strip zero-width space chord markers, only needed for PDF coloring)
+    var textOutput = output.replace(/\u200B/g, "");
     if (outputPath) {
-        fs.writeFileSync(outputPath, output, "utf8");
+        fs.writeFileSync(outputPath, textOutput, "utf8");
         console.error("Written to: " + outputPath);
         console.error(data.syllables.length + " syllables, " + data.chords.length + " chords extracted");
     } else if (!pdfMode) {
-        process.stdout.write(output);
+        process.stdout.write(textOutput);
     }
 }
 
