@@ -12,11 +12,9 @@ import "../lib/text-utils.js" as TextUtils
 import "../lib/chord-utils.js" as ChordUtils
 import "../lib/word-builder.js" as WordBuilder
 import "../lib/line-builder.js" as LineBuilder
-import "../lib/repeat-structure.js" as RepeatStructure
-import "../lib/performance-stream.js" as PerfStream
+import "../lib/expander.js" as Expander
 import "../lib/intro-chords.js" as IntroChords
 import "../lib/formatter.js" as Formatter
-import "../lib/navigation.js" as Navigation
 import "../lib/orchestrator.js" as Orchestrator
 import "../lib/chord-formatter.js" as ChordFormatter
 import "../lib/pdf-writer.js" as PdfWriter
@@ -104,11 +102,9 @@ MuseScore {
         ChordUtils: ChordUtils,
         WordBuilder: WordBuilder,
         LineBuilder: LineBuilder,
-        RepeatStructure: RepeatStructure,
-        PerfStream: PerfStream,
+        Expander: Expander,
         IntroChords: IntroChords,
         Formatter: Formatter,
-        Navigation: Navigation,
         ChordFormatter: ChordFormatter
     })
 
@@ -402,21 +398,34 @@ MuseScore {
 
         if (linkedStaves.length === 0) return 0;
 
-        // Collect chords from principal staff
-        var principalChords = []; // [{tick, text}]
+        // Collect chords from ALL non-tab staves (merged by tick, principal wins on conflict)
+        var chordByTick = {}; // tick -> {tick, text}
         segment = curScore.firstSegment();
         while (segment) {
             var anns = segment.annotations;
             if (anns) {
                 for (var ai = 0; ai < anns.length; ai++) {
                     var an = anns[ai];
-                    if (an && (an.type === Element.HARMONY) && Math.floor(an.track / 4) === principalStaff) {
-                        principalChords.push({ tick: segment.tick, text: an.text || "" });
+                    if (an && (an.type === Element.HARMONY)) {
+                        var hStaff = Math.floor(an.track / 4);
+                        if (staves[hStaff] && !staves[hStaff].isTabStaff) {
+                            var tk = segment.tick;
+                            // Principal staff chords take priority; otherwise first seen wins
+                            if (!chordByTick[tk] || hStaff === principalStaff) {
+                                chordByTick[tk] = { tick: tk, text: an.text || "" };
+                            }
+                        }
                     }
                 }
             }
             segment = segment.next;
         }
+        var principalChords = [];
+        var tickKeys = Object.keys(chordByTick);
+        for (var tki = 0; tki < tickKeys.length; tki++) {
+            principalChords.push(chordByTick[tickKeys[tki]]);
+        }
+        principalChords.sort(function(a, b) { return a.tick - b.tick; });
 
         // For each linked staff: remove existing chords, add principal's chords
         var totalSynced = 0;
@@ -898,8 +907,25 @@ MuseScore {
                         }
 
                         Button {
+                            id: extractButton
                             text: tr("Extraer", "Extract")
-                            onClicked: extractLyricsWithChords()
+                            onClicked: {
+                                extractButton.enabled = false;
+                                lyricsPreview.text = "";
+                                statusText.text = tr("Extrayendo...", "Extracting...");
+                                statusText.isError = false;
+                                extractTimer.start();
+                            }
+                        }
+
+                        Timer {
+                            id: extractTimer
+                            interval: 50
+                            repeat: false
+                            onTriggered: {
+                                extractLyricsWithChords();
+                                extractButton.enabled = true;
+                            }
                         }
                     }
 
@@ -1259,7 +1285,10 @@ MuseScore {
                 textFormat: Text.RichText
                 color: systemPalette.windowText
                 font.pixelSize: 12
-                text: isSpanish ? HelpText.es : HelpText.en
+                text: (isSpanish ? HelpText.es : HelpText.en).replace(
+                    "<!--SCORES_DIR-->",
+                    needsFallbackDir ? (isSpanish ? HelpText.scoresDirEs : HelpText.scoresDirEn) : ""
+                )
             }
         }
 

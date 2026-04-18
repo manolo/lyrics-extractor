@@ -15,7 +15,8 @@ var es =
     "<tr><td width='150' nowrap><b>T\u00edtulo</b></td><td>A\u00f1ade un t\u00edtulo a tu proyecto. " +
     "El plugin lo muestra como encabezado en may\u00fasculas.</td></tr>" +
     "<tr><td width='150' nowrap><b>Texto de sistema</b></td><td><code>Ctrl+Shift+T</code>. Marca secciones (Intro, Estrofa, Estribillo, M\u00fasica). " +
-    "Aparecen como nueva secci\u00f3n<b>ETIQUETA</b> en la salida. Usa <code>#</code> para numeraci\u00f3n autom\u00e1tica: <code>Coro #</code> produce Coro 1, Coro 2, etc.</td></tr>" +
+    "Aparecen como nueva secci\u00f3n <b>ETIQUETA</b> en la salida. Usa <code>#</code> para numeraci\u00f3n autom\u00e1tica: <code>Coro #</code> produce Coro 1, Coro 2, etc. " +
+    "Usa <code>:</code> o <code>-</code> para secuencias expl\u00edcitas: <code>Solista manolo:juan</code> produce Solista Manolo, Solista Juan, luego Solista.</td></tr>" +
     "<tr><td width='150' nowrap><b>Marca de ensayo</b></td><td><code>Ctrl+M</code>. Se tratan igual que los textos de sistema (generan etiquetas de secci\u00f3n).</td></tr>" +
     "<tr><td width='150' nowrap><b>Repeticiones</b></td><td>Las barras de repetici\u00f3n, casillas de volta, Da Capo, Da Segno y saltos se respetan. " +
     "El plugin expande las repeticiones en orden de ejecuci\u00f3n.</td></tr>" +
@@ -50,6 +51,7 @@ var es =
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Opciones de extracci\u00f3n</h3></td></tr>" +
     "<tr><td width='150' nowrap><b>Solfeo</b></td><td>Usa nombres Do, Re, Mi en vez de C, D, E.</td></tr>" +
     "<tr><td width='150' nowrap><b>Repetir todo</b></td><td>Escribe todas las repeticiones aunque el texto sea id\u00e9ntico (sin abreviar estribillos).</td></tr>" +
+    "<!--SCORES_DIR-->" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Opciones del PDF</h3></td></tr>" +
     "<tr><td width='150' nowrap><b>Cabecera</b></td><td>Texto alineado a la derecha en la parte superior de cada p\u00e1gina (ej: nombre del grupo).</td></tr>" +
     "<tr><td width='150' nowrap><b>Pie de p\u00e1gina</b></td><td>Texto centrado al pie de cada p\u00e1gina (ej: nombre de la banda).</td></tr>" +
@@ -57,8 +59,6 @@ var es =
     "<tr><td width='150' nowrap><b>N\u00fam. l\u00ednea</b></td><td>Muestra n\u00fameros de l\u00ednea a la izquierda de cada verso.</td></tr>" +
     "<tr><td width='150' nowrap><b>Sin diagramas</b></td><td>Omite los diagramas de acordes del encabezado del PDF.</td></tr>" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Otros botones</h3></td></tr>" +
-    "<tr><td width='150' nowrap><b>Directorio de partituras</b></td><td>Solo para versiones anteriores a 4.7: el plugin necesita leer el archivo del disco para extraer los diagramas de acordes. " +
-    "Configura aqu\u00ed la carpeta donde guardas tus partituras (ej: HOME/Documents/Scores).</td></tr>" +
     "<tr><td width='150' nowrap><b>Corregir</b></td><td>Readapta la entrada de la letra: convierte sinalefas a \u203f (arco de uni\u00f3n), " +
     "y los marcadores de no salto (<code>..</code> <code>,,</code> <code>...</code>) a sus s\u00edmbolos internos.</td></tr>" +
     "<tr><td width='150' nowrap><b>Debug</b></td><td>Exporta los datos internos como JSON para diagn\u00f3stico.</td></tr>" +
@@ -78,7 +78,8 @@ var en =
     "<tr><td width='150' nowrap><b>Title</b></td><td>Add a title to your project. " +
     "The plugin displays it as an uppercase header.</td></tr>" +
     "<tr><td width='150' nowrap><b>System text</b></td><td><code>Ctrl+Shift+T</code>. Mark sections (Intro, Verse, Chorus, Music). " +
-    "They appear as <code>- LABEL -</code> in the output. Use <code>#</code> for auto-numbering: <code>Chorus #</code> produces Chorus 1, Chorus 2, etc.</td></tr>" +
+    "They appear as <code>- LABEL -</code> in the output. Use <code>#</code> for auto-numbering: <code>Chorus #</code> produces Chorus 1, Chorus 2, etc. " +
+    "Use <code>:</code> or <code>-</code> for explicit sequences: <code>Solo manolo:juan</code> produces Solo Manolo, Solo Juan, then Solo.</td></tr>" +
     "<tr><td width='150' nowrap><b>Rehearsal mark</b></td><td><code>Ctrl+M</code>. Treated the same as system text (they generate section labels).</td></tr>" +
     "<tr><td width='150' nowrap><b>Repeats</b></td><td>Repeat barlines, volta brackets, Da Capo, Da Segno and jumps are respected. " +
     "The plugin expands repeats in performance order.</td></tr>" +
@@ -113,6 +114,7 @@ var en =
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Extraction options</h3></td></tr>" +
     "<tr><td width='150' nowrap><b>Solfeo</b></td><td>Use names Do, Re, Mi instead of C, D, E.</td></tr>" +
     "<tr><td width='150' nowrap><b>Full repeat</b></td><td>Write all repetitions even if the text is identical (no abbreviated choruses).</td></tr>" +
+    "<!--SCORES_DIR-->" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>PDF options</h3></td></tr>" +
     "<tr><td width='150' nowrap><b>Header</b></td><td>Right-aligned text at the top of every page (e.g. group name).</td></tr>" +
     "<tr><td width='150' nowrap><b>Footer</b></td><td>Centered text at the bottom of every page (e.g. band name).</td></tr>" +
@@ -120,10 +122,13 @@ var en =
     "<tr><td width='150' nowrap><b>Line num.</b></td><td>Show line numbers to the left of each verse line.</td></tr>" +
     "<tr><td width='150' nowrap><b>No chord diagrams</b></td><td>Omit chord diagrams from the PDF header.</td></tr>" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Other buttons</h3></td></tr>" +
-    "<tr><td width='150' nowrap><b>Scores directory</b></td><td>Only for versions prior to 4.7: the plugin needs to read the file from disk " +
-    "to extract chord diagrams. Set the folder where you store your scores " +
-    "(e.g. HOME/Documents/Scores).</td></tr>" +
     "<tr><td width='150' nowrap><b>Fix</b></td><td>Re-adapts lyric input by converting synalepha to \u203f (undertie), " +
     "and no-break markers (<code>..</code> <code>,,</code> <code>...</code>) to their internal symbols.</td></tr>" +
     "<tr><td width='150' nowrap><b>Debug</b></td><td>Export internal data as JSON for diagnostics.</td></tr>" +
     "</table>";
+
+var scoresDirEs = "<tr><td width='150' nowrap><b>Directorio de partituras</b></td><td>En versiones anteriores a 4.7 el plugin necesita leer el archivo .mscz del disco para extraer los diagramas de acordes. " +
+    "Configura aqu\u00ed la carpeta ra\u00edz donde guardas tus partituras (ej: HOME/Music).</td></tr>";
+var scoresDirEn = "<tr><td width='150' nowrap><b>Scores directory</b></td><td>On versions prior to 4.7 the plugin needs to read the .mscz file from disk to extract chord diagrams. " +
+    "Set the root folder where you store your scores (e.g. HOME/Music).</td></tr>";
+

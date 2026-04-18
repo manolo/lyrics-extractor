@@ -126,22 +126,28 @@ function main() {
         process.exit(0);
     }
 
-    // --fix: apply lyrics fixes to the score file
+    // --fix: apply lyrics fixes and chord sync to the score file
     if (fixMode) {
         var fixXml = msczReader.readScore(inputPath);
         var patchResult = xmlPatcher.patchLyrics(fixXml);
+        var syncResult = xmlPatcher.patchChordSync(patchResult.xml);
+        var totalFixes = patchResult.fixCount + syncResult.syncCount;
 
-        if (patchResult.fixCount === 0) {
+        if (totalFixes === 0) {
             console.log("No issues to fix");
             process.exit(0);
         }
 
+        var finalXml = syncResult.xml;
         if (inputPath.match(/\.mscz$/i)) {
-            msczReader.writeMscz(inputPath, inputPath, patchResult.xml);
+            msczReader.writeMscz(inputPath, inputPath, finalXml);
         } else {
-            fs.writeFileSync(inputPath, patchResult.xml, "utf8");
+            fs.writeFileSync(inputPath, finalXml, "utf8");
         }
-        console.log("Fixed " + patchResult.fixCount + " issues in " + path.basename(inputPath));
+        var msg = [];
+        if (patchResult.fixCount > 0) msg.push(patchResult.fixCount + " lyric issues");
+        if (syncResult.syncCount > 0) msg.push(syncResult.syncCount + " chord(s) synced");
+        console.log("Fixed " + msg.join(", ") + " in " + path.basename(inputPath));
         process.exit(0);
     }
 

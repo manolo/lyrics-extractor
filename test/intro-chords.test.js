@@ -1,7 +1,7 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
 var IntroChords = require("../lib/intro-chords");
-var RepeatStructure = require("../lib/repeat-structure");
+var RepeatStructure = require("../lib/expander");
 
 test("buildIntroChordsPerf expands volta pair correctly", function() {
     // Repeat 960-8640 with volta1 (5760-8640) and volta2 (8640-9600)

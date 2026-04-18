@@ -1701,6 +1701,37 @@ test("renderLabel passes through labels without # unchanged (just uppercased)", 
     assert.equal(fmt.renderLabel("Intro", counters), "INTRO", "no counter for non-# labels");
 });
 
+test("renderLabel with colon sequence cycles through items", function() {
+    var counters = {};
+    assert.equal(fmt.renderLabel("Solista manolo:juan:pedro", counters), "SOLISTA MANOLO");
+    assert.equal(fmt.renderLabel("Solista manolo:juan:pedro", counters), "SOLISTA JUAN");
+    assert.equal(fmt.renderLabel("Solista manolo:juan:pedro", counters), "SOLISTA PEDRO");
+    assert.equal(fmt.renderLabel("Solista manolo:juan:pedro", counters), "SOLISTA");
+});
+
+test("renderLabel with dash sequence cycles through items", function() {
+    var counters = {};
+    assert.equal(fmt.renderLabel("Estrofa 1-2-1", counters), "ESTROFA 1");
+    assert.equal(fmt.renderLabel("Estrofa 1-2-1", counters), "ESTROFA 2");
+    assert.equal(fmt.renderLabel("Estrofa 1-2-1", counters), "ESTROFA 1");
+    assert.equal(fmt.renderLabel("Estrofa 1-2-1", counters), "ESTROFA");
+});
+
+test("renderLabel colon sequence with two items", function() {
+    var counters = {};
+    assert.equal(fmt.renderLabel("Coro feliz:triste", counters), "CORO FELIZ");
+    assert.equal(fmt.renderLabel("Coro feliz:triste", counters), "CORO TRISTE");
+    assert.equal(fmt.renderLabel("Coro feliz:triste", counters), "CORO");
+});
+
+test("renderLabel sequence is independent from # counters", function() {
+    var counters = {};
+    assert.equal(fmt.renderLabel("Estrofa #", counters), "ESTROFA 1");
+    assert.equal(fmt.renderLabel("Solista a:b", counters), "SOLISTA A");
+    assert.equal(fmt.renderLabel("Estrofa #", counters), "ESTROFA 2");
+    assert.equal(fmt.renderLabel("Solista a:b", counters), "SOLISTA B");
+});
+
 test("formatPerfLines keeps independent counters for two numbered labels", function() {
     var lines = [
         { text: "verse one.", sylMap: [{tick:100,pos:0,chord:"Lam"}], startTick: 100, endTick: 200, sectionEnd: true },

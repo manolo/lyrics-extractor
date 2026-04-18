@@ -8,6 +8,31 @@
 var _score = null;
 function _getScore() { return _score || curScore; }
 
+// Transform a file name into a readable title:
+// camelCase split, hyphen/underscore to spaces, capitalize, lowercase minor words.
+function _titleFromFileName(name) {
+    if (!name) return "";
+    // Split camelCase: insert space before each uppercase letter that follows a lowercase
+    var spaced = name.replace(/([a-záéíóúàèìòùäëïöüñç])([A-ZÁÉÍÓÚÀÈÌÒÙÄËÏÖÜÑÇ])/g, "$1 $2");
+    // Replace hyphens and underscores with spaces
+    spaced = spaced.replace(/[-_]+/g, " ");
+    // Capitalize first letter of each space-separated word
+    spaced = spaced.replace(/(^| )(\S)/g, function(m, sp, c) { return sp + c.toUpperCase(); });
+    // Lowercase minor words (not at start), apply repeatedly for adjacent matches
+    var minor = / (De|Del|La|El|Las|Los|En|Y|Al|A)(?= )/g;
+    var prev = "";
+    while (spaced !== prev) { prev = spaced; spaced = spaced.replace(minor, function(m) { return m.toLowerCase(); }); }
+    return spaced;
+}
+
+// Get score title: metaTags first, then derive from file name.
+function _getTitle() {
+    var s = _getScore();
+    var t = s.metaTag("workTitle") || s.metaTag("movementTitle") || s.title;
+    if (t) return t;
+    return _titleFromFileName(s.scoreName || "");
+}
+
 // --- Global debug variables ---
 var _fretDiagramDebug = null;
 
@@ -1023,7 +1048,7 @@ function extractAll() {
     }
 
     return {
-        title: _getScore().metaTag("workTitle") || _getScore().metaTag("movementTitle") || _getScore().title || _getScore().scoreName || "",
+        title: _getTitle(),
         nstaves: _getScore().nstaves,
         division: 480,
         syllables: syllables,
@@ -1056,6 +1081,7 @@ if (typeof exports !== "undefined") {
     // Auto-wire text-utils in Node.js context
     _textUtils = require("../lib/text-utils");
 
+    exports._titleFromFileName = _titleFromFileName;
     exports.extractAll = extractAll;
     exports.findStaves = findStaves;
     exports.extractSyllables = extractSyllables;

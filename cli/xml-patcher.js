@@ -178,6 +178,313 @@ function escapeXml(text) {
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+// Sync chords from principal (non-tab) staff to linked tab staves.
+// For each measure, copies the principal's Harmony elements to tab staves that are missing them.
+// Returns { xml: modifiedXml, syncCount: N }
+function patchChordSync(xmlString) {
+    var data = xmlExtractor.extractForFixer(xmlString);
+    var syncResult = lyricsFixer.checkChordSync(data.chords, data.tabStaves);
+    if (syncResult.chordSync === 0) {
+        return { xml: xmlString, syncCount: 0 };
+    }
+
+    // Build principal and linked chord maps by tick
+    var principalChords = {};
+    var linkedChords = {};
+    var principalStaff = -1;
+    var linkedStaves = {};
+
+    for (var i = 0; i < data.chords.length; i++) {
+        var c = data.chords[i];
+        if (c.isTabStaff) {
+            linkedChords[c.tick] = c.text;
+            linkedStaves[c.staffIndex] = true;
+        } else {
+            principalChords[c.tick] = c.text;
+            if (principalStaff < 0) principalStaff = c.staffIndex;
+        }
+    }
+
+    // Also mark tab staves that have no chords at all
+    if (data.tabStaves) {
+        var tabKeys = Object.keys(data.tabStaves);
+        for (var tk = 0; tk < tabKeys.length; tk++) {
+            if (data.tabStaves[tabKeys[tk]]) linkedStaves[tabKeys[tk]] = true;
+        }
+    }
+
+    if (principalStaff < 0) return { xml: xmlString, syncCount: 0 };
+
+    // Find mismatched ticks (principal has chord but linked doesn't match)
+    var missingTicks = {};
+    var ticks = Object.keys(principalChords);
+    for (var t = 0; t < ticks.length; t++) {
+        var tick = ticks[t];
+        if (linkedChords[tick] === undefined || linkedChords[tick] !== principalChords[tick]) {
+            missingTicks[tick] = true;
+        }
+    }
+
+    if (Object.keys(missingTicks).length === 0) return { xml: xmlString, syncCount: 0 };
+
+    // Parse XML tree to find Harmony elements by staff and measure
+    var tree = xmlExtractor.parseXml(xmlString);
+    var score = findChildByTag(tree, "Score") || tree;
+    var divNode = findChildByTag(score, "Division");
+    var division = divNode ? parseInt(divNode.text) || 480 : 480;
+    var staffElements = findChildrenByTag(score, "Staff");
+
+    // Build measure-to-tick mapping for the principal staff
+    var principalStaffIdx = -1;
+    for (var si = 0; si < staffElements.length; si++) {
+        var sId = parseInt(staffElements[si].attrs.id || (si + 1)) - 1;
+        if (sId === principalStaff) { principalStaffIdx = si; break; }
+    }
+    if (principalStaffIdx < 0) return { xml: xmlString, syncCount: 0 };
+
+    // Compute tick positions for each measure in the principal staff
+    var measureTicks = _computeMeasureTicks(staffElements[principalStaffIdx], division);
+
+    // Collect Harmony XML blocks from the principal staff by measure index
+    // We need the raw XML of each Harmony element to copy it
+    var principalHarmonies = _collectHarmonyPositions(xmlString, staffElements[principalStaffIdx], measureTicks, missingTicks);
+    if (principalHarmonies.length === 0) return { xml: xmlString, syncCount: 0 };
+
+    // For each linked tab staff, find where to insert the missing Harmonies
+    var syncCount = 0;
+    var insertions = []; // [{position, xml}] sorted by position desc for safe insertion
+
+    var linkedStavesList = Object.keys(linkedStaves).map(Number);
+    for (var li = 0; li < linkedStavesList.length; li++) {
+        var linkedIdx = -1;
+        for (var si2 = 0; si2 < staffElements.length; si2++) {
+            var sId2 = parseInt(staffElements[si2].attrs.id || (si2 + 1)) - 1;
+            if (sId2 === linkedStavesList[li]) { linkedIdx = si2; break; }
+        }
+        if (linkedIdx < 0) continue;
+
+        var linkedMeasureTicks = _computeMeasureTicks(staffElements[linkedIdx], division);
+        var linkedMeasures = findChildrenByTag(staffElements[linkedIdx], "Measure");
+
+        for (var phi = 0; phi < principalHarmonies.length; phi++) {
+            var ph = principalHarmonies[phi];
+            // Find the corresponding measure in the linked staff (by tick)
+            var targetMi = -1;
+            for (var tmi = 0; tmi < linkedMeasureTicks.length; tmi++) {
+                if (linkedMeasureTicks[tmi].startTick === ph.measureStartTick) {
+                    targetMi = tmi;
+                    break;
+                }
+            }
+            if (targetMi < 0 || targetMi >= linkedMeasures.length) continue;
+
+            // Check if this linked measure already has a matching Harmony
+            var alreadyHas = false;
+            var existingH = findChildrenByTag(linkedMeasures[targetMi], "Harmony");
+            for (var eh = 0; eh < existingH.length; eh++) {
+                var ehText = _readHarmonyName(existingH[eh], division);
+                if (ehText === ph.text) { alreadyHas = true; break; }
+            }
+            if (alreadyHas) continue;
+
+            // Find the insertion point: right before the first <voice> in the linked measure
+            var voicePos = _findMeasureVoicePosition(xmlString, staffElements[linkedIdx], targetMi);
+            if (voicePos < 0) continue;
+
+            // Build Harmony XML (strip eid to avoid duplicates)
+            var harmonyXml = ph.xml.replace(/<eid>[^<]*<\/eid>\n?\s*/g, "");
+            insertions.push({ position: voicePos, xml: harmonyXml + "\n        " });
+            syncCount++;
+        }
+    }
+
+    // Apply insertions in reverse order
+    insertions.sort(function(a, b) { return b.position - a.position; });
+    var modified = xmlString;
+    for (var ins = 0; ins < insertions.length; ins++) {
+        modified = modified.substring(0, insertions[ins].position) +
+                   insertions[ins].xml +
+                   modified.substring(insertions[ins].position);
+    }
+
+    return { xml: modified, syncCount: syncCount };
+}
+
+// Compute measure start ticks for a staff element
+function _computeMeasureTicks(staffNode, division) {
+    var measures = findChildrenByTag(staffNode, "Measure");
+    var result = [];
+    var currentTick = 0;
+    var measureLen = division * 4; // default 4/4
+
+    for (var mi = 0; mi < measures.length; mi++) {
+        var m = measures[mi];
+        var actualLen = measureLen;
+        if (m.attrs.len) {
+            var parts = m.attrs.len.split("/");
+            if (parts.length === 2) {
+                actualLen = Math.round((parseInt(parts[0]) / parseInt(parts[1])) * 4 * division);
+            }
+        }
+        // Check for TimeSig change
+        var voices = findChildrenByTag(m, "voice");
+        for (var vi = 0; vi < voices.length; vi++) {
+            var tsNode = findChildByTag(voices[vi], "TimeSig");
+            if (tsNode) {
+                var sigN = findChildByTag(tsNode, "sigN");
+                var sigD = findChildByTag(tsNode, "sigD");
+                if (sigN && sigD) {
+                    measureLen = Math.round((parseInt(sigN.text) / parseInt(sigD.text)) * 4 * division);
+                    if (!m.attrs.len) actualLen = measureLen;
+                }
+            }
+        }
+        result.push({ startTick: currentTick, length: actualLen });
+        currentTick += actualLen;
+    }
+    return result;
+}
+
+// Collect Harmony elements from a staff that match missingTicks
+function _collectHarmonyPositions(xmlString, staffNode, measureTicks, missingTicks) {
+    var result = [];
+    var measures = findChildrenByTag(staffNode, "Measure");
+
+    for (var mi = 0; mi < measures.length; mi++) {
+        var mStartTick = measureTicks[mi].startTick;
+        var harmonies = findChildrenByTag(measures[mi], "Harmony");
+        // Measure-level harmonies are at the measure start tick
+        for (var hi = 0; hi < harmonies.length; hi++) {
+            if (missingTicks[mStartTick]) {
+                var harmRange = _findNodeXmlRange(xmlString, harmonies[hi]);
+                if (harmRange) {
+                    var Constants = require("../lib/constants");
+                    result.push({
+                        measureStartTick: mStartTick,
+                        tick: mStartTick,
+                        text: _readHarmonyName(harmonies[hi], 480),
+                        xml: xmlString.substring(harmRange.start, harmRange.end)
+                    });
+                }
+            }
+        }
+        // Voice-level harmonies
+        var voices = findChildrenByTag(measures[mi], "voice");
+        for (var vi = 0; vi < voices.length; vi++) {
+            var voiceTick = mStartTick;
+            for (var ci = 0; ci < voices[vi].children.length; ci++) {
+                var elem = voices[vi].children[ci];
+                if ((elem.tag === "Harmony" || elem.tag === "FretDiagram") && missingTicks[voiceTick]) {
+                    var hNode = elem.tag === "FretDiagram" ? findChildByTag(elem, "Harmony") : elem;
+                    if (hNode) {
+                        var hRange = _findNodeXmlRange(xmlString, hNode);
+                        if (hRange) {
+                            result.push({
+                                measureStartTick: mStartTick,
+                                tick: voiceTick,
+                                text: _readHarmonyName(hNode, 480),
+                                xml: xmlString.substring(hRange.start, hRange.end)
+                            });
+                        }
+                    }
+                }
+                if (elem.tag === "Chord" || elem.tag === "Rest") {
+                    voiceTick += _elemDuration(elem, 480);
+                }
+            }
+        }
+    }
+    return result;
+}
+
+// Read chord name from a Harmony node (tree)
+function _readHarmonyName(harmonyNode, division) {
+    var hInfo = findChildByTag(harmonyNode, "harmonyInfo");
+    if (hInfo) {
+        var rootNode = findChildByTag(hInfo, "root");
+        var rootTpc = rootNode ? parseInt(rootNode.text) : -99;
+        var quality = findChildByTag(hInfo, "name");
+        var qualText = quality ? (quality.text || "") : "";
+        var Constants = require("../lib/constants");
+        return Constants.tpcToChordName(rootTpc, qualText, "standard");
+    }
+    var nameNode = findChildByTag(harmonyNode, "name");
+    return nameNode ? (nameNode.text || "") : "";
+}
+
+// Compute duration in ticks for a Chord/Rest element
+function _elemDuration(elem, division) {
+    var durNode = findChildByTag(elem, "durationType");
+    if (!durNode) return 0;
+    var durMap = { "whole": 4, "half": 2, "quarter": 1, "eighth": 0.5, "16th": 0.25, "32nd": 0.125 };
+    var d = durMap[durNode.text] || 1;
+    var dotsNode = findChildByTag(elem, "dots");
+    if (dotsNode) {
+        var dots = parseInt(dotsNode.text) || 1;
+        var dotMult = 0; for (var i = 1; i <= dots; i++) dotMult += Math.pow(0.5, i);
+        d *= (1 + dotMult);
+    }
+    return Math.round(d * division);
+}
+
+// Find the XML position of the first <voice> in a specific measure of a staff.
+// Uses the staff's eid to locate the staff, then counts measures.
+function _findMeasureVoicePosition(xmlString, staffNode, measureIndex) {
+    // Locate the staff in the XML by its id attribute
+    var staffId = staffNode.attrs ? staffNode.attrs.id : null;
+    if (!staffId) return -1;
+
+    var staffTag = '<Staff id="' + staffId + '">';
+    var staffPos = xmlString.indexOf(staffTag);
+    if (staffPos < 0) return -1;
+
+    var staffEnd = xmlString.indexOf("</Staff>", staffPos);
+    if (staffEnd < 0) return -1;
+
+    // Count <Measure> tags within this staff
+    var searchPos = staffPos;
+    for (var mi = 0; mi <= measureIndex; mi++) {
+        searchPos = xmlString.indexOf("<Measure", searchPos + 1);
+        if (searchPos < 0 || searchPos > staffEnd) return -1;
+    }
+
+    // Now searchPos is at the target <Measure> tag. Find the closing </Measure>
+    var measureEnd = xmlString.indexOf("</Measure>", searchPos);
+    if (measureEnd < 0) return -1;
+
+    // Find the first <voice> within this measure
+    var voicePos = xmlString.indexOf("<voice>", searchPos);
+    if (voicePos >= 0 && voicePos < measureEnd) return voicePos;
+
+    // No <voice> found, insert before </Measure>
+    return measureEnd;
+}
+
+// Find the raw XML range of a parsed node (approximate: search by eid or structure)
+function _findNodeXmlRange(xmlString, node) {
+    // Use eid for precise matching if available
+    var eidNode = findChildByTag(node, "eid");
+    if (eidNode && eidNode.text) {
+        var eidStr = "<eid>" + eidNode.text + "</eid>";
+        var eidPos = xmlString.indexOf(eidStr);
+        if (eidPos >= 0) {
+            // Walk back to find the opening tag
+            var tagName = node.tag;
+            var openTag = "<" + tagName;
+            var start = xmlString.lastIndexOf(openTag, eidPos);
+            if (start >= 0) {
+                var closeTag = "</" + tagName + ">";
+                var end = xmlString.indexOf(closeTag, eidPos);
+                if (end >= 0) {
+                    return { start: start, end: end + closeTag.length, innerStart: start };
+                }
+            }
+        }
+    }
+    return null;
+}
+
 module.exports = {
-    patchLyrics: patchLyrics
+    patchLyrics: patchLyrics,
+    patchChordSync: patchChordSync
 };

@@ -126,6 +126,7 @@ Add System Text (`Cmd+Shift+T`) to mark sections. Labels control the output stru
 - **Single label in `|: :|`:** appears once (same section both passes)
 - **Multiple labels in `|: :|`:** all re-emit on each pass
 - **Numbered labels:** use `#` (e.g. `Estrofa #`) for `ESTROFA 1`, `ESTROFA 2`
+- **Explicit sequence:** use `:` or `-` to list values (e.g. `Solista manolo:juan:pedro` produces `SOLISTA MANOLO`, `SOLISTA JUAN`, `SOLISTA PEDRO`, then `SOLISTA`). Works with numbers too: `Estrofa 1:2:1`
 
 ### Verse numbering
 

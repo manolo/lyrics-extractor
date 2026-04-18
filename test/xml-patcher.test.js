@@ -255,6 +255,132 @@ test("patchLyrics fixes punctuation sequences", function() {
 });
 
 // ============================================================
+// xmlPatcher.patchChordSync
+// ============================================================
+
+test("patchChordSync adds missing chord to tab staff", function() {
+    // Principal staff has a Harmony, tab staff does not
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part>',
+        '<Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff>',
+        '<Staff><linkedTo>0</linkedTo><StaffType group="tablature"><name>tab6</name></StaffType></Staff>',
+        '</Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Harmony><harmonyInfo><root>14</root><name></name></harmonyInfo><eid>abc123</eid></Harmony>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '<Staff id="2">',
+        '<Measure><voice>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchChordSync(xml);
+    assert.equal(result.syncCount, 1, "Should sync 1 chord");
+    // The tab staff's measure should now contain a Harmony
+    assert.ok(result.xml.indexOf('<Staff id="2">') >= 0);
+    var staff2Start = result.xml.indexOf('<Staff id="2">');
+    var staff2Harmony = result.xml.indexOf("<Harmony>", staff2Start);
+    assert.ok(staff2Harmony > staff2Start, "Tab staff should now have Harmony: " + result.xml.substring(staff2Start, staff2Start + 300));
+});
+
+test("patchChordSync returns 0 when chords are in sync", function() {
+    // Both staves have the same Harmony
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part>',
+        '<Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff>',
+        '<Staff><linkedTo>0</linkedTo><StaffType group="tablature"><name>tab6</name></StaffType></Staff>',
+        '</Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Harmony><harmonyInfo><root>14</root><name></name></harmonyInfo><eid>abc123</eid></Harmony>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '<Staff id="2">',
+        '<Measure><voice>',
+        '<Harmony><harmonyInfo><root>14</root><name></name></harmonyInfo><eid>def456</eid></Harmony>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchChordSync(xml);
+    assert.equal(result.syncCount, 0);
+    assert.equal(result.xml, xml, "XML should be unchanged");
+});
+
+test("patchChordSync returns 0 when no tab staves exist", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Harmony><harmonyInfo><root>14</root><name></name></harmonyInfo><eid>abc</eid></Harmony>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchChordSync(xml);
+    assert.equal(result.syncCount, 0);
+});
+
+test("patchChordSync strips eid from copied harmony", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part>',
+        '<Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff>',
+        '<Staff><linkedTo>0</linkedTo><StaffType group="tablature"><name>tab6</name></StaffType></Staff>',
+        '</Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Harmony><harmonyInfo><root>14</root><name></name></harmonyInfo><eid>originalEid123</eid></Harmony>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '<Staff id="2">',
+        '<Measure><voice>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchChordSync(xml);
+    // The copied Harmony in staff 2 should NOT contain the original eid
+    var staff2Start = result.xml.indexOf('<Staff id="2">');
+    var staff2End = result.xml.indexOf('</Staff>', staff2Start);
+    var staff2Xml = result.xml.substring(staff2Start, staff2End);
+    assert.ok(staff2Xml.indexOf("originalEid123") < 0, "Copied harmony should not have original eid");
+    assert.ok(staff2Xml.indexOf("<Harmony>") >= 0, "Should have Harmony element");
+});
+
+// ============================================================
 // Integration: check + fix + recheck on fixture
 // ============================================================
 
