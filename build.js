@@ -8,7 +8,7 @@ var crypto = require("crypto");
 var childProcess = require("child_process");
 
 var version = process.argv[2] || "dev";
-var OUT = "lyrics-extractor.mext";
+var OUT = "lyrics-extractor-" + version + ".mext";
 var BUILD = ".build";
 
 // Clean previous build
