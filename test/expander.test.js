@@ -872,3 +872,97 @@ test("mscore repeat05: 3x then 2x repeat", function() {
     });
     assert.equal(unwindToMeasures(data), "1,2,3; 2,3; 2,3,4; 2,3,4,5,6");
 });
+
+// ========================================
+// Volta-at-start: syllable dedup and continuation
+// ========================================
+
+test("volta-at-start excludes volta syls from main range", function() {
+    // Repeat with volta 2 starting at mainFrom of post-repeat segment.
+    // "mé." at volta tick should appear once (as volta), not twice.
+    var div = 480;
+    var data = {
+        division: div,
+        syllables: [
+            { tick: 1920, verse: 0, text: "a", syllabic: "begin", durationQ: 1, restAfter: false, gapDurationQ: 0 },
+            { tick: 2880, verse: 0, text: "mé.", syllabic: "end", durationQ: 1, restAfter: true, gapDurationQ: 2 },
+            // volta 2 has the same syllable at endRepeat tick
+            { tick: 3840, verse: 0, text: "mé.", syllabic: "end", durationQ: 1, restAfter: true, gapDurationQ: 2 },
+            // post-repeat content
+            { tick: 5760, verse: 0, text: "O", syllabic: "begin", durationQ: 1, restAfter: false, gapDurationQ: 0 },
+            { tick: 6240, verse: 0, text: "jos.", syllabic: "end", durationQ: 2, restAfter: true, gapDurationQ: 4 }
+        ],
+        chords: [{ tick: 0, chord: "La" }, { tick: 3840, chord: "Mi" }],
+        repeats: [{ startTick: 960, endTick: 3840, repeatCount: 2 }],
+        voltas: [
+            { startTick: 2880, endTick: 3840, _measureIdx: 2, endingList: [1] },
+            { startTick: 3840, endTick: 4800, _measureIdx: 3, endingList: [2] }
+        ],
+        markers: [], jumps: [], systemTexts: [], barlines: [], lastTick: 7680
+    };
+    var stream = exp.expand(data);
+    var meCount = stream.filter(function(s) { return s.text === "mé."; }).length;
+    assert.equal(meCount, 2, "mé. should appear exactly twice (volta 1 + volta 2): got " + meCount +
+        " in: " + stream.map(function(s) { return s.text; }).join(" "));
+});
+
+test("volta-at-start marks _voltaContinuation when phrase is incomplete", function() {
+    // "el" at endRepeat bar, "sol" in volta 2. "el" doesn't end with
+    // punctuation, so "sol" should get _voltaContinuation = true.
+    var div = 480;
+    var data = {
+        division: div,
+        syllables: [
+            { tick: 960, verse: 0, text: "que", syllabic: "single", durationQ: 1, restAfter: false, gapDurationQ: 0 },
+            { tick: 1920, verse: 0, text: "el", syllabic: "single", durationQ: 1, restAfter: false, gapDurationQ: 0, sectionBar: true },
+            // volta 1 content (skipped on pass 2)
+            { tick: 2880, verse: 0, text: "sol.", syllabic: "single", durationQ: 2, restAfter: true, gapDurationQ: 4 },
+            // volta 2 content (the continuation)
+            { tick: 3840, verse: 0, text: "sol,", syllabic: "single", durationQ: 1, restAfter: false, gapDurationQ: 0 },
+            // post-repeat
+            { tick: 5760, verse: 0, text: "fin.", syllabic: "single", durationQ: 2, restAfter: true, gapDurationQ: 4 }
+        ],
+        chords: [{ tick: 0, chord: "Do" }],
+        repeats: [{ startTick: 0, endTick: 3840, repeatCount: 2 }],
+        voltas: [
+            { startTick: 2880, endTick: 3840, _measureIdx: 2, endingList: [1] },
+            { startTick: 3840, endTick: 4800, _measureIdx: 3, endingList: [2] }
+        ],
+        markers: [], jumps: [], systemTexts: [], barlines: [], lastTick: 7680
+    };
+    var stream = exp.expand(data);
+    // Find the volta-at-start "sol," in the stream
+    var voltaSol = stream.filter(function(s) { return s.text === "sol,"; });
+    assert.equal(voltaSol.length, 1, "should have one volta sol,");
+    assert.ok(voltaSol[0]._voltaContinuation, "sol, should have _voltaContinuation (el doesn't end with punctuation)");
+});
+
+test("volta-at-start does NOT mark _voltaContinuation after punctuation", function() {
+    // "muero." at endRepeat bar, "Es" in volta 2. "muero." ends with ".",
+    // so "Es" should NOT get _voltaContinuation (it starts a new section).
+    var div = 480;
+    var data = {
+        division: div,
+        syllables: [
+            { tick: 960, verse: 0, text: "mue", syllabic: "begin", durationQ: 0.5, restAfter: false, gapDurationQ: 0 },
+            { tick: 1200, verse: 0, text: "ro.", syllabic: "end", durationQ: 1, restAfter: true, gapDurationQ: 2, sectionBar: true },
+            // volta 1 (skipped on pass 2)
+            { tick: 2880, verse: 0, text: "X", syllabic: "single", durationQ: 1, restAfter: false, gapDurationQ: 0 },
+            // volta 2
+            { tick: 3840, verse: 0, text: "Es", syllabic: "single", durationQ: 1, restAfter: false, gapDurationQ: 0 },
+            // post-repeat
+            { tick: 5760, verse: 0, text: "fin.", syllabic: "single", durationQ: 2, restAfter: true, gapDurationQ: 4 }
+        ],
+        chords: [{ tick: 0, chord: "Do" }],
+        repeats: [{ startTick: 0, endTick: 3840, repeatCount: 2 }],
+        voltas: [
+            { startTick: 2880, endTick: 3840, _measureIdx: 2, endingList: [1] },
+            { startTick: 3840, endTick: 4800, _measureIdx: 3, endingList: [2] }
+        ],
+        markers: [], jumps: [], systemTexts: [], barlines: [], lastTick: 7680
+    };
+    var stream = exp.expand(data);
+    var voltaEs = stream.filter(function(s) { return s.text === "Es"; });
+    assert.equal(voltaEs.length, 1, "should have one volta Es");
+    assert.ok(!voltaEs[0]._voltaContinuation, "Es should NOT have _voltaContinuation (muero. ends with .)");
+});

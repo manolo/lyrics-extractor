@@ -205,3 +205,42 @@ test("buildWords propagates sectionBar as sectionEnd on the word", function() {
     assert.ok(morWord, "should have word 'mor.'");
     assert.ok(morWord.sectionEnd, "word with sectionBar syllable should have sectionEnd=true");
 });
+
+// ========================================
+// Forced break overrides noBreakAfter
+// ========================================
+
+test("detectPhraseBreak: semicolon overrides noBreakAfter", function() {
+    var syl = { text: "oh;", syllabic: "end", noBreakAfter: true };
+    var next = { text: "Cha", syllabic: "single" };
+    assert.equal(wb.detectPhraseBreak(syl, next), true,
+        "semicolon should force break even with noBreakAfter");
+});
+
+test("detectPhraseBreak: fullwidth comma overrides noBreakAfter", function() {
+    var syl = { text: "oh\uFF0C", syllabic: "end", noBreakAfter: true };
+    var next = { text: "Cha", syllabic: "single" };
+    assert.equal(wb.detectPhraseBreak(syl, next), true,
+        "fullwidth comma should force break even with noBreakAfter");
+});
+
+// ========================================
+// Volta continuation suppresses break
+// ========================================
+
+test("detectPhraseBreak: _voltaContinuation suppresses sectionEnd break", function() {
+    // "el" has sectionEnd (from endRepeat barline), but "sol" is a volta
+    // continuation that should join the same phrase.
+    var syl = { text: "el", syllabic: "single", sectionEnd: true, sectionBar: true };
+    var next = { text: "sol", syllabic: "single", _voltaContinuation: true };
+    assert.equal(wb.detectPhraseBreak(syl, next), false,
+        "_voltaContinuation should suppress sectionEnd/sectionBar break");
+});
+
+test("detectPhraseBreak: _voltaContinuation does not suppress when absent", function() {
+    // Same as above but without _voltaContinuation: break should occur
+    var syl = { text: "el", syllabic: "single", sectionEnd: true, sectionBar: true };
+    var next = { text: "sol", syllabic: "single" };
+    assert.equal(wb.detectPhraseBreak(syl, next), true,
+        "without _voltaContinuation, sectionEnd should break");
+});

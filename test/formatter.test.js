@@ -2195,3 +2195,57 @@ test("stripChordMarkers returns unchanged text without markers", function() {
 test("stripChordMarkers handles empty string", function() {
     assert.equal(fmt.stripChordMarkers(""), "");
 });
+
+// ========================================
+// formatPerfLines: label re-emission with multiple repeats
+// ========================================
+
+test("formatPerfLines: backwards tick uses correct repeat for label emission", function() {
+    // Two repeats: repeat 1 at tick 100-400, repeat 2 at tick 500-900.
+    // Labels: "Estrofa #" at tick 100, "Estribillo" at tick 300, "Estrofa #" at tick 500.
+    // On second pass of repeat 2 (backwards tick to 500), only "Estrofa #" at tick 500
+    // should re-emit, NOT "Estrofa #" at 100 or "Estribillo" at 300.
+    function mkLine(text, startTick, endTick, opts) {
+        opts = opts || {};
+        var chord = opts.chord || null;
+        return {
+            text: text,
+            sylMap: [{ tick: startTick, pos: 0, chord: chord }],
+            startTick: startTick,
+            endTick: endTick,
+            sectionEnd: opts.sectionEnd || false,
+            sectionBar: opts.sectionBar || false
+        };
+    }
+    var lines = [
+        mkLine("first verse.", 100, 200, { sectionEnd: true, chord: "Do" }),
+        mkLine("chorus here.", 300, 400, { sectionEnd: true, chord: "Re" }),
+        mkLine("second verse.", 500, 600, { sectionEnd: true, chord: "Mi" }),
+        mkLine("chorus again.", 700, 800, { sectionEnd: true, chord: "Fa" }),
+        // Second pass of repeat 2: backwards tick to 500
+        mkLine("third verse.", 500, 600, { sectionEnd: true, chord: "Mi" }),
+        mkLine("chorus end.", 700, 800, { sectionEnd: true, chord: "Fa" })
+    ];
+    var chords = [{ tick: 100, chord: "Do" }, { tick: 300, chord: "Re" }, { tick: 500, chord: "Mi" }, { tick: 700, chord: "Fa" }];
+    var systemTexts = [
+        { tick: 100, text: "Estrofa #" },
+        { tick: 300, text: "Estribillo" },
+        { tick: 500, text: "Estrofa #" }
+    ];
+    var repeats = [
+        { startTick: 100, endTick: 400 },
+        { startTick: 500, endTick: 900 }
+    ];
+    var result = fmt.formatPerfLines(lines, [], null, "", chords, [], systemTexts, false, 100, repeats);
+    var output = fmt.stripChordMarkers(result.text);
+
+    // Count ESTROFA occurrences: should be ESTROFA 1, ESTROFA 2, ESTROFA 3 (not more)
+    var estrofaMatches = output.match(/- ESTROFA \d+ -/g) || [];
+    assert.equal(estrofaMatches.length, 3,
+        "should have exactly 3 ESTROFA labels (not spurious re-emission): " + estrofaMatches.join(", ") + "\n" + output);
+
+    // ESTRIBILLO should appear once (not re-emitted on repeat 2 pass)
+    var estribilloMatches = output.match(/- ESTRIBILLO -/g) || [];
+    assert.equal(estribilloMatches.length, 1,
+        "ESTRIBILLO should appear once: " + output);
+});
