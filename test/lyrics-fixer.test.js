@@ -118,7 +118,7 @@ test("checkChordSync detects missing chords on tab staff", function() {
     assert.equal(result.chordSync, 1);
 });
 
-test("checkChordSync detects mismatched chord text", function() {
+test("checkChordSync detects genuinely different chords", function() {
     var chords = [
         { tick: 0, text: "Am", staffIndex: 0, isTabStaff: false },
         { tick: 0, text: "Em", staffIndex: 1, isTabStaff: true }
@@ -135,7 +135,7 @@ test("checkChordSync returns 0 when no tab staves", function() {
     assert.equal(result.chordSync, 0);
 });
 
-test("checkChordSync returns 0 when all synced", function() {
+test("checkChordSync returns 0 when all synced (same spelling)", function() {
     var chords = [
         { tick: 0, text: "Am", staffIndex: 0, isTabStaff: false },
         { tick: 0, text: "Am", staffIndex: 1, isTabStaff: true },
@@ -146,6 +146,45 @@ test("checkChordSync returns 0 when all synced", function() {
     assert.equal(result.chordSync, 0);
 });
 
+test("checkChordSync returns 0 when synced across solfeo/anglo spelling", function() {
+    // Principal uses solfeo, tab uses anglo: same chord, different names
+    var chords = [
+        { tick: 0, text: "Lam", staffIndex: 0, isTabStaff: false },
+        { tick: 0, text: "Am", staffIndex: 1, isTabStaff: true },
+        { tick: 480, text: "Re7", staffIndex: 0, isTabStaff: false },
+        { tick: 480, text: "D7", staffIndex: 1, isTabStaff: true },
+        { tick: 960, text: "Sib", staffIndex: 0, isTabStaff: false },
+        { tick: 960, text: "Bb", staffIndex: 1, isTabStaff: true }
+    ];
+    var result = fixer.checkChordSync(chords, { 1: true });
+    assert.equal(result.chordSync, 0);
+});
+
+test("checkChordSync returns 0 when synced despite typos on both sides", function() {
+    // Real MilagroDeTusOjos data: principal solfeo typos, tab anglo typos
+    var chords = [
+        { tick: 0, text: "SI b", staffIndex: 3, isTabStaff: false },
+        { tick: 0, text: "B b", staffIndex: 4, isTabStaff: true },
+        { tick: 480, text: "La m", staffIndex: 3, isTabStaff: false },
+        { tick: 480, text: "A m", staffIndex: 4, isTabStaff: true },
+        { tick: 960, text: "RE 7", staffIndex: 3, isTabStaff: false },
+        { tick: 960, text: "D 7", staffIndex: 4, isTabStaff: true }
+    ];
+    var result = fixer.checkChordSync(chords, { 4: true });
+    assert.equal(result.chordSync, 0);
+});
+
+test("checkChordSync still detects real mismatches with typos present", function() {
+    var chords = [
+        { tick: 0, text: "SI b", staffIndex: 3, isTabStaff: false },
+        { tick: 0, text: "B b", staffIndex: 4, isTabStaff: true },
+        { tick: 480, text: "La m", staffIndex: 3, isTabStaff: false },
+        { tick: 480, text: "E m", staffIndex: 4, isTabStaff: true }  // Em != Lam
+    ];
+    var result = fixer.checkChordSync(chords, { 4: true });
+    assert.equal(result.chordSync, 1);
+});
+
 test("checkChordSync detects all missing when tab staff has zero chords", function() {
     var chords = [
         { tick: 0, text: "Am", staffIndex: 7, isTabStaff: false },
@@ -154,6 +193,19 @@ test("checkChordSync detects all missing when tab staff has zero chords", functi
     ];
     var result = fixer.checkChordSync(chords, { 8: true });
     assert.equal(result.chordSync, 2);
+});
+
+test("checkChordSync handles complex solfeo/anglo pairs with accidentals", function() {
+    var chords = [
+        { tick: 0, text: "Fa#m", staffIndex: 0, isTabStaff: false },
+        { tick: 0, text: "F#m", staffIndex: 1, isTabStaff: true },
+        { tick: 480, text: "Sol#m", staffIndex: 0, isTabStaff: false },
+        { tick: 480, text: "G#m", staffIndex: 1, isTabStaff: true },
+        { tick: 960, text: "Do#m", staffIndex: 0, isTabStaff: false },
+        { tick: 960, text: "C#m", staffIndex: 1, isTabStaff: true }
+    ];
+    var result = fixer.checkChordSync(chords, { 1: true });
+    assert.equal(result.chordSync, 0);
 });
 
 // ============================================================

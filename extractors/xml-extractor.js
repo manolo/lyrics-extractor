@@ -830,6 +830,7 @@ function extractForFixer(xmlString) {
     }
 
     // Read chord name from a Harmony node (handles both old <name> and new <harmonyInfo>)
+    // Returns { text, fromTpc } where fromTpc is true when the name was computed from TPC root.
     function readHarmonyText(harmonyNode) {
         var hInfo = findChild(harmonyNode, "harmonyInfo");
         if (hInfo) {
@@ -837,9 +838,11 @@ function extractForFixer(xmlString) {
             var rootTpc = rootNode ? parseInt(rootNode.text) : -99;
             var quality = childText(hInfo, "name") || "";
             var Constants = require("../lib/constants");
-            return Constants.tpcToChordName(rootTpc, quality, "standard");
+            var text = Constants.tpcToChordName(rootTpc, quality, "standard");
+            return { text: text, fromTpc: rootTpc !== -99 };
         }
-        return childText(harmonyNode, "name") || "";
+        var text = childText(harmonyNode, "name") || "";
+        return { text: text, fromTpc: false };
     }
 
     // Walk staves to collect lyrics and chords
@@ -874,9 +877,10 @@ function extractForFixer(xmlString) {
                 if (mChild.tag === "Harmony" || mChild.tag === "FretDiagram") {
                     var hNode = mChild.tag === "FretDiagram" ? findChild(mChild, "Harmony") : mChild;
                     if (hNode) {
-                        var name = readHarmonyText(hNode);
-                        if (name) {
-                            chordList.push({ tick: measureStartTick, text: name,
+                        var nameResult = readHarmonyText(hNode);
+                        if (nameResult.text) {
+                            chordList.push({ tick: measureStartTick, text: nameResult.text,
+                                fromTpc: nameResult.fromTpc,
                                 staffIndex: staffId, isTabStaff: tabStaves[staffId] || false });
                         }
                     }
@@ -945,9 +949,10 @@ function extractForFixer(xmlString) {
                     if (elem.tag === "Harmony" || elem.tag === "FretDiagram") {
                         var hNode = elem.tag === "FretDiagram" ? findChild(elem, "Harmony") : elem;
                         if (hNode) {
-                            var hName = readHarmonyText(hNode);
-                            if (hName) {
-                                chordList.push({ tick: voiceTick, text: hName,
+                            var hNameResult = readHarmonyText(hNode);
+                            if (hNameResult.text) {
+                                chordList.push({ tick: voiceTick, text: hNameResult.text,
+                                    fromTpc: hNameResult.fromTpc,
                                     staffIndex: staffId, isTabStaff: tabStaves[staffId] || false });
                             }
                         }

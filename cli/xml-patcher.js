@@ -3,6 +3,7 @@
 
 var xmlExtractor = require("../extractors/xml-extractor");
 var lyricsFixer = require("../lib/lyrics-fixer");
+var chordUtils = require("../lib/chord-utils");
 
 // Apply all lyrics fixes to an XML string.
 // Returns { xml: modifiedXml, fixCount: N }
@@ -172,6 +173,17 @@ function findChildrenByTag(node, tag) {
         if (node.children[i].tag === tag) result.push(node.children[i]);
     }
     return result;
+}
+
+// Check if a string looks like a valid chord quality suffix.
+// Rejects false positives like "Solo", "Mayor", "Cejilla" that result
+// from incorrectly parsing annotation text as a chord root + quality.
+function _isChordQuality(q) {
+    if (!q) return true;
+    // m: minor (m, m7, m7b5), but not followed by arbitrary lowercase (mile, Mayor)
+    // M: major (M, M7, Maj), but not followed by arbitrary lowercase (Mayor, Menor)
+    // o/O: diminished, 7/6/9: extensions, dim/aug/sus/add: spelled out, etc.
+    return /^(m($|[^a-z]|aj|in)|M($|[^a-z]|aj)|dim|aug|sus|add|[oO°+]($|[^a-z])|[7690]|1[13]|[b#]\d|\()/.test(q);
 }
 
 function escapeXml(text) {
@@ -537,8 +549,62 @@ function patchMetaTags(xmlString) {
     return { xml: modified, metaCount: count };
 }
 
+// Fix chord typos in <Harmony> elements by normalizing <name> text.
+// When <root> is absent, parses the chord name into root TPC + quality and adds <root>.
+// When <root> is present, cleans up the quality suffix.
+// Returns { xml: modifiedXml, typoCount: N }
+function patchChordTypos(xmlString) {
+    var Constants = require("../lib/constants");
+    var pattern = /<harmonyInfo>[\s\S]*?<\/harmonyInfo>/g;
+    var count = 0;
+    var modified = xmlString.replace(pattern, function(block) {
+        var hasRoot = /<root>/.test(block);
+        var nameMatch = block.match(/<name>([^<]*)<\/name>/);
+        if (!nameMatch) return block;
+
+        var original = nameMatch[1];
+
+        if (hasRoot) {
+            // Quality suffix: strip spaces, hyphens before accidentals,
+            // and leading chars that duplicate the root's last letter
+            var fixed = original.replace(/\s+/g, '').replace(/-([#b])/g, '$1');
+            var rootMatch = block.match(/<root>(\d+)<\/root>/);
+            if (rootMatch) {
+                var rootName = Constants.tpcToNoteName(parseInt(rootMatch[1]));
+                var lastChar = rootName.charAt(rootName.length - 1).toLowerCase();
+                while (fixed.length > 0 && fixed.charAt(0).toLowerCase() === lastChar
+                       && fixed.charAt(0) !== '#' && fixed.charAt(0) !== 'b') {
+                    fixed = fixed.substring(1);
+                }
+            }
+            if (fixed === original) return block;
+            count++;
+            return block.replace("<name>" + original + "</name>", "<name>" + fixed + "</name>");
+        }
+
+        // No root: full chord name. Normalize and, if it was a typo, parse into root TPC + quality.
+        var normalized = chordUtils.normalizeChord(original);
+        if (normalized === original) return block;
+
+        // Text had a typo. Try to parse into root TPC + quality for proper structure.
+        var parsed = Constants.chordToTpc(normalized);
+        count++;
+        if (parsed && parsed.rootTpc !== -99 && _isChordQuality(parsed.quality)) {
+            return block.replace(
+                "<name>" + original + "</name>",
+                "<root>" + parsed.rootTpc + "</root>\n              <name>" + parsed.quality + "</name>"
+            );
+        }
+        // No valid TPC parse (literal annotation or unrecognized quality): just fix the text
+        return block.replace("<name>" + original + "</name>", "<name>" + normalized + "</name>");
+    });
+
+    return { xml: modified, typoCount: count };
+}
+
 module.exports = {
     patchLyrics: patchLyrics,
     patchChordSync: patchChordSync,
+    patchChordTypos: patchChordTypos,
     patchMetaTags: patchMetaTags
 };

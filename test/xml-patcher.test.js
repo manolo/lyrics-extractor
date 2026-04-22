@@ -476,6 +476,244 @@ test("patchMetaTags returns 0 when no VBox exists", function() {
 });
 
 // ============================================================
+// xmlPatcher.patchChordTypos
+// ============================================================
+
+test("patchChordTypos fixes literal chord and adds root TPC", function() {
+    var xml = [
+        '<harmonyInfo>',
+        '<name>SI b</name>',
+        '</harmonyInfo>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchChordTypos(xml);
+    assert.equal(result.typoCount, 1);
+    // "SI b" -> normalized "Sib" -> parsed as root=12 (Sib), quality=""
+    assert.ok(result.xml.indexOf("<root>12</root>") >= 0, "should add root TPC 12 (Sib)");
+    assert.ok(result.xml.indexOf("<name></name>") >= 0, "quality should be empty");
+    assert.ok(result.xml.indexOf("SI b") < 0, "original should be gone");
+});
+
+test("patchChordTypos strips spaces from quality suffix when root present", function() {
+    var xml = [
+        '<harmonyInfo>',
+        '<name>O 7</name>',
+        '<root>16</root>',
+        '</harmonyInfo>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchChordTypos(xml);
+    assert.equal(result.typoCount, 1);
+    assert.ok(result.xml.indexOf("<name>O7</name>") >= 0);
+});
+
+test("patchChordTypos fixes multiple chords with root TPC", function() {
+    var xml = [
+        '<Harmony><harmonyInfo><name>SI b</name></harmonyInfo></Harmony>',
+        '<Harmony><harmonyInfo><name>RE 7</name></harmonyInfo></Harmony>',
+        '<Harmony><harmonyInfo><name>Faa #m</name></harmonyInfo></Harmony>',
+        '<Harmony><harmonyInfo><name>Do-#m</name></harmonyInfo></Harmony>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchChordTypos(xml);
+    assert.equal(result.typoCount, 4);
+    // Each gets root TPC + clean quality
+    assert.ok(result.xml.indexOf("<root>12</root>") >= 0, "Sib -> TPC 12");  // Sib
+    assert.ok(result.xml.indexOf("<root>16</root>") >= 0, "Re -> TPC 16");   // Re
+    assert.ok(result.xml.indexOf("<root>20</root>") >= 0, "Fa# -> TPC 20"); // Fa#
+    assert.ok(result.xml.indexOf("<root>21</root>") >= 0, "Do# -> TPC 21"); // Do#
+    assert.ok(result.xml.indexOf("<name>7</name>") >= 0);    // Re7 quality
+    assert.ok(result.xml.indexOf("<name>m</name>") >= 0);    // Fa#m / Do#m quality
+});
+
+test("patchChordTypos returns 0 for clean chords (literal and TPC)", function() {
+    var xml = [
+        '<Harmony><harmonyInfo><name>Lam</name></harmonyInfo></Harmony>',
+        '<Harmony><harmonyInfo><name>Sib</name></harmonyInfo></Harmony>',
+        '<Harmony><harmonyInfo><root>14</root><name>m</name></harmonyInfo></Harmony>',
+        '<Harmony><harmonyInfo><root>17</root><name>7</name></harmonyInfo></Harmony>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchChordTypos(xml);
+    assert.equal(result.typoCount, 0);
+    assert.equal(result.xml, xml);
+});
+
+test("patchChordTypos handles real MilagroDeTusOjos patterns", function() {
+    var xml = [
+        '<Harmony><harmonyInfo><name>SI b</name></harmonyInfo><eid>a</eid></Harmony>',
+        '<Harmony><harmonyInfo><name>O 7</name><root>16</root></harmonyInfo><eid>b</eid></Harmony>',
+        '<Harmony><harmonyInfo><name>La m</name></harmonyInfo><eid>c</eid></Harmony>',
+        '<Harmony><harmonyInfo><name>FaA</name></harmonyInfo><eid>d</eid></Harmony>',
+        '<Harmony><harmonyInfo><name>Sol #m</name></harmonyInfo><eid>e</eid></Harmony>',
+        '<Harmony><harmonyInfo><name>Re7</name></harmonyInfo><eid>f</eid></Harmony>'
+    ].join("\n");
+
+    var result = xmlPatcher.patchChordTypos(xml);
+    assert.equal(result.typoCount, 5); // Re7 is clean, 5 others fixed
+    // Literal chords get root TPC added
+    assert.ok(result.xml.indexOf("<root>12</root>") >= 0, "SI b -> Sib -> TPC 12");
+    assert.ok(result.xml.indexOf("<root>17</root>") >= 0, "La m -> Lam -> TPC 17");
+    assert.ok(result.xml.indexOf("<root>13</root>") >= 0, "FaA -> Fa -> TPC 13");
+    // Root-based chord just gets quality cleaned
+    assert.ok(result.xml.indexOf("<name>O7</name>") >= 0, "O 7 -> O7");
+    // Sol #m gets root TPC
+    assert.ok(result.xml.indexOf("<root>22</root>") >= 0, "Sol #m -> Sol# -> TPC 22? or Sol#m");
+    // Re7 unchanged
+    assert.ok(result.xml.indexOf("<name>Re7</name>") >= 0);
+});
+
+test("patchChordTypos strips duplicate root-end char from quality suffix", function() {
+    // root=13 (Fa), quality "A" -> "Fa" + "A" = "FaA", should strip "A"
+    var xml = '<harmonyInfo><name>A</name><root>13</root></harmonyInfo>';
+    var result = xmlPatcher.patchChordTypos(xml);
+    assert.equal(result.typoCount, 1);
+    assert.ok(result.xml.indexOf("<name></name>") >= 0);
+});
+
+test("patchChordTypos strips duplicate root-end char with accidental suffix", function() {
+    // root=13 (Fa), quality "a#m" -> should become "#m"
+    var xml = '<harmonyInfo><name>a#m</name><root>13</root></harmonyInfo>';
+    var result = xmlPatcher.patchChordTypos(xml);
+    assert.equal(result.typoCount, 1);
+    assert.ok(result.xml.indexOf("<name>#m</name>") >= 0);
+});
+
+test("patchChordTypos strips duplicate with spaces combined", function() {
+    // root=13 (Fa), quality "a #m" -> strip space then strip duplicate "a"
+    var xml = '<harmonyInfo><name>a #m</name><root>13</root></harmonyInfo>';
+    var result = xmlPatcher.patchChordTypos(xml);
+    assert.equal(result.typoCount, 1);
+    assert.ok(result.xml.indexOf("<name>#m</name>") >= 0);
+});
+
+test("patchChordTypos does not strip non-duplicate chars from quality", function() {
+    // root=16 (Re), quality "O7" -> "O" is NOT a duplicate of "e"
+    var xml = '<harmonyInfo><name>O7</name><root>16</root></harmonyInfo>';
+    var result = xmlPatcher.patchChordTypos(xml);
+    assert.equal(result.typoCount, 0);
+    assert.equal(result.xml, xml);
+});
+
+test("patchChordTypos preserves valid quality suffixes with root", function() {
+    var cases = [
+        '<harmonyInfo><name>m</name><root>17</root></harmonyInfo>',    // Lam
+        '<harmonyInfo><name>7</name><root>16</root></harmonyInfo>',    // Re7
+        '<harmonyInfo><name>#m</name><root>15</root></harmonyInfo>',   // Sol#m
+        '<harmonyInfo><name>b</name><root>19</root></harmonyInfo>',    // Sib
+        '<harmonyInfo><name></name><root>14</root></harmonyInfo>',     // Do
+        '<harmonyInfo><root>18</root></harmonyInfo>',                   // Mi (no name)
+    ];
+    for (var i = 0; i < cases.length; i++) {
+        var result = xmlPatcher.patchChordTypos(cases[i]);
+        assert.equal(result.typoCount, 0, "should not change: " + cases[i]);
+        assert.equal(result.xml, cases[i]);
+    }
+});
+
+test("patchChordTypos does not corrupt annotations used as Harmony", function() {
+    // Users sometimes put text annotations in Harmony elements for guitar instructions
+    var annotations = ["SOLO", "Solo", "Bajos", "La Cejilla", "Mi Solo",
+                       "Do Mayor", "Re Menor", "fade out", "FADE", "simile",
+                       "INTRO", "N.C.", "tacet", "STOP"];
+    for (var i = 0; i < annotations.length; i++) {
+        var xml = '<harmonyInfo><name>' + annotations[i] + '</name></harmonyInfo>';
+        var result = xmlPatcher.patchChordTypos(xml);
+        assert.equal(result.typoCount, 0, "should not alter: " + annotations[i]);
+        assert.equal(result.xml, xml);
+    }
+});
+
+test("patchChordTypos rejects invalid quality when adding root TPC", function() {
+    // "Fa Sostenido" normalizes to "FaSostenido", parses as Fa + "Sostenido"
+    // but "Sostenido" is not a valid quality, so should NOT get root TPC
+    var xml = '<harmonyInfo><name>Fa Sostenido</name></harmonyInfo>';
+    var result = xmlPatcher.patchChordTypos(xml);
+    assert.equal(result.typoCount, 0);
+    assert.equal(result.xml, xml);
+});
+
+test("patchChordTypos adds root TPC for all valid quality patterns", function() {
+    var cases = [
+        { name: "SI b",   root: 12, quality: "" },      // flat -> root
+        { name: "RE 7",   root: 16, quality: "7" },     // major 7th
+        { name: "LA m",   root: 17, quality: "m" },     // minor
+        { name: "DO M7",  root: 14, quality: "M7" },    // major 7
+        { name: "RE dim", root: 16, quality: "dim" },   // diminished
+        { name: "MI aug", root: 18, quality: "aug" },   // augmented
+        { name: "FA sus4", root: 13, quality: "sus4" }, // suspended
+        { name: "LA add9", root: 17, quality: "add9" }, // added
+    ];
+    for (var i = 0; i < cases.length; i++) {
+        var xml = '<harmonyInfo><name>' + cases[i].name + '</name></harmonyInfo>';
+        var result = xmlPatcher.patchChordTypos(xml);
+        assert.equal(result.typoCount, 1, cases[i].name + " should be fixed");
+        assert.ok(result.xml.indexOf("<root>" + cases[i].root + "</root>") >= 0,
+            cases[i].name + " should have root TPC " + cases[i].root);
+        assert.ok(result.xml.indexOf("<name>" + cases[i].quality + "</name>") >= 0,
+            cases[i].name + " should have quality " + cases[i].quality);
+    }
+});
+
+test("patchChordTypos does not touch content outside harmonyInfo", function() {
+    var xml = '<Lyrics><text>SI b</text></Lyrics><harmonyInfo><name>SI b</name></harmonyInfo>';
+    var result = xmlPatcher.patchChordTypos(xml);
+    assert.equal(result.typoCount, 1);
+    // Lyrics text should NOT be changed
+    assert.ok(result.xml.indexOf("<text>SI b</text>") >= 0);
+});
+
+// ============================================================
+// extractForFixer: fromTpc flag
+// ============================================================
+
+test("extractForFixer sets fromTpc=true when root TPC present", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Harmony><harmonyInfo><root>14</root><name>m</name></harmonyInfo></Harmony>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var data = xmlExtractor.extractForFixer(xml);
+    assert.equal(data.chords.length, 1);
+    assert.equal(data.chords[0].text, "Cm");
+    assert.equal(data.chords[0].fromTpc, true);
+});
+
+test("extractForFixer sets fromTpc=false for literal chord names", function() {
+    var xml = [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff><StaffType group="pitched"><name>stdNormal</name></StaffType></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<Harmony><harmonyInfo><name>SI b</name></harmonyInfo></Harmony>',
+        '<Chord><durationType>quarter</durationType><Note><pitch>60</pitch><tpc>14</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score>',
+        '</museScore>'
+    ].join("\n");
+
+    var data = xmlExtractor.extractForFixer(xml);
+    assert.equal(data.chords.length, 1);
+    assert.equal(data.chords[0].text, "SI b");
+    assert.equal(data.chords[0].fromTpc, false);
+});
+
+// ============================================================
 // Integration: check + fix + recheck on fixture
 // ============================================================
 

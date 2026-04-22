@@ -143,6 +143,8 @@ MuseScore {
     property string issueSyllabicDetail: ""
     property int issuePunctuation: 0
     property int issueChordSync: 0
+    property int issueChordTypos: 0
+    property string issueChordTypoDetail: ""
 
     function checkScore() {
         if (!curScore) { issueCount = 0; return; }
@@ -174,47 +176,68 @@ MuseScore {
             segment = segment.next;
         }
 
-        // Build chord list for sync check
+        // Build chord list for sync check.
+        // Use findLinkedStaves() (Part-based) which is reliable across MS4 versions,
+        // rather than staves[i].isTabStaff which may not be available in the QML API.
+        var linkedStaves = Extractor.findLinkedStaves();
         var chordList = [];
         try {
-            var staves = curScore.staves;
-            if (staves) {
-                var seg2 = curScore.firstSegment();
-                while (seg2) {
-                    var anns = seg2.annotations;
-                    if (anns) {
-                        for (var a = 0; a < anns.length; a++) {
-                            var ann = anns[a];
-                            if (ann && ann.type === Element.HARMONY) {
-                                var hStaff = Math.floor(ann.track / 4);
-                                if (staves[hStaff]) {
-                                    chordList.push({
-                                        tick: seg2.tick,
-                                        text: ann.text || "",
-                                        staffIndex: hStaff,
-                                        isTabStaff: staves[hStaff].isTabStaff || false
-                                    });
-                                }
-                            }
+            var seg2 = curScore.firstSegment();
+            while (seg2) {
+                var anns = seg2.annotations;
+                if (anns) {
+                    for (var a = 0; a < anns.length; a++) {
+                        var ann = anns[a];
+                        if (ann && ann.type === Element.HARMONY) {
+                            var hStaff = Math.floor(ann.track / 4);
+                            chordList.push({
+                                tick: seg2.tick,
+                                text: ann.text || "",
+                                staffIndex: hStaff,
+                                isTabStaff: linkedStaves[hStaff] || false
+                            });
                         }
                     }
-                    seg2 = seg2.next;
                 }
+                seg2 = seg2.next;
             }
         } catch (e) { /* chord sync check failed, ignore */ }
 
         var tabStavesMap = {};
-        try {
-            var staves2 = curScore.staves;
-            if (staves2) {
-                for (var ts = 0; ts < staves2.length; ts++) {
-                    if (staves2[ts] && staves2[ts].isTabStaff) tabStavesMap[ts] = true;
-                }
-            }
-        } catch (e2) { /* ignore */ }
+        var lsKeys = Object.keys(linkedStaves);
+        for (var lk = 0; lk < lsKeys.length; lk++) {
+            if (linkedStaves[lsKeys[lk]]) tabStavesMap[lsKeys[lk]] = true;
+        }
 
         var lyricResult = LyricsFixer.checkLyrics(lyricGroups);
-        var syncResult = LyricsFixer.checkChordSync(chordList, tabStavesMap);
+
+        // Build a normalized copy for chord sync (so solfeo/anglo differences
+        // aren't counted as mismatches). Uses anglo as target because
+        // solfeo roots never false-match when converting solfeo->anglo.
+        var syncList = [];
+        for (var sl = 0; sl < chordList.length; sl++) {
+            var normText = ChordUtils.convertChord(ChordUtils.normalizeChord(chordList[sl].text), false);
+            syncList.push({ tick: chordList[sl].tick, text: normText,
+                staffIndex: chordList[sl].staffIndex, isTabStaff: chordList[sl].isTabStaff });
+        }
+        var syncResult = LyricsFixer.checkChordSync(syncList, tabStavesMap);
+
+        // Check chord typos (compare raw text vs normalized)
+        var typoSeen = {};
+        var typoExamples = [];
+        var typoTotal = 0;
+        for (var ct = 0; ct < chordList.length; ct++) {
+            var rawText = chordList[ct].text;
+            if (!rawText) continue;
+            var normalized = ChordUtils.normalizeChord(rawText);
+            if (normalized !== rawText) {
+                typoTotal++;
+                if (!typoSeen[rawText]) {
+                    typoSeen[rawText] = true;
+                    typoExamples.push(rawText + " \u2192 " + normalized);
+                }
+            }
+        }
 
         issueSynalepha = lyricResult.synalepha;
         issueHyphens = lyricResult.hyphens;
@@ -224,8 +247,12 @@ MuseScore {
         issueSyllabicDetail = detail;
         issuePunctuation = lyricResult.punctuation;
         issueChordSync = syncResult.chordSync;
+        issueChordTypos = typoTotal;
+        var typoDetail = typoExamples.join(", ");
+        if (typoExamples.length > 5) typoDetail = typoExamples.slice(0, 5).join(", ") + ", ...";
+        issueChordTypoDetail = typoDetail;
         issueCount = lyricResult.synalepha + lyricResult.hyphens + lyricResult.syllabic +
-                     lyricResult.punctuation + syncResult.chordSync;
+                     lyricResult.punctuation + syncResult.chordSync + typoTotal;
     }
 
     // ========================================
@@ -302,15 +329,22 @@ MuseScore {
 
         curScore.endCmd();
 
+        // Fix chord typos (before sync, so synced chords get clean text)
+        var typoCount = fixChordTypos();
+
         // Sync chords from principal staff to linked staves
         var syncCount = syncChordsToLinkedStaves();
 
         // Sync VBox text fields to project metaTags
         var metaCount = syncVBoxToMetaTags();
 
-        if (fixCount > 0 || syncCount > 0 || metaCount > 0) {
+        if (fixCount > 0 || typoCount > 0 || syncCount > 0 || metaCount > 0) {
             var msg = "";
             if (fixCount > 0) msg += fixCount + (isSpanish ? " silaba(s) corregida(s)" : " syllable(s) fixed");
+            if (typoCount > 0) {
+                if (msg) msg += ", ";
+                msg += typoCount + (isSpanish ? " acorde(s) con typo corregido(s)" : " chord typo(s) fixed");
+            }
             if (syncCount > 0) {
                 if (msg) msg += ", ";
                 msg += syncCount + (isSpanish ? " acorde(s) sincronizado(s)" : " chord(s) synced");
@@ -372,6 +406,61 @@ MuseScore {
             }
         } catch (e) { /* VBox access failed */ }
         return count;
+    }
+
+    // ========================================
+    // FIX CHORD TYPOS: normalize chord text in place
+    // ========================================
+
+    function fixChordTypos() {
+        if (!curScore) return 0;
+
+        // Collect all Harmony annotations with typos
+        var toFix = []; // [{ann, segment, normalizedText}]
+        var segment = curScore.firstSegment();
+        while (segment) {
+            var annotations = segment.annotations;
+            if (annotations) {
+                for (var a = 0; a < annotations.length; a++) {
+                    var ann = annotations[a];
+                    if (ann && ann.type === Element.HARMONY) {
+                        var raw = ann.text || "";
+                        var normalized = ChordUtils.normalizeChord(raw);
+                        if (normalized !== raw) {
+                            toFix.push({ ann: ann, segment: segment, staff: Math.floor(ann.track / 4), text: normalized });
+                        }
+                    }
+                }
+            }
+            segment = segment.next;
+        }
+
+        if (toFix.length === 0) return 0;
+
+        // Fix each chord: remove old, add new with normalized text
+        curScore.startCmd();
+
+        for (var i = 0; i < toFix.length; i++) {
+            var fix = toFix[i];
+            var tick = fix.segment.tick;
+            var staffIdx = fix.staff;
+
+            try { removeElement(fix.ann); } catch (e) { continue; }
+
+            var cursor = curScore.newCursor();
+            cursor.rewindToTick(tick);
+            if (!cursor.segment) continue;
+            cursor.staffIdx = staffIdx;
+            cursor.voice = 0;
+            var harmony = newElement(Element.HARMONY);
+            if (harmony) {
+                cursor.add(harmony);
+                harmony.text = fix.text;
+            }
+        }
+
+        curScore.endCmd();
+        return toFix.length;
     }
 
     // ========================================
@@ -481,12 +570,13 @@ MuseScore {
         }
         principalChords.sort(function(a, b) { return a.tick - b.tick; });
 
-        // For each linked staff: remove existing chords, add principal's chords
+        // For each linked staff: check if actually out of sync, then fix
         var totalSynced = 0;
         for (var li = 0; li < linkedStaves.length; li++) {
             var linkedIdx = linkedStaves[li];
 
-            // Collect existing chords to remove
+            // Collect existing chords on this linked staff
+            var linkedByTick = {};
             var toRemove = [];
             segment = curScore.firstSegment();
             while (segment) {
@@ -495,12 +585,28 @@ MuseScore {
                     for (var la = 0; la < lanns.length; la++) {
                         var lan = lanns[la];
                         if (lan && (lan.type === Element.HARMONY) && Math.floor(lan.track / 4) === linkedIdx) {
+                            linkedByTick[segment.tick] = lan.text || "";
                             toRemove.push(lan);
                         }
                     }
                 }
                 segment = segment.next;
             }
+
+            // Compare normalized: skip sync if already matching
+            var needsSync = false;
+            if (Object.keys(linkedByTick).length !== principalChords.length) {
+                needsSync = true;
+            } else {
+                for (var cmp = 0; cmp < principalChords.length; cmp++) {
+                    var pNorm = ChordUtils.convertChord(ChordUtils.normalizeChord(principalChords[cmp].text), false);
+                    var lText = linkedByTick[principalChords[cmp].tick];
+                    var lNorm = lText !== undefined ? ChordUtils.convertChord(ChordUtils.normalizeChord(lText), false) : undefined;
+                    if (pNorm !== lNorm) { needsSync = true; break; }
+                }
+            }
+
+            if (!needsSync) continue;
 
             curScore.startCmd();
 
@@ -586,6 +692,12 @@ MuseScore {
         // use CLI to read .mscz file and extract chords from XML
         data.chords = extractChordsWithFallback(data);
 
+        // Normalize chord names: fix common typos from manual entry
+        var chordTypos = [];
+        if (data.chords && data.chords.length > 0) {
+            chordTypos = ChordUtils.normalizeChords(data.chords);
+        }
+
         // Convert chord spelling if user preference differs from score
         if (data.chords && data.chords.length > 0) {
             var isSolfeo = ChordUtils.detectSolfeo(data.chords);
@@ -594,6 +706,7 @@ MuseScore {
             } else if (!settings.useSolfeo && isSolfeo) {
                 ChordUtils.convertChords(data.chords, false);
             }
+            ChordUtils.prettifyChords(data.chords);
         }
 
         data.fullRepeat = settings.fullRepeat;
@@ -616,6 +729,8 @@ MuseScore {
                 for (var di = 0; di < diagrams.length; di++)
                     diagrams[di].chordName = ChordUtils.convertChord(diagrams[di].chordName, false);
             }
+            for (var dp = 0; dp < diagrams.length; dp++)
+                diagrams[dp].chordName = ChordUtils.prettifyChord(diagrams[dp].chordName);
         }
         extractedFretDiagrams = diagrams;
 
@@ -636,6 +751,11 @@ MuseScore {
                     "Diagramas de acordes no encontrados. Ajusta el directorio donde esta el archivo .mscz",
                     "Chord diagrams not found. Set the directory where the .mscz file is located"), true);
             }
+        } else if (chordTypos.length > 0) {
+            var typoList = chordTypos.map(function(t) { return t.original + " -> " + t.normalized; }).join(", ");
+            setStatus(tr(
+                sylCount + " silabas, " + chordCount + " acordes. Typos corregidos: " + typoList,
+                sylCount + " syllables, " + chordCount + " chords. Typos fixed: " + typoList), true);
         } else {
             setStatus(tr(
                 sylCount + " silabas, " + chordCount + " acordes extraidos",
@@ -885,6 +1005,9 @@ MuseScore {
                             if (issueChordSync > 0) lines.push(
                                 tr(issueChordSync + " acordes sin sincronizar (tab)",
                                    issueChordSync + " unsynchronized chords (tab)"));
+                            if (issueChordTypos > 0) lines.push(
+                                tr(issueChordTypos + " acordes con typos: " + issueChordTypoDetail,
+                                   issueChordTypos + " chord typos: " + issueChordTypoDetail));
                             return lines.map(function(l) { return "\u2022 " + l; }).join("\n");
                         }
                         color: "#E65100"

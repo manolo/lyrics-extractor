@@ -9,6 +9,7 @@ var xmlExtractor = require("../extractors/xml-extractor");
 var orchestrator = require("../lib/orchestrator");
 var pdfWriter = require("../lib/pdf-writer");
 var lyricsFixer = require("../lib/lyrics-fixer");
+var chordUtils = require("../lib/chord-utils");
 var xmlPatcher = require("./xml-patcher");
 
 function main() {
@@ -106,8 +107,26 @@ function main() {
         var lyricResult = lyricsFixer.checkLyrics(checkData.lyricGroups);
         var syncResult = lyricsFixer.checkChordSync(checkData.chords, checkData.tabStaves);
 
+        // Detect chord typos (skip chords computed from TPC root, already correct)
+        var typoSeen = {};
+        var typoExamples = [];
+        var typoTotal = 0;
+        for (var ct = 0; ct < checkData.chords.length; ct++) {
+            if (checkData.chords[ct].fromTpc) continue;
+            var rawText = checkData.chords[ct].text;
+            if (!rawText) continue;
+            var normalized = chordUtils.normalizeChord(rawText);
+            if (normalized !== rawText) {
+                typoTotal++;
+                if (!typoSeen[rawText]) {
+                    typoSeen[rawText] = true;
+                    typoExamples.push(rawText + " -> " + normalized);
+                }
+            }
+        }
+
         var total = lyricResult.synalepha + lyricResult.hyphens + lyricResult.syllabic +
-                    lyricResult.punctuation + syncResult.chordSync;
+                    lyricResult.punctuation + syncResult.chordSync + typoTotal;
 
         if (total === 0) {
             console.log("No issues found");
@@ -121,18 +140,20 @@ function main() {
             }
             if (lyricResult.punctuation > 0) console.log("Punctuation issues: " + lyricResult.punctuation);
             if (syncResult.chordSync > 0) console.log("Chord sync mismatches: " + syncResult.chordSync);
+            if (typoTotal > 0) console.log("Chord typos: " + typoTotal + " (" + typoExamples.join(", ") + ")");
             console.log("Total: " + total + " issues");
         }
         process.exit(0);
     }
 
-    // --fix: apply lyrics fixes, chord sync, and metaTag sync to the score file
+    // --fix: apply lyrics fixes, chord typos, chord sync, and metaTag sync to the score file
     if (fixMode) {
         var fixXml = msczReader.readScore(inputPath);
         var patchResult = xmlPatcher.patchLyrics(fixXml);
-        var syncResult = xmlPatcher.patchChordSync(patchResult.xml);
+        var typoResult = xmlPatcher.patchChordTypos(patchResult.xml);
+        var syncResult = xmlPatcher.patchChordSync(typoResult.xml);
         var metaResult = xmlPatcher.patchMetaTags(syncResult.xml);
-        var totalFixes = patchResult.fixCount + syncResult.syncCount + metaResult.metaCount;
+        var totalFixes = patchResult.fixCount + typoResult.typoCount + syncResult.syncCount + metaResult.metaCount;
 
         if (totalFixes === 0) {
             console.log("No issues to fix");
@@ -147,6 +168,7 @@ function main() {
         }
         var msg = [];
         if (patchResult.fixCount > 0) msg.push(patchResult.fixCount + " lyric issues");
+        if (typoResult.typoCount > 0) msg.push(typoResult.typoCount + " chord typo(s)");
         if (syncResult.syncCount > 0) msg.push(syncResult.syncCount + " chord(s) synced");
         if (metaResult.metaCount > 0) msg.push("properties updated");
         console.log("Fixed " + msg.join(", ") + " in " + path.basename(inputPath));
@@ -221,6 +243,16 @@ function main() {
             data.repeats.length + " repeats, " + data.voltas.length + " voltas, " +
             (data.jumps || []).length + " jumps, " + (data.markers || []).length + " markers");
         process.exit(0);
+    }
+
+    // Prettify chord names for display (b -> ♭, o -> °)
+    if (data.chords && data.chords.length > 0) {
+        chordUtils.prettifyChords(data.chords);
+    }
+    if (data.fretDiagrams) {
+        for (var fd = 0; fd < data.fretDiagrams.length; fd++) {
+            data.fretDiagrams[fd].chordName = chordUtils.prettifyChord(data.fretDiagrams[fd].chordName);
+        }
     }
 
     // Process through the orchestrator pipeline
