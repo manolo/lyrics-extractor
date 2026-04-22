@@ -28,7 +28,8 @@ var SONGS = {
     "LosAmigos":             "TunaAlcala/LosAmigos/LosAmigos",
     "RondaFiruli":           "TunaAlcala/RondaDelFiruli/RondaFiruli",
     "OjosDeEspaña":          "TunaAlcala/OjosDeEspaña/OjosDeEspaña",
-    "VuelaUnaLagrima":       "TunaAlcala/VuelaUnaLagrima/VuelaUnaLagrima"
+    "VuelaUnaLagrima":       "TunaAlcala/VuelaUnaLagrima/VuelaUnaLagrima",
+    "MilagroDeTusOjos":      "TunaAlcala/MilagroDeTusOjos/MilagroDeTusOjos"
 };
 
 var filter = process.argv[2] || null;

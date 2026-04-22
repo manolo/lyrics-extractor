@@ -33,7 +33,8 @@ var SONGS = {
     "LosAmigos":             "TunaAlcala/LosAmigos/LosAmigos",
     "RondaFiruli":           "TunaAlcala/RondaDelFiruli/RondaFiruli",
     "OjosDeEspaña":          "TunaAlcala/OjosDeEspaña/OjosDeEspaña",
-    "VuelaUnaLagrima":       "TunaAlcala/VuelaUnaLagrima/VuelaUnaLagrima"
+    "VuelaUnaLagrima":       "TunaAlcala/VuelaUnaLagrima/VuelaUnaLagrima",
+    "MilagroDeTusOjos":      "TunaAlcala/MilagroDeTusOjos/MilagroDeTusOjos"
 };
 
 // Mtime marker stored as a comment at the end of each snapshot file.
