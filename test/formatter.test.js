@@ -2004,6 +2004,189 @@ test("stripChordMarkers removes zero-width space from chord lines", function() {
     assert.ok(result.indexOf("hello world") >= 0, "should keep lyrics");
 });
 
+// ========================================
+// formatLines: trailing chord cap at system text boundaries
+// ========================================
+
+test("formatLines caps trailing chords at system text with instrumental section", function() {
+    // Chords after a system text label (e.g. "Musica") with 2+ chords should NOT
+    // appear as trailing chords on the previous vocal line. They belong to the
+    // interlude after the label.
+    var lines = [
+        { text: "Tratando de verte en su carita.",
+          sylMap: [
+              { tick: 77520, pos: 0 }, { tick: 78720, pos: 22 },
+              { tick: 78960, pos: 25 }, { tick: 79440, pos: 28 }
+          ],
+          startTick: 77520, endTick: 79680 },
+        { text: "Vuela una lagrima.", sylMap: [{ tick: 90240, pos: 0 }], startTick: 90240, endTick: 91200 }
+    ];
+    var chords = [
+        { tick: 77760, chord: "Do7" },
+        { tick: 79680, chord: "Fa" },
+        { tick: 80640, chord: "La7" },
+        { tick: 81600, chord: "Rem" },
+        { tick: 82560, chord: "Sib" },
+        { tick: 83520, chord: "Do" },
+        { tick: 84480, chord: "Rem" },
+        { tick: 90240, chord: "Sib" }
+    ];
+    var systemTexts = [{ tick: 80640, text: "Musica" }, { tick: 90240, text: "Estrofa" }];
+    var result = fmt.formatLines(lines, chords, null, -1, systemTexts);
+    var output = fmt.stripChordMarkers(result.output);
+
+    // Trailing chords should NOT appear on the carita chord line
+    var outputLines = output.split("\n");
+    var caritaIdx = outputLines.findIndex(function(ln) { return ln.indexOf("carita") >= 0; });
+    var chordAboveCarita = outputLines[caritaIdx - 1];
+    assert.ok(chordAboveCarita.indexOf("La7") < 0,
+        "La7 should NOT be trailing on carita line: " + chordAboveCarita);
+    assert.ok(chordAboveCarita.indexOf("Rem") < 0,
+        "Rem should NOT be trailing on carita line: " + chordAboveCarita);
+
+    // MUSICA label should appear between stanzas
+    assert.ok(output.indexOf("- MUSICA -") >= 0, "should have MUSICA label");
+
+    // Interlude chords should appear after MUSICA label, before ESTROFA
+    var musicaIdx = output.indexOf("- MUSICA -");
+    var estrofaIdx = output.indexOf("- ESTROFA -");
+    var la7Idx = output.indexOf("La7");
+    assert.ok(la7Idx > musicaIdx && la7Idx < estrofaIdx,
+        "interlude chords between MUSICA and ESTROFA");
+});
+
+test("formatLines does not cap trailing chords when system text has < 2 chords after it", function() {
+    // When a system text has only 1 chord after it, it's not a real instrumental
+    // section, so trailing chords should NOT be capped.
+    var lines = [
+        { text: "hello world.",
+          sylMap: [{ tick: 0, pos: 0 }],
+          startTick: 0, endTick: 480 },
+        { text: "next line.", sylMap: [{ tick: 5000, pos: 0 }], startTick: 5000, endTick: 5480 }
+    ];
+    var chords = [
+        { tick: 0, chord: "Do" },
+        { tick: 600, chord: "Re" },
+        { tick: 1200, chord: "Mi" }
+    ];
+    // System text at tick 800 has only 1 chord after it (Mi at 1200)
+    var systemTexts = [{ tick: 800, text: "Label" }];
+    var result = fmt.formatLines(lines, chords, null, -1, systemTexts);
+    var output = fmt.stripChordMarkers(result.output);
+
+    // Both Re and Mi should be trailing on the first chord line
+    var firstChordLine = output.split("\n")[0];
+    assert.ok(firstChordLine.indexOf("Re") >= 0, "Re should be trailing: " + firstChordLine);
+    assert.ok(firstChordLine.indexOf("Mi") >= 0, "Mi should be trailing: " + firstChordLine);
+});
+
+test("formatLines trailing chords work normally without system texts", function() {
+    // Without systemTexts, trailing chords should behave as before (no cap)
+    var lines = [{
+        text: "corto.",
+        sylMap: [{ tick: 0, pos: 0 }],
+        startTick: 0, endTick: 480
+    }];
+    var chords = [
+        { tick: 0, chord: "La" },
+        { tick: 720, chord: "Mi" },
+        { tick: 960, chord: "Re" }
+    ];
+    var result = fmt.formatLines(lines, chords, null, -1);
+    var output = fmt.stripChordMarkers(result.output);
+    var chordLine = output.split("\n")[0];
+    assert.ok(chordLine.indexOf("Mi") >= 0 && chordLine.indexOf("Re") >= 0,
+        "trailing chords on chord line without systemTexts: " + chordLine);
+});
+
+test("formatLines emits interlude chords after system text label", function() {
+    // When a system text label appears between lines and has chords after it,
+    // those chords should be emitted as an interlude chord line after the label.
+    var lines = [
+        { text: "primera linea.",
+          sylMap: [{ tick: 0, pos: 0 }],
+          startTick: 0, endTick: 480 },
+        { text: "segunda linea.", sylMap: [{ tick: 10000, pos: 0 }], startTick: 10000, endTick: 10480 }
+    ];
+    var chords = [
+        { tick: 0, chord: "Do" },
+        { tick: 5000, chord: "La7" },
+        { tick: 6000, chord: "Rem" },
+        { tick: 7000, chord: "Sol" },
+        { tick: 10000, chord: "Do" }
+    ];
+    var systemTexts = [{ tick: 5000, text: "Musica" }, { tick: 10000, text: "Estrofa" }];
+    var result = fmt.formatLines(lines, chords, null, -1, systemTexts);
+    var output = fmt.stripChordMarkers(result.output);
+
+    // MUSICA label should exist
+    assert.ok(output.indexOf("- MUSICA -") >= 0, "should have MUSICA label");
+
+    // Chords La7, Rem, Sol should appear after MUSICA but before ESTROFA
+    var afterMusica = output.substring(output.indexOf("- MUSICA -") + 10);
+    var beforeEstrofa = afterMusica.substring(0, afterMusica.indexOf("- ESTROFA -"));
+    assert.ok(beforeEstrofa.indexOf("La7") >= 0, "La7 in interlude: " + beforeEstrofa);
+    assert.ok(beforeEstrofa.indexOf("Rem") >= 0, "Rem in interlude: " + beforeEstrofa);
+    assert.ok(beforeEstrofa.indexOf("Sol") >= 0, "Sol in interlude: " + beforeEstrofa);
+});
+
+test("formatLines interlude chords dedup consecutive identical chords", function() {
+    var lines = [
+        { text: "linea.", sylMap: [{ tick: 0, pos: 0 }], startTick: 0, endTick: 480 },
+        { text: "otra.", sylMap: [{ tick: 8000, pos: 0 }], startTick: 8000, endTick: 8480 }
+    ];
+    var chords = [
+        { tick: 0, chord: "Do" },
+        { tick: 2000, chord: "Re" },
+        { tick: 3000, chord: "Re" },  // duplicate
+        { tick: 4000, chord: "Mi" },
+        { tick: 8000, chord: "Do" }
+    ];
+    var systemTexts = [{ tick: 2000, text: "Musica" }];
+    var result = fmt.formatLines(lines, chords, null, -1, systemTexts);
+    var output = fmt.stripChordMarkers(result.output);
+    var afterMusica = output.substring(output.indexOf("- MUSICA -") + 10);
+    // Re should appear only once (dedup), then Mi
+    var reCount = (afterMusica.match(/\bRe\b/g) || []).length;
+    assert.equal(reCount, 1, "Re should appear once (deduped): " + afterMusica);
+    assert.ok(afterMusica.indexOf("Mi") >= 0, "Mi in interlude");
+});
+
+test("formatLines handles multiple system texts between lines", function() {
+    var lines = [
+        { text: "primera.", sylMap: [{ tick: 0, pos: 0 }], startTick: 0, endTick: 480 },
+        { text: "segunda.", sylMap: [{ tick: 20000, pos: 0 }], startTick: 20000, endTick: 20480 }
+    ];
+    var chords = [
+        { tick: 0, chord: "Do" },
+        { tick: 5000, chord: "Re" },
+        { tick: 6000, chord: "Mi" },
+        { tick: 10000, chord: "Fa" },
+        { tick: 11000, chord: "Sol" },
+        { tick: 20000, chord: "Do" }
+    ];
+    var systemTexts = [
+        { tick: 5000, text: "Musica" },
+        { tick: 10000, text: "Estrofa" }
+    ];
+    var result = fmt.formatLines(lines, chords, null, -1, systemTexts);
+    var output = fmt.stripChordMarkers(result.output);
+
+    // Both labels should appear
+    assert.ok(output.indexOf("- MUSICA -") >= 0, "should have MUSICA");
+    assert.ok(output.indexOf("- ESTROFA -") >= 0, "should have ESTROFA");
+
+    // Re, Mi after MUSICA; Fa, Sol after ESTROFA
+    var musicaPos = output.indexOf("- MUSICA -");
+    var estrofaPos = output.indexOf("- ESTROFA -");
+    var rePos = output.indexOf("Re");
+    var faPos = output.indexOf("Fa");
+    assert.ok(rePos > musicaPos && rePos < estrofaPos,
+        "Re between MUSICA and ESTROFA");
+    assert.ok(faPos > estrofaPos,
+        "Fa after ESTROFA");
+});
+
 test("stripChordMarkers returns unchanged text without markers", function() {
     var input = "hello world\ngoodbye";
     assert.equal(fmt.stripChordMarkers(input), input);
