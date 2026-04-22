@@ -26,7 +26,10 @@ var SONGS = [
     "MalaguenaSalerosa",
     "IsaDelCandidito",
     "Clavelitos",
-    "LosAmigos"
+    "LosAmigos",
+    "RondaFiruli",
+    "OjosDeEspaña",
+    "VuelaUnaLagrima"
 ];
 
 // Skip all tests if scores directory doesn't exist (CI / non-dev environment)
