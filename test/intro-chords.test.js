@@ -95,3 +95,30 @@ test("buildIntroChordsPerf includes gap chords after section end", function() {
     var result = IntroChords.buildIntroChordsPerf(chords, repStruct, [], 2000);
     assert.ok(result.indexOf("La") >= 0, "gap chord La should be included: " + result.join(", "));
 });
+
+// ========================================
+// Consecutive chord dedup across repeat passes
+// ========================================
+
+test("buildIntroChordsPerf deduplicates consecutive same chords across passes", function() {
+    // Repeat with "Re" at the end of pass 1 and "Re" at the start of pass 2.
+    // Should not produce "Re Re" in the output.
+    var chords = [
+        { tick: 0, chord: "Re" },
+        { tick: 480, chord: "Sol" },
+        { tick: 960, chord: "Re" },
+        // Pass 2 starts here (same chords)
+        // tick 0: Re again
+    ];
+    var repStruct = {
+        sections: [{
+            repeat: { startTick: 0, endTick: 1440, repeatCount: 2 },
+            volta1: null, volta2: null, sectionEnd: 1440
+        }]
+    };
+    var result = IntroChords.buildIntroChordsPerf(chords, repStruct, [], 2880);
+    // "Re Sol Re" for pass 1, pass 2 starts with "Re" which deduplicates with ending "Re"
+    var joined = result.join(" ");
+    assert.ok(joined.indexOf("Re  Re") < 0 && joined.indexOf("Re Re") < 0,
+        "should not have consecutive Re Re: " + joined);
+});

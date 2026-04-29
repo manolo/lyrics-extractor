@@ -1,11 +1,85 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
 var path = require("path");
+var fs = require("fs");
 var msczReader = require("../cli/mscz-reader");
 var xmlExtractor = require("../extractors/xml-extractor");
 var orchestrator = require("../lib/orchestrator");
+var chordUtils = require("../lib/chord-utils");
 
 var FIXTURE_PATH = path.join(__dirname, "fixture.mscz");
+var ITS_DIR = path.join(__dirname, "its");
+var HOME = process.env.HOME || "";
+
+// Score file lookup: fixture name -> mscz path
+var SCORE_MAP = {
+    "AlmaLlanera": HOME + "/Music/TunaAlcala/AlmaLlanera/AlmaLlanera.mscz",
+    "Clavelitos": HOME + "/Music/TunaAlcala/Clavelitos/Clavelitos.mscz",
+    "EstudiantinaMadrilena": HOME + "/Music/TunaAlcala/EstudiantinaMadrileña/EstudiantinaMadrileña.mscz",
+    "HorasDeRonda": HOME + "/Music/TunaAlcala/HorasDeRonda/HorasDeRonda.mscz",
+    "IsaDelCandidito": HOME + "/Music/TunaAlcala/IsaDelCandidito/IsaDelCandidito.mscz",
+    "LosAmigos": HOME + "/Music/TunaAlcala/LosAmigos/LosAmigos.mscz",
+    "MalaguenaSalerosa": HOME + "/Music/Cantina/MalagueñaSalerosa/MalagueñaSalerosa.mscz",
+    "NochePerfumada": HOME + "/Music/TunaAlcala/NochePerfumada/NochePerfumada.mscz",
+    "OjosDeEspaña": HOME + "/Music/TunaAlcala/OjosDeEspaña/OjosDeEspaña.mscz",
+    "RondaFiruli": HOME + "/Music/TunaAlcala/RondaDelFiruli/RondaDelFiruli.mscz",
+    "Rondalla": HOME + "/Music/TunaAlcala/Rondalla/Rondalla.mscz",
+    "SanCayetano": HOME + "/Music/TunaAlcala/SanCayetano/SanCayetano.mscz",
+    "TrustTenorios": HOME + "/Music/TunaAlcala/TrustTenorios/TrustTenorios.mscz",
+    "TunaCompostelana": HOME + "/Music/TunaAlcala/TunaCompostelana/Compostelana.mscz",
+    "VuelaUnaLagrima": HOME + "/Music/TunaAlcala/VuelaUnaLagrima/VuelaUnaLagrima.mscz"
+};
+
+// Generate CLI output for a score (same pipeline as cli/index.js)
+function generateOutput(msczPath, compact) {
+    var xml = msczReader.readScore(msczPath);
+    var excerpts = [];
+    try { excerpts = msczReader.readGuitarExcerpts(msczPath); } catch (e) {}
+    var spelling = msczReader.readSpelling(msczPath);
+    var data = xmlExtractor.extractAll(xml, excerpts.map(function(e) { return e.xml; }), spelling);
+    if (!data) return null;
+    chordUtils.prettifyChords(data.chords);
+    if (!compact) data.fullRepeat = true;
+    var output = orchestrator.processExtraction(data);
+    if (!output) return null;
+    return output.replace(/\u200B/g, "");
+}
+
+// IT loop: compare each fixture against generated output
+var fixtureFiles = fs.existsSync(ITS_DIR) ? fs.readdirSync(ITS_DIR).filter(function(f) { return f.endsWith(".txt"); }) : [];
+fixtureFiles.forEach(function(file) {
+    var match = file.match(/^(.+)\.(full|compact)\.txt$/);
+    if (!match) return;
+    var songName = match[1];
+    var mode = match[2];
+    var msczPath = SCORE_MAP[songName];
+    if (!msczPath || !fs.existsSync(msczPath)) return; // skip if score not found
+
+    test("IT: " + songName + "." + mode, function() {
+        var expected = fs.readFileSync(path.join(ITS_DIR, file), "utf8");
+        var actual = generateOutput(msczPath, mode === "compact");
+        assert.ok(actual, "should produce output for " + songName);
+        if (actual !== expected) {
+            var expLines = expected.split("\n");
+            var actLines = actual.split("\n");
+            var diffs = [];
+            var maxLen = Math.max(expLines.length, actLines.length);
+            for (var d = 0; d < maxLen; d++) {
+                var el = d < expLines.length ? expLines[d] : undefined;
+                var al = d < actLines.length ? actLines[d] : undefined;
+                if (el !== al) {
+                    if (el !== undefined) diffs.push("  " + (d + 1) + " < " + el);
+                    if (al !== undefined) diffs.push("  " + (d + 1) + " > " + al);
+                }
+            }
+            if (diffs.length > 20) diffs = diffs.slice(0, 20).concat(["  ... " + (diffs.length - 20) + " more diffs"]);
+            var msg = songName + "." + mode + " diffs:\n\n" + diffs.join("\n") + "\n";
+            var err = new Error(msg);
+            err.stack = msg;
+            throw err;
+        }
+    });
+});
 
 test("integration: fixture.mscz reads and extracts correctly", function() {
     var xml = msczReader.readScore(FIXTURE_PATH);
