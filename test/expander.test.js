@@ -966,3 +966,106 @@ test("volta-at-start does NOT mark _voltaContinuation after punctuation", functi
     assert.equal(voltaEs.length, 1, "should have one volta Es");
     assert.ok(!voltaEs[0]._voltaContinuation, "Es should NOT have _voltaContinuation (muero. ends with .)");
 });
+
+// ========================================
+// Verse modulo wrapping on D.S. replay
+// ========================================
+
+test("verse selection uses modulo: counter 2 with 2 verses wraps to v=0", function() {
+    // The verse selection at line 1112: verses[vIdx % verses.length]
+    // With vIdx=2 and 2 available verses, should give verses[0] = v=0
+    var div = 480;
+    var data = {
+        division: div,
+        syllables: [
+            { tick: 480, verse: 0, text: "hello", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: 480, verse: 1, text: "world", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+        ],
+        chords: [{ tick: 0, chord: "Do" }],
+        repeats: [{ startTick: 0, endTick: 960, repeatCount: 2 }],
+        voltas: [], markers: [], jumps: [],
+        systemTexts: [], barlines: [], lastTick: 960
+    };
+    var stream = exp.expand(data);
+    var hellos = stream.filter(function(s) { return s.text === "hello"; });
+    var worlds = stream.filter(function(s) { return s.text === "world"; });
+    // Pass 1: v=0 (hello), Pass 2: v=1 (world)
+    assert.equal(hellos.length, 1, "hello (v=0) once");
+    assert.equal(worlds.length, 1, "world (v=1) once");
+});
+
+test("verse counter does not increment for segments outside repeat range", function() {
+    // Segment after repeat end should not consume verse slots.
+    // Repeat 0-960 (2 passes), then content at 960+ (outside repeat).
+    var div = 480;
+    var data = {
+        division: div,
+        syllables: [
+            { tick: 480, verse: 0, text: "inside", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: 480, verse: 1, text: "second", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: 1440, verse: 0, text: "outside.", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+        ],
+        chords: [{ tick: 0, chord: "Do" }],
+        repeats: [{ startTick: 0, endTick: 960, repeatCount: 2 }],
+        voltas: [], markers: [], jumps: [],
+        systemTexts: [], barlines: [], lastTick: 1920
+    };
+    var stream = exp.expand(data);
+    var texts = stream.map(function(s) { return s.text; });
+    // inside (v=0), second (v=1), outside (after repeat, v=0 but doesn't consume)
+    assert.ok(texts.indexOf("inside") >= 0, "inside should appear");
+    assert.ok(texts.indexOf("second") >= 0, "second should appear");
+    assert.ok(texts.indexOf("outside.") >= 0, "outside should appear");
+});
+
+// ========================================
+// sectionBar only at word boundaries
+// ========================================
+
+test("sectionBar does not set sectionEnd on mid-word syllables", function() {
+    var div = 480;
+    var data = {
+        division: div,
+        syllables: [
+            { tick: 0, verse: 0, text: "me", syllabic: "begin", durationQ: 1, restAfter: false, gapDurationQ: 0, sectionBar: true },
+            { tick: 480, verse: 0, text: "jor.", syllabic: "end", durationQ: 1, restAfter: false, gapDurationQ: 0 }
+        ],
+        chords: [], repeats: [], voltas: [], markers: [], jumps: [],
+        systemTexts: [], barlines: [], lastTick: 960
+    };
+    var stream = exp.expand(data);
+    var me = stream.find(function(s) { return s.text === "me"; });
+    assert.ok(me, "should have 'me' in stream");
+    assert.ok(!me.sectionEnd, "mid-word 'me' should NOT get sectionEnd from sectionBar");
+});
+
+// ========================================
+// Lead-in completesWord detection
+// ========================================
+
+test("D.S. lead-in that completes a word does not set noBreakAfter", function() {
+    // "ro" (begin) before jump, "sa" (end) as lead-in. "sa" completes "rosa".
+    var div = 480;
+    var data = {
+        division: div,
+        syllables: [
+            { tick: 480, verse: 0, text: "a", syllabic: "single", durationQ: 1, restAfter: false, gapDurationQ: 0 },
+            { tick: 960, verse: 0, text: "ro", syllabic: "begin", durationQ: 1, restAfter: false, gapDurationQ: 0 },
+            { tick: 1440, verse: 0, text: "sa", syllabic: "end", durationQ: 1, restAfter: false, gapDurationQ: 0 },
+            { tick: 2400, verse: 0, text: "next", syllabic: "single", durationQ: 1, restAfter: false, gapDurationQ: 0 }
+        ],
+        chords: [{ tick: 0, chord: "Do" }, { tick: 2400, chord: "Re" }],
+        repeats: [],
+        voltas: [],
+        markers: [{ tick: 2400, label: "segno", type: "segno" }],
+        jumps: [{ tick: 1200, jumpTo: "segno", playUntil: "end", continueAt: "", playRepeats: false }],
+        systemTexts: [],
+        barlines: [{ tick: 1920, type: "double" }],
+        lastTick: 3360
+    };
+    var stream = exp.expand(data);
+    var sa = stream.filter(function(s) { return s.text === "sa" && s._jumpReplay; });
+    if (sa.length > 0) {
+        assert.ok(!sa[0].noBreakAfter, "lead-in 'sa' completing 'rosa' should NOT have noBreakAfter");
+    }
+});

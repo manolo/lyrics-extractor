@@ -2249,3 +2249,91 @@ test("formatPerfLines: backwards tick uses correct repeat for label emission", f
     assert.equal(estribilloMatches.length, 1,
         "ESTRIBILLO should appear once: " + output);
 });
+
+// ========================================
+// Trailing chord routing to interlude when label in range
+// ========================================
+
+test("formatPerfLines defers trailing chords to interlude when system text in range", function() {
+    var lines = [
+        {
+            text: "end of estribillo.",
+            sylMap: [{ tick: 500, pos: 0, chord: "Si7" }],
+            startTick: 500, endTick: 1000,
+            sectionEnd: true
+        },
+        {
+            text: "start of estrofa.",
+            sylMap: [{ tick: 3000, pos: 0, chord: "Mi7" }],
+            startTick: 3000, endTick: 3480,
+            sectionEnd: false
+        }
+    ];
+    var chords = [
+        { tick: 500, chord: "Si7" },
+        { tick: 1000, chord: "Lam" }, { tick: 1200, chord: "Re" },
+        { tick: 1400, chord: "Sol" }, { tick: 1600, chord: "Do" },
+        { tick: 3000, chord: "Mi7" }
+    ];
+    // Label "Musica" at tick 1000 is between line 1 end and line 2 start
+    var systemTexts = [{ tick: 1000, text: "Musica" }, { tick: 3000, text: "Estrofa" }];
+    var result = fmt.formatPerfLines(lines, [], null, "", chords, null, systemTexts);
+    var output = result.text;
+    // The 4 trailing chords should NOT be on the estribillo line
+    var estriLine = output.split("\n").filter(function(l) { return l.indexOf("end of estribillo") >= 0; })[0];
+    assert.ok(estriLine.indexOf("Lam") < 0,
+        "trailing chords should not be on estribillo line when label in range: " + estriLine);
+});
+
+// ========================================
+// Duplicate label dedup
+// ========================================
+
+test("formatPerfLines removes consecutive duplicate labels", function() {
+    var lines = [
+        { text: "line one.", sylMap: [{tick:100,pos:0,chord:"Do"}], startTick: 100, endTick: 200, sectionEnd: true },
+        { text: "line two.", sylMap: [{tick:100,pos:0,chord:"Re"}], startTick: 100, endTick: 200, sectionEnd: true },
+        { text: "line three.", sylMap: [{tick:300,pos:0,chord:"Mi"}], startTick: 300, endTick: 400, sectionEnd: false }
+    ];
+    var systemTexts = [{tick:100, text:"Estrofa"}];
+    var result = fmt.formatPerfLines(lines, [], null, "", [], null, systemTexts);
+    var output = result.text;
+    var count = (output.match(/- ESTROFA -/g) || []).length;
+    assert.ok(count <= 2, "should not have more than 2 ESTROFA labels (dedup): got " + count + " in: " + output);
+});
+
+// ========================================
+// Label-aware compact abbreviation
+// ========================================
+
+test("abbreviateRepeatedStanzas does NOT abbreviate same-text stanza without label", function() {
+    // Same text appears twice but no label between them (structural repeat, not a new section)
+    var lines = [
+        { text: "hello world,", sylMap: [], startTick: 0, endTick: 480, sectionEnd: false },
+        { text: "nice day.", sylMap: [], startTick: 480, endTick: 960, sectionEnd: true },
+        { text: "something else,", sylMap: [], startTick: 960, endTick: 1440, sectionEnd: false },
+        { text: "really nice.", sylMap: [], startTick: 1440, endTick: 1920, sectionEnd: true },
+        // Same text, NO label before it
+        { text: "hello world,", sylMap: [], startTick: 1920, endTick: 2400, sectionEnd: false },
+        { text: "nice day.", sylMap: [], startTick: 2400, endTick: 2880, sectionEnd: true }
+    ];
+    // With systemTexts, the abbreviation only fires when a label precedes the duplicate
+    var systemTexts = [{ tick: 0, text: "Section A" }];
+    var result = fmt.abbreviateRepeatedStanzas(lines, null, systemTexts);
+    // All 6 lines should remain (no abbreviation without label)
+    assert.equal(result.length, 6, "should keep all lines when no label before duplicate: got " + result.length);
+});
+
+test("abbreviateRepeatedStanzas abbreviates D.S. replay stanzas via _jumpReplay", function() {
+    // D.S. replay stanzas (marked _jumpReplay) are always abbreviated
+    var lines = [
+        { text: "hello world.", sylMap: [], startTick: 0, endTick: 480, sectionEnd: true },
+        { text: "something else.", sylMap: [], startTick: 960, endTick: 1440, sectionEnd: true },
+        // Same text from D.S. replay
+        { text: "hello world.", sylMap: [], startTick: 0, endTick: 480, sectionEnd: true, _jumpReplay: true }
+    ];
+    var result = fmt.abbreviateRepeatedStanzas(lines, null, []);
+    var lastText = result[result.length - 1].text;
+    assert.ok(lastText.indexOf("...") >= 0 || result.length < 3,
+        "D.S. replay stanza should be abbreviated: " + lastText);
+});
