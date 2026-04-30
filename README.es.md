@@ -133,7 +133,7 @@ Agregar Texto de Sistema (`Cmd+Shift+T`) para marcar secciones. Las etiquetas co
 - **Una etiqueta en `|: :|`:** aparece una vez (misma seccion en ambas pasadas)
 - **Varias etiquetas en `|: :|`:** todas se re-emiten en cada pasada
 - **Etiquetas numeradas:** usar `#` (ej: `Estrofa #`) para `ESTROFA 1`, `ESTROFA 2`
-- **Secuencia explicita:** usar `:` o `-` para listar valores (ej: `Solista manolo:juan:pedro` produce `SOLISTA MANOLO`, `SOLISTA JUAN`, `SOLISTA PEDRO`, luego `SOLISTA`). Funciona con numeros: `Estrofa 1:2:1`
+- **Secuencia explicita:** usar `:` para listar valores (ej: `Solista manolo:juan:pedro` produce `SOLISTA MANOLO`, `SOLISTA JUAN`, `SOLISTA PEDRO`). Funciona con numeros: `Estrofa 1:2`. Los items vacios entre separadores se ignoran (`Estrofa 1::2::` = `Estrofa 1:2`). Cuando la secuencia se agota, la etiqueta se suprime
 
 ### Numeracion de versos
 
