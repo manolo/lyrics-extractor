@@ -341,19 +341,52 @@ test("splitLongLines does not split short lines", function() {
 });
 
 test("splitLongLines uses rest positions as fallback when no commas", function() {
-    // A long line without commas but with rest-based split points
-    var longText = "word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14";
+    // A long line (85 chars) without commas but with rest-based split points (rest >= 2Q)
+    var longText = "con la voz de mi guitarra te hable de amores poniendo el alma entre las notas de una.";
+    // rest at tick 200 (after "amores", pos ~40), syllabic=end
     var syls = [
-        { tick: 0, text: "word7", syllabic: "single", restAfter: true, restDurationQ: 3 },
-        { tick: 400, text: "word8", syllabic: "single", restAfter: false, restDurationQ: 0 }
+        { tick: 200, text: "res", syllabic: "end", restAfter: true, restDurationQ: 2 }
     ];
-    // word7 ends around pos 41 ("word1 word2 word3 word4 word5 word6 word7")
     var lines = [{
         text: longText,
-        sylMap: [{ tick: 0, pos: 36 }],
-        startTick: 0, endTick: 480, sectionEnd: false
+        sylMap: [{ tick: 100, pos: 0 }, { tick: 200, pos: 39 }],
+        startTick: 100, endTick: 480, sectionEnd: false
     }];
     var result = lb.splitLongLines(lines, syls);
-    // With rest data, it should try to split near the rest point
-    assert.ok(result.length >= 1, "should process without error");
+    assert.ok(result.length >= 2, "should split at rest boundary: got " + result.length);
+    assert.ok(result[0].text.length <= 70, "first half <= 70: " + result[0].text.length);
+});
+
+test("splitLongLines uses lower rest threshold for lines > 75 chars", function() {
+    // A line > 75 chars where the only rests are 0.5Q (below normal 2Q threshold)
+    // Should still split because the dynamic threshold drops to 0.25Q for overlong lines
+    var longText = "con la voz de mi guitarra te hable de amores poniendo el alma entre las notas de una cancion larga.";
+    // rest at tick 200 (after "amores", pos ~40), only 0.5Q
+    var syls = [
+        { tick: 200, text: "res", syllabic: "end", restAfter: true, restDurationQ: 0.5 }
+    ];
+    var lines = [{
+        text: longText,
+        sylMap: [{ tick: 100, pos: 0 }, { tick: 200, pos: 39 }],
+        startTick: 100, endTick: 480, sectionEnd: false
+    }];
+    var result = lb.splitLongLines(lines, syls);
+    assert.ok(result.length >= 2, "should split overlong line even with small rest: got " + result.length);
+});
+
+test("splitLongLines does NOT use low rest threshold for lines 70-75 chars", function() {
+    // A line of exactly 72 chars with only 0.5Q rests should NOT be split
+    // (only lines > 75 get the lower threshold)
+    var longText = "En esta noche clara de inquietos luceros lo que yo mas quiero decir.xxxx";
+    assert.equal(longText.length, 72);
+    var syls = [
+        { tick: 200, text: "ros", syllabic: "end", restAfter: true, restDurationQ: 0.5 }
+    ];
+    var lines = [{
+        text: longText,
+        sylMap: [{ tick: 100, pos: 0 }, { tick: 200, pos: 35 }],
+        startTick: 100, endTick: 480, sectionEnd: false
+    }];
+    var result = lb.splitLongLines(lines, syls);
+    assert.equal(result.length, 1, "should NOT split 72-char line with 0.5Q rest");
 });
