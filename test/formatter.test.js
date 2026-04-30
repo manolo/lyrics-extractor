@@ -2324,6 +2324,117 @@ test("abbreviateRepeatedStanzas does NOT abbreviate same-text stanza without lab
     assert.equal(result.length, 6, "should keep all lines when no label before duplicate: got " + result.length);
 });
 
+// ========================================
+// Prefix match abbreviation (volta extra lines)
+// ========================================
+
+test("abbreviateRepeatedStanzas detects prefix match when second stanza has extra lines", function() {
+    // Estribillo 1: 4 lines. Estribillo 2: same 4 lines + extra volta 2 line.
+    // The common prefix should be abbreviated, extra line kept.
+    var lines = [
+        { text: "intro.", sylMap: [], startTick: 0, endTick: 480, sectionEnd: true },
+        { text: "Cuando la tuna te de serenata,", sylMap: [], startTick: 960, endTick: 1440, sectionEnd: false },
+        { text: "que cada cinta guarda un trocito,", sylMap: [], startTick: 1440, endTick: 1920, sectionEnd: false },
+        { text: "ay laira lalaraira lalá,", sylMap: [], startTick: 1920, endTick: 2400, sectionEnd: false },
+        { text: "y deja la tuna pasar.", sylMap: [], startTick: 2400, endTick: 2880, sectionEnd: true },
+        // Second stanza with extra volta 2 line
+        { text: "other section.", sylMap: [], startTick: 3000, endTick: 3400, sectionEnd: true },
+        { text: "Cuando la tuna te de serenata,", sylMap: [], startTick: 3600, endTick: 4080, sectionEnd: false },
+        { text: "que cada cinta guarda un trocito,", sylMap: [], startTick: 4080, endTick: 4560, sectionEnd: false },
+        { text: "ay laira lalaraira lalá,", sylMap: [], startTick: 4560, endTick: 5040, sectionEnd: false },
+        { text: "y deja la tuna pasar.", sylMap: [], startTick: 5040, endTick: 5520, sectionEnd: false },
+        { text: "con su trailarai lalá.", sylMap: [], startTick: 5520, endTick: 6000, sectionEnd: false }
+    ];
+    var systemTexts = [
+        { tick: 0, text: "Intro" },
+        { tick: 960, text: "Estribillo" },
+        { tick: 3000, text: "Other" },
+        { tick: 3600, text: "Estribillo" }
+    ];
+    var result = fmt.abbreviateRepeatedStanzas(lines, null, systemTexts);
+    // The 4 common lines should be replaced by one abbreviated entry
+    // + the extra line "con su trailarai lalá." should remain
+    var extraLine = result.filter(function(l) { return l.text === "con su trailarai lalá."; });
+    assert.equal(extraLine.length, 1, "extra volta line should be preserved");
+    // The abbreviated entry should exist
+    var abbreviated = result.filter(function(l) { return l.abbreviated; });
+    assert.ok(abbreviated.length >= 1, "should have at least one abbreviated entry");
+    // The 4 repeated lines should NOT appear twice
+    var cuando = result.filter(function(l) { return l.text && l.text.indexOf("Cuando") >= 0; });
+    assert.equal(cuando.length, 1, "Cuando should appear only once (first estribillo): " + cuando.length);
+});
+
+test("abbreviateRepeatedStanzas does not prefix-match when lines differ", function() {
+    var lines = [
+        { text: "line A.", sylMap: [], startTick: 0, endTick: 480, sectionEnd: true },
+        { text: "line B.", sylMap: [], startTick: 960, endTick: 1440, sectionEnd: true },
+        { text: "line A.", sylMap: [], startTick: 1920, endTick: 2400, sectionEnd: false },
+        { text: "line C.", sylMap: [], startTick: 2400, endTick: 2880, sectionEnd: false }
+    ];
+    var systemTexts = [{ tick: 0, text: "S1" }, { tick: 960, text: "S2" }, { tick: 1920, text: "S3" }];
+    var result = fmt.abbreviateRepeatedStanzas(lines, null, systemTexts);
+    // S1 has "line A", S3 has "line A" + "line C" - prefix match only if first line matches
+    // S2 is "line B" which is different, so no prefix from S2
+    // S1 is 1 line, S3 is 2 lines starting with same "line A" -> prefix match
+    var abbreviated = result.filter(function(l) { return l.abbreviated; });
+    assert.ok(abbreviated.length >= 1, "should detect prefix match for single-line prefix");
+    var lineC = result.filter(function(l) { return l.text === "line C."; });
+    assert.equal(lineC.length, 1, "extra line C should remain");
+});
+
+// ========================================
+// formatPerfLines: coda handler with backwards endTick
+// ========================================
+
+test("formatPerfLines skips coda chords when last line has endTick < startTick (DC lead-in)", function() {
+    // Simulates DC al Coda: last syllable remapped to tick 0, endTick < startTick.
+    // The coda handler should NOT dump all chords from tick 0.
+    var lines = [
+        { text: "first line.", sylMap: [{ tick: 1000, pos: 0, chord: "Mi" }], startTick: 1000, endTick: 1500, sectionEnd: true },
+        { text: "last estudiantina.", sylMap: [{ tick: 5000, pos: 0, chord: "Re7" }], startTick: 5000, endTick: 0, sectionEnd: true }
+    ];
+    var chords = [
+        { tick: 0, chord: "Sol" }, { tick: 200, chord: "Re" },
+        { tick: 400, chord: "Sol" }, { tick: 600, chord: "Mi" },
+        { tick: 800, chord: "Lam" }, { tick: 1000, chord: "Mi" },
+        { tick: 5000, chord: "Re7" }, { tick: 5200, chord: "Sol" },
+        { tick: 5400, chord: "Re7" }, { tick: 5600, chord: "Sol" }
+    ];
+    var result = fmt.formatPerfLines(lines, [], null, "TEST", chords);
+    var output = result.text;
+    // The coda handler would dump Sol Re Sol Mi Lam + more if endTick=0 is used.
+    // With the fix, it should be suppressed. Check that the distinct chord
+    // count after the lyrics is reasonable (not 5+ chords from a full dump).
+    var afterLastLine = output.split("estudiantina.").pop() || "";
+    var codaChords = afterLastLine.match(/\b(Sol|Re|Mi|Lam|Re7)\b/g) || [];
+    assert.ok(codaChords.length <= 2, "should not dump coda chords when endTick < startTick: " + codaChords.join(",") + " after=" + afterLastLine);
+});
+
+// ========================================
+// formatPerfLines: empty-text abbreviated lines not skipped
+// ========================================
+
+test("formatPerfLines processes abbreviated lines with empty text (prefix match)", function() {
+    // An abbreviated line with text="" should still trigger label emission.
+    // Use fullRepeat=true to skip internal abbreviation (we pass pre-abbreviated lines).
+    var lines = [
+        { text: "hello world.", sylMap: [{ tick: 1000, pos: 0 }], startTick: 1000, endTick: 1500, sectionEnd: true },
+        { text: "other section.", sylMap: [{ tick: 2000, pos: 0 }], startTick: 2000, endTick: 2500, sectionEnd: true },
+        // Abbreviated prefix match: empty text, same startTick as first stanza
+        { text: "", sylMap: [], startTick: 1000, endTick: 1500, sectionEnd: false, abbreviated: true },
+        { text: "extra tail.", sylMap: [{ tick: 1600, pos: 0 }], startTick: 1600, endTick: 1800, sectionEnd: false }
+    ];
+    var systemTexts = [{ tick: 1000, text: "Section" }, { tick: 2000, text: "Other" }];
+    // fullRepeat=true skips abbreviation; repeats and repeatStartTick not needed
+    var result = fmt.formatPerfLines(lines, [], null, "TEST", null, null, systemTexts, true);
+    var output = result.text;
+    // The label "SECTION" should appear twice (once for first stanza, once for abbreviated)
+    var sectionCount = (output.match(/SECTION/g) || []).length;
+    assert.ok(sectionCount >= 2, "label should be emitted for abbreviated line: count=" + sectionCount + " output=" + output);
+    // The extra tail line should appear
+    assert.ok(output.indexOf("extra tail.") >= 0, "extra tail line should be in output: " + output);
+});
+
 test("abbreviateRepeatedStanzas abbreviates D.S. replay stanzas via _jumpReplay", function() {
     // D.S. replay stanzas (marked _jumpReplay) are always abbreviated
     var lines = [

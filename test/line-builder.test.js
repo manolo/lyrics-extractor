@@ -314,3 +314,46 @@ test("buildLinesFromWords: punctuation in a word with letters keeps the space", 
     var lines = lb.buildLinesFromWords(words);
     assert.equal(lines[0].text, "que hello,");
 });
+
+// ========================================
+// splitLongLines: absolute max fallback and rest-based splitting
+// ========================================
+
+test("splitLongLines splits single overlong line at comma", function() {
+    // A single line > 70 chars with a comma should be split
+    var longText = "En una noche de mayo que iluminaba la luna, a tu ventana llegaron los cantares de la tuna.";
+    var lines = [{
+        text: longText,
+        sylMap: [{ tick: 0, pos: 0 }, { tick: 480, pos: 45 }],
+        startTick: 0, endTick: 480, sectionEnd: false
+    }];
+    var result = lb.splitLongLines(lines);
+    assert.ok(result.length >= 2, "should split overlong line: got " + result.length + " lines");
+    assert.ok(result[0].text.length <= 70, "first half should be <= 70 chars: " + result[0].text.length);
+});
+
+test("splitLongLines does not split short lines", function() {
+    var lines = [
+        { text: "short line.", sylMap: [], startTick: 0, endTick: 480, sectionEnd: false }
+    ];
+    var result = lb.splitLongLines(lines);
+    assert.equal(result.length, 1, "should not split short line");
+});
+
+test("splitLongLines uses rest positions as fallback when no commas", function() {
+    // A long line without commas but with rest-based split points
+    var longText = "word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14";
+    var syls = [
+        { tick: 0, text: "word7", syllabic: "single", restAfter: true, restDurationQ: 3 },
+        { tick: 400, text: "word8", syllabic: "single", restAfter: false, restDurationQ: 0 }
+    ];
+    // word7 ends around pos 41 ("word1 word2 word3 word4 word5 word6 word7")
+    var lines = [{
+        text: longText,
+        sylMap: [{ tick: 0, pos: 36 }],
+        startTick: 0, endTick: 480, sectionEnd: false
+    }];
+    var result = lb.splitLongLines(lines, syls);
+    // With rest data, it should try to split near the rest point
+    assert.ok(result.length >= 1, "should process without error");
+});

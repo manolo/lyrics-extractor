@@ -244,3 +244,44 @@ test("detectPhraseBreak: _voltaContinuation does not suppress when absent", func
     assert.equal(wb.detectPhraseBreak(syl, next), true,
         "without _voltaContinuation, sectionEnd should break");
 });
+
+// ========================================
+// repairSyllabicChains: mid-word split on strong punctuation + rest
+// ========================================
+
+test("repairSyllabicChains splits mid-word chain at strong punctuation + rest", function() {
+    // "can" (begin) -> "ción." (middle, punct+rest) -> "A" (middle) -> "za," (end)
+    // Should become: "can" (begin) -> "ción." (end) -> "A" (begin) -> "za," (end)
+    var syls = [
+        { text: "can", syllabic: "begin" },
+        { text: "ción.", syllabic: "middle", restAfter: true, restDurationQ: 1.5 },
+        { text: "A", syllabic: "middle", sectionBar: true },
+        { text: "za,", syllabic: "end" }
+    ];
+    wb.repairSyllabicChains(syls);
+    assert.equal(syls[1].syllabic, "end", "ción. should become end");
+    assert.equal(syls[2].syllabic, "begin", "A should become begin");
+});
+
+test("repairSyllabicChains does NOT split at sectionBar without punctuation", function() {
+    // "de" (begin) -> "cir" (end, sectionBar) should NOT be split
+    var syls = [
+        { text: "de", syllabic: "begin" },
+        { text: "cir.", syllabic: "end", sectionBar: true },
+        { text: "next", syllabic: "single" }
+    ];
+    wb.repairSyllabicChains(syls);
+    assert.equal(syls[0].syllabic, "begin", "de should stay begin");
+    assert.equal(syls[1].syllabic, "end", "cir should stay end");
+});
+
+test("repairSyllabicChains converts begin to single when split", function() {
+    // Single-syllable word incorrectly chained: "sol." (begin, punct+rest) -> "A" (end)
+    var syls = [
+        { text: "sol.", syllabic: "begin", restAfter: true, restDurationQ: 2 },
+        { text: "A", syllabic: "end" }
+    ];
+    wb.repairSyllabicChains(syls);
+    assert.equal(syls[0].syllabic, "single", "sol. should become single");
+    assert.equal(syls[1].syllabic, "single", "A should become single");
+});

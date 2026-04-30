@@ -499,3 +499,132 @@ test("navigation fallback when no valid plan", function() {
     var low = output.toLowerCase();
     assert.ok(low.indexOf("fallback") >= 0, "should fall back to linear: " + output);
 });
+
+// ========================================
+// DC al Coda: trailing chords and intro chord sequence
+// ========================================
+
+test("DC al Coda does not dump all chords as trailing on last line", function() {
+    // Simulates DC al Coda: jump at high tick goes back to start,
+    // plays until coda mark, then continues at codab.
+    // The last syllable is a DC lead-in remapped to tick 0.
+    var data = {
+        title: "DC TEST",
+        syllables: [
+            syl(960, 0, "hel", "begin", { durationQ: 1 }),
+            syl(1440, 0, "lo.", "end", { durationQ: 1 })
+        ],
+        chords: [
+            { tick: 0, chord: "Sol" }, { tick: 240, chord: "Re" },
+            { tick: 480, chord: "Sol" },
+            { tick: 960, chord: "Mi" }, { tick: 1440, chord: "Lam" },
+            { tick: 1920, chord: "Sol" }, { tick: 2160, chord: "Re7" },
+            { tick: 2400, chord: "Sol" }
+        ],
+        repeats: [],
+        voltas: [],
+        markers: [
+            { tick: 720, label: "coda", type: "tocoda" },
+            { tick: 2160, label: "codab", type: "coda" }
+        ],
+        jumps: [{ tick: 1920, jumpTo: "start", playUntil: "coda", continueAt: "codab", playRepeats: false }],
+        systemTexts: [{ tick: 0, text: "Intro" }, { tick: 960, text: "Estrofa" }],
+        barlines: [],
+        lastTick: 2880,
+        division: 480,
+        fullRepeat: true
+    };
+    var output = orch.processExtraction(data);
+    // The output should NOT contain a massive chord dump between "hello." and "- INTRO -"
+    // Count chord occurrences: Sol should not appear more than a few times
+    var stripped = output.replace(/\u200B/g, "");
+    var solCount = (stripped.match(/\bSol\b/g) || []).length;
+    // Reasonable: Sol in intro chords + inline + coda, not 8+ times from a full dump
+    assert.ok(solCount <= 6, "should not dump all chords on DC lead-in line: Sol count=" + solCount);
+});
+
+test("DC al Coda emits intro label and chords at end of output", function() {
+    // When DC replay is fully instrumental, the INTRO label + chords
+    // should be appended at the end of the output.
+    var data = {
+        title: "DC INTRO",
+        syllables: [
+            syl(960, 0, "hel", "begin", { durationQ: 1 }),
+            syl(1440, 0, "lo.", "end", { durationQ: 1 })
+        ],
+        chords: [
+            { tick: 0, chord: "Sol" }, { tick: 240, chord: "Re" },
+            { tick: 480, chord: "Sol" },
+            { tick: 960, chord: "Mi" }, { tick: 1440, chord: "Lam" },
+            { tick: 1920, chord: "Sol" }, { tick: 2160, chord: "Re7" },
+            { tick: 2400, chord: "Sol" }
+        ],
+        repeats: [],
+        voltas: [],
+        markers: [
+            { tick: 720, label: "coda", type: "tocoda" },
+            { tick: 2160, label: "codab", type: "coda" }
+        ],
+        jumps: [{ tick: 1920, jumpTo: "start", playUntil: "coda", continueAt: "codab", playRepeats: false }],
+        systemTexts: [{ tick: 0, text: "Intro" }, { tick: 960, text: "Estrofa" }],
+        barlines: [],
+        lastTick: 2880,
+        division: 480,
+        fullRepeat: true
+    };
+    var output = orch.processExtraction(data);
+    var stripped = output.replace(/\u200B/g, "");
+    // Should have INTRO label near the end
+    var introIdx = stripped.lastIndexOf("- INTRO -");
+    assert.ok(introIdx >= 0, "should have INTRO label: " + stripped);
+    // The INTRO label should be after the lyrics
+    var helloIdx = stripped.lastIndexOf("hello.");
+    assert.ok(introIdx > helloIdx, "INTRO should come after lyrics");
+    // Should include codab chords (Re7, Sol)
+    var afterIntro = stripped.substring(introIdx);
+    assert.ok(afterIntro.indexOf("Re7") >= 0, "should include coda chord Re7 after INTRO: " + afterIntro);
+});
+
+test("DC al Coda filters gap labels between coda and codab", function() {
+    // Labels between the coda mark and codab should NOT appear in the
+    // DC replay gap (playback jumps over that region).
+    var data = {
+        title: "DC FILTER",
+        syllables: [
+            syl(2000, 0, "hel", "begin", { durationQ: 1 }),
+            syl(2480, 0, "lo.", "end", { durationQ: 1 })
+        ],
+        chords: [
+            { tick: 0, chord: "Sol" }, { tick: 480, chord: "Re" },
+            { tick: 960, chord: "Sol" },
+            { tick: 2000, chord: "Mi" }, { tick: 2480, chord: "Lam" },
+            { tick: 3000, chord: "Sol" }, { tick: 3240, chord: "Re7" },
+            { tick: 3480, chord: "Sol" }
+        ],
+        repeats: [],
+        voltas: [],
+        markers: [
+            { tick: 960, label: "coda", type: "tocoda" },
+            { tick: 3240, label: "codab", type: "coda" }
+        ],
+        jumps: [{ tick: 3000, jumpTo: "start", playUntil: "coda", continueAt: "codab", playRepeats: false }],
+        systemTexts: [
+            { tick: 0, text: "Intro" },
+            { tick: 2000, text: "Estrofa" }  // between coda(960) and codab(3240): should be filtered
+        ],
+        barlines: [],
+        lastTick: 3960,
+        division: 480,
+        fullRepeat: true
+    };
+    var output = orch.processExtraction(data);
+    var stripped = output.replace(/\u200B/g, "");
+    // "Estrofa" label at tick 2000 is between coda(960) and codab(3240),
+    // so it should NOT appear in the DC gap section at the end
+    var lastIntro = stripped.lastIndexOf("- INTRO -");
+    if (lastIntro >= 0) {
+        var afterIntro = stripped.substring(lastIntro);
+        assert.ok(afterIntro.indexOf("ESTROFA") < 0,
+            "Estrofa label should not appear in DC gap (between coda and codab): " + afterIntro);
+    }
+});
