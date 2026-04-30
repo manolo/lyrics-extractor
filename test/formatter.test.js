@@ -1706,7 +1706,7 @@ test("renderLabel with colon sequence cycles through items", function() {
     assert.equal(fmt.renderLabel("Solista manolo:juan:pedro", counters), "SOLISTA MANOLO");
     assert.equal(fmt.renderLabel("Solista manolo:juan:pedro", counters), "SOLISTA JUAN");
     assert.equal(fmt.renderLabel("Solista manolo:juan:pedro", counters), "SOLISTA PEDRO");
-    assert.equal(fmt.renderLabel("Solista manolo:juan:pedro", counters), "SOLISTA");
+    assert.equal(fmt.renderLabel("Solista manolo:juan:pedro", counters), null, "exhausted sequence returns null");
 });
 
 test("renderLabel with dash sequence cycles through items", function() {
@@ -1714,14 +1714,14 @@ test("renderLabel with dash sequence cycles through items", function() {
     assert.equal(fmt.renderLabel("Estrofa 1-2-1", counters), "ESTROFA 1");
     assert.equal(fmt.renderLabel("Estrofa 1-2-1", counters), "ESTROFA 2");
     assert.equal(fmt.renderLabel("Estrofa 1-2-1", counters), "ESTROFA 1");
-    assert.equal(fmt.renderLabel("Estrofa 1-2-1", counters), "ESTROFA");
+    assert.equal(fmt.renderLabel("Estrofa 1-2-1", counters), null, "exhausted sequence returns null");
 });
 
 test("renderLabel colon sequence with two items", function() {
     var counters = {};
     assert.equal(fmt.renderLabel("Coro feliz:triste", counters), "CORO FELIZ");
     assert.equal(fmt.renderLabel("Coro feliz:triste", counters), "CORO TRISTE");
-    assert.equal(fmt.renderLabel("Coro feliz:triste", counters), "CORO");
+    assert.equal(fmt.renderLabel("Coro feliz:triste", counters), null, "exhausted sequence returns null");
 });
 
 test("renderLabel sequence is independent from # counters", function() {
@@ -1730,6 +1730,72 @@ test("renderLabel sequence is independent from # counters", function() {
     assert.equal(fmt.renderLabel("Solista a:b", counters), "SOLISTA A");
     assert.equal(fmt.renderLabel("Estrofa #", counters), "ESTROFA 2");
     assert.equal(fmt.renderLabel("Solista a:b", counters), "SOLISTA B");
+});
+
+test("renderLabel colon sequence ignores empty items", function() {
+    var counters = {};
+    // "1::2::" splits to ["1","","2","",""] but empty items are filtered out
+    assert.equal(fmt.renderLabel("Estrofa 1::2::", counters), "ESTROFA 1");
+    assert.equal(fmt.renderLabel("Estrofa 1::2::", counters), "ESTROFA 2");
+    assert.equal(fmt.renderLabel("Estrofa 1::2::", counters), null, "exhausted returns null");
+});
+
+test("renderLabel dash sequence ignores empty items", function() {
+    var counters = {};
+    // "1--2" splits to ["1","","2"] but empty items are filtered out
+    assert.equal(fmt.renderLabel("Estrofa 1--2", counters), "ESTROFA 1");
+    assert.equal(fmt.renderLabel("Estrofa 1--2", counters), "ESTROFA 2");
+    assert.equal(fmt.renderLabel("Estrofa 1--2", counters), null, "exhausted returns null");
+});
+
+test("renderLabel returns null on every call after sequence exhausted", function() {
+    var counters = {};
+    assert.equal(fmt.renderLabel("X a:b", counters), "X A");
+    assert.equal(fmt.renderLabel("X a:b", counters), "X B");
+    // All subsequent calls return null
+    assert.equal(fmt.renderLabel("X a:b", counters), null);
+    assert.equal(fmt.renderLabel("X a:b", counters), null);
+    assert.equal(fmt.renderLabel("X a:b", counters), null);
+});
+
+test("renderLabel # counter is not affected by sequence exhaustion", function() {
+    // # labels never exhaust (they auto-increment forever)
+    var counters = {};
+    assert.equal(fmt.renderLabel("Verso #", counters), "VERSO 1");
+    assert.equal(fmt.renderLabel("Verso #", counters), "VERSO 2");
+    assert.equal(fmt.renderLabel("Verso #", counters), "VERSO 3");
+    assert.equal(fmt.renderLabel("Verso #", counters), "VERSO 4");
+    // All return valid labels, never null
+    assert.ok(fmt.renderLabel("Verso #", counters) !== null, "# labels never exhaust");
+});
+
+test("formatPerfLines suppresses label when sequence exhausted (null from renderLabel)", function() {
+    // Simulates a repeat with "Estrofa 1::2::": first pass gets ESTROFA 1,
+    // second pass (backwards tick) gets ESTROFA 2, third pass gets null (suppressed).
+    // Ticks go forward then backwards to trigger repeat pass detection.
+    var lines = [
+        { text: "verse one.", sylMap: [{tick:1000,pos:0}], startTick: 1000, endTick: 2000, sectionEnd: true },
+        // Backwards: second pass of repeat
+        { text: "verse two.", sylMap: [{tick:1000,pos:0}], startTick: 1000, endTick: 2000, sectionEnd: true },
+        // Another section
+        { text: "chorus.", sylMap: [{tick:3000,pos:0}], startTick: 3000, endTick: 4000, sectionEnd: true },
+        // Backwards: DS replay, third emission of the label
+        { text: "verse three.", sylMap: [{tick:1000,pos:0}], startTick: 1000, endTick: 2000, sectionEnd: true }
+    ];
+    var systemTexts = [
+        { tick: 1000, text: "Estrofa 1::2::" },
+        { tick: 3000, text: "Estribillo" }
+    ];
+    var result = fmt.formatPerfLines(lines, [], null, "TEST", null, null, systemTexts, true);
+    var output = result.text;
+    // ESTROFA 1 should appear (first pass)
+    assert.ok(output.indexOf("ESTROFA 1") >= 0, "ESTROFA 1 should appear: " + output);
+    // ESTROFA 2 should appear (second pass, backwards tick re-emits)
+    assert.ok(output.indexOf("ESTROFA 2") >= 0, "ESTROFA 2 should appear: " + output);
+    // "- ESTROFA -" (base only, no number) should NOT appear
+    var bareEstrofa = output.match(/- ESTROFA -/g) || [];
+    assert.equal(bareEstrofa.length, 0,
+        "should not have bare '- ESTROFA -' (sequence exhausted): " + output);
 });
 
 test("formatPerfLines keeps independent counters for two numbered labels", function() {
