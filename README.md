@@ -110,15 +110,23 @@ Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) a
 
 ### Line breaks and punctuation
 
+The extractor splits lyrics into lines automatically based on punctuation, musical rests, section barlines, and line length. For best results, add explicit markers in the score:
+
 | In the score | After Fix | Output | Line break? |
 |-------------|-----------|--------|-------------|
-| `;` (semicolon) | `,` (fullwidth comma) | `,` | YES |
-| `,,` (double comma) | `,` (small comma) | `,` | NO |
-| `..` (double period) | `.` (small full stop) | `.` | NO |
-| `...` (triple period) | `...` (ellipsis) | `...` | NO |
+| `;` (semicolon) | `,` (fullwidth comma) | `,` | YES (recommended) |
 | `.` `!` `?` (single) | unchanged | unchanged | YES |
+| `,,` (double comma) | `,` (small comma) | `,` | NO (continuation) |
+| `..` (double period) | `.` (small full stop) | `.` | NO (continuation) |
+| `...` (triple period) | `...` (ellipsis) | `...` | NO (continuation) |
 
-Automatic line breaks are triggered by sentence-ending punctuation, long rests (>= 4 beats), and section barlines. When in doubt, the extractor does NOT break. Use `;` to force a break.
+**Automatic line splitting:** When lyrics lack explicit break markers, the extractor splits long lines at commas near the median verse length, at musical rest boundaries, and at double barlines. Lines that exceed the PDF page width (75 characters) are split at the best available pause, even if short.
+
+**Tips for optimal results:**
+- Use `;` (semicolon) in the lyrics to force a line break at any point. The Fix button converts it to a visually distinct fullwidth comma in the score, and it renders as a normal `,` in the output.
+- Add **double barlines** between sections (Solista, Estribillo) to mark structural boundaries.
+- Add **System Text** labels (`Cmd+Shift+T`) for section names. These control stanza breaks and label emission.
+- Without any of the above, the extractor relies on heuristics (punctuation, rests, line length) which may produce suboptimal results on scores with long unbroken phrases.
 
 ### Section labels
 

@@ -108,15 +108,23 @@ Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) 
 
 ### Saltos de linea y puntuacion
 
+El extractor divide las letras en lineas automaticamente usando puntuacion, silencios musicales, barras de seccion y longitud de linea. Para mejores resultados, conviene poner marcadores explicitos en la partitura:
+
 | En la partitura | Tras Corregir | Salida | Salto de linea? |
 |----------------|---------------|--------|-----------------|
-| `;` (punto y coma) | `,` (coma fullwidth) | `,` | SI |
-| `,,` (doble coma) | `,` (coma pequena) | `,` | NO |
-| `..` (doble punto) | `.` (punto pequeno) | `.` | NO |
-| `...` (triple punto) | `...` (elipsis) | `...` | NO |
+| `;` (punto y coma) | `,` (coma fullwidth) | `,` | SI (recomendado) |
 | `.` `!` `?` (simple) | sin cambio | sin cambio | SI |
+| `,,` (doble coma) | `,` (coma pequena) | `,` | NO (continuacion) |
+| `..` (doble punto) | `.` (punto pequeno) | `.` | NO (continuacion) |
+| `...` (triple punto) | `...` (elipsis) | `...` | NO (continuacion) |
 
-Los saltos automaticos se disparan por puntuacion final de frase, silencios largos (>= 4 tiempos) y barlines de seccion. En caso de duda, el extractor NO rompe. Usa `;` para forzar un salto.
+**Division automatica de lineas:** Cuando las letras no tienen marcadores explicitos de salto, el extractor divide lineas largas en comas cercanas a la longitud tipica del verso, en silencios musicales y en barras dobles. Las lineas que exceden el ancho de pagina del PDF (75 caracteres) se dividen en la mejor pausa disponible.
+
+**Consejos para resultados optimos:**
+- Usar `;` (punto y coma) en las letras para forzar un salto de linea. El boton Corregir lo convierte en una coma fullwidth visible en la partitura, y se muestra como `,` en la salida.
+- Poner **barras dobles** entre secciones (Solista, Estribillo) para marcar limites estructurales.
+- Agregar **Texto de Sistema** (`Cmd+Shift+T`) con nombres de seccion. Estos controlan los saltos de estrofa y la emision de etiquetas.
+- Sin ninguno de los anteriores, el extractor se basa en heuristicas (puntuacion, silencios, longitud) que pueden dar resultados suboptimos en partituras con frases largas sin pausas.
 
 ### Etiquetas de seccion
 

@@ -43,6 +43,12 @@ var es =
     "<tr><td width='150' nowrap><b>Sinalefa</b></td><td>Usa un punto u otro car\u00e1cter de puntuaci\u00f3n entre dos letras para marcar sinalefas: " +
     "<code>da.es</code> o <code>da\u00aces</code> generar\u00e1n <code>da es</code> separado en la extracci\u00f3n. " +
     "Cualquier s\u00edmbolo entre dos letras (excepto gui\u00f3n y gui\u00f3n bajo) se interpreta como sinalefa.</td></tr>" +
+    "<tr><td width='150' nowrap><b>Divisi\u00f3n autom\u00e1tica</b></td><td>El plugin divide las l\u00edneas autom\u00e1ticamente por puntuaci\u00f3n, silencios musicales, " +
+    "barras dobles y longitud de l\u00ednea. Para mejores resultados: usa <code>;</code> para forzar saltos, " +
+    "a\u00f1ade <b>barras dobles</b> entre secciones, y a\u00f1ade <b>Texto de sistema</b> con nombres de secci\u00f3n. " +
+    "Sin estos marcadores, el plugin se basa en heur\u00edsticas que pueden dar resultados suboptimos en frases largas sin pausas.</td></tr>" +
+    "<tr><td width='150' nowrap><b>Forzar salto de l\u00ednea</b></td><td>Usa <code>;</code> (punto y coma) en la s\u00edlaba para forzar un salto de l\u00ednea. " +
+    "El bot\u00f3n <b>Corregir</b> lo convierte en una coma especial visible en la partitura, y se muestra como <code>,</code> en la salida.</td></tr>" +
     "<tr><td width='150' nowrap><b>Evitar salto de l\u00ednea</b></td><td>A veces la puntuaci\u00f3n o un silencio cortan la frase en dos l\u00edneas. " +
     "Para evitarlo, duplica el car\u00e1cter en la s\u00edlaba: " +
     "<code>..</code> muestra un punto, <code>,,</code> muestra una coma, <code>...</code> muestra puntos suspensivos. " +
@@ -107,6 +113,12 @@ var en =
     "<tr><td width='150' nowrap><b>Synalepha</b></td><td>Use a dot or other punctuation character between two letters to mark synalepha: " +
     "<code>da.es</code> or <code>da\u00aces</code> will output <code>da es</code> separated in the extraction. " +
     "Any symbol between two letters (except hyphen and underscore) is interpreted as synalepha.</td></tr>" +
+    "<tr><td width='150' nowrap><b>Automatic splitting</b></td><td>The plugin splits lines automatically by punctuation, musical rests, " +
+    "double barlines, and line length. For best results: use <code>;</code> to force breaks, " +
+    "add <b>double barlines</b> between sections, and add <b>System Text</b> with section names. " +
+    "Without these markers, the plugin relies on heuristics which may produce suboptimal results on long phrases without pauses.</td></tr>" +
+    "<tr><td width='150' nowrap><b>Force line break</b></td><td>Use <code>;</code> (semicolon) in the syllable to force a line break. " +
+    "The <b>Fix</b> button converts it to a visible special comma in the score, and it renders as <code>,</code> in the output.</td></tr>" +
     "<tr><td width='150' nowrap><b>Prevent line break</b></td><td>Sometimes punctuation or a rest splits a phrase into two lines. " +
     "To prevent it, double the character in the syllable: " +
     "<code>..</code> shows a period, <code>,,</code> shows a comma, <code>...</code> shows an ellipsis. " +

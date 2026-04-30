@@ -54,6 +54,13 @@ function main() {
         console.log("  --check             Check lyrics for issues (synalepha, hyphens, syllabic)");
         console.log("  --fix               Fix lyrics issues in the score file");
         console.log("");
+        console.log("Line splitting:");
+        console.log("  Lines are split automatically at punctuation (.!?;), musical rests,");
+        console.log("  section barlines, and commas near the median verse length. Lines");
+        console.log("  exceeding 75 chars are split at the best available pause.");
+        console.log("  For optimal results, use ; in lyrics to force breaks, add double");
+        console.log("  barlines between sections, and add System Text labels.");
+        console.log("");
         console.log("Examples:");
         console.log("  cli/index.js song.mscz                          # stdout");
         console.log("  cli/index.js song.mscz --save                   # writes song-letra.txt");
