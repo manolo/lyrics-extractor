@@ -29,7 +29,7 @@ MuseScore 4 extension that extracts lyrics with aligned chords from scores, gene
 
 ## Features
 
-![Plugin usage demo](docs/lyrics-extractor-usage-video.gif)
+![Plugin usage demo](docs/lyrics-extractor-video.gif)
 
 The demo above shows a complete workflow: chord symbols are entered on the accompaniment staff, lyrics are typed on the voice staff using MuseScore's standard input (`.` for synalepha between vowels, `Space` to advance to the next word, `-` to split a word across notes, and punctuation like `,` `.` `;` to mark phrase boundaries). Once the score is ready, the plugin is launched, lyrics and chords are extracted with one click, and the formatted PDF is saved and opened automatically.
 

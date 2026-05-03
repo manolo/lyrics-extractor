@@ -27,7 +27,7 @@ Extension de MuseScore 4 que extrae letras con acordes alineados de partituras, 
 
 ## Funcionalidades
 
-![Demo de uso del plugin](docs/lyrics-extractor-usage-video.gif)
+![Demo de uso del plugin](docs/lyrics-extractor-video.gif)
 
 La demo de arriba muestra un flujo de trabajo completo: se introducen los simbolos de acorde en el pentagrama de acompanamiento, las letras se escriben en el pentagrama de voz usando la entrada estandar de MuseScore (`.` para sinalefas entre vocales, `Espacio` para avanzar a la siguiente palabra, `-` para dividir una palabra entre varias notas, y signos como `,` `.` `;` para marcar fronteras de frase). Una vez lista la partitura, se abre el plugin, se extraen letras y acordes con un solo click, y el PDF formateado se guarda y se abre automaticamente.
 
