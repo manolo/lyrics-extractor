@@ -1,85 +1,128 @@
+// Integration tests: snapshot comparison + fixture.mscz tests
+// Snapshot tests compare CLI output against baseline .txt files in test/its/.
+// Each snapshot stores the mtime of the .mscz used to generate it as a trailing
+// comment. When a test fails and the score mtime differs, the error warns that
+// the score has changed and suggests regenerating.
+
 var test = require("node:test");
 var assert = require("node:assert/strict");
 var path = require("path");
 var fs = require("fs");
+var child = require("child_process");
+var os = require("os");
 var msczReader = require("../cli/mscz-reader");
 var xmlExtractor = require("../extractors/xml-extractor");
 var orchestrator = require("../lib/orchestrator");
 var chordUtils = require("../lib/chord-utils");
 
 var FIXTURE_PATH = path.join(__dirname, "fixture.mscz");
+var BASE = path.resolve(__dirname, "..");
+var CLI = path.join(BASE, "cli/index.js");
 var ITS_DIR = path.join(__dirname, "its");
-var HOME = process.env.HOME || "";
+var MUSIC_DIR = path.join(os.homedir(), "Music");
 
-// Score file lookup: fixture name -> mscz path
-var SCORE_MAP = {
-    "AlmaLlanera": HOME + "/Music/TunaAlcala/AlmaLlanera/AlmaLlanera.mscz",
-    "Clavelitos": HOME + "/Music/TunaAlcala/Clavelitos/Clavelitos.mscz",
-    "EstudiantinaMadrilena": HOME + "/Music/TunaAlcala/EstudiantinaMadrileña/EstudiantinaMadrileña.mscz",
-    "HorasDeRonda": HOME + "/Music/TunaAlcala/HorasDeRonda/HorasDeRonda.mscz",
-    "IsaDelCandidito": HOME + "/Music/TunaAlcala/IsaDelCandidito/IsaDelCandidito.mscz",
-    "LosAmigos": HOME + "/Music/TunaAlcala/LosAmigos/LosAmigos.mscz",
-    "MalaguenaSalerosa": HOME + "/Music/Cantina/MalagueñaSalerosa/MalagueñaSalerosa.mscz",
-    "NochePerfumada": HOME + "/Music/TunaAlcala/NochePerfumada/NochePerfumada.mscz",
-    "OjosDeEspaña": HOME + "/Music/TunaAlcala/OjosDeEspaña/OjosDeEspaña.mscz",
-    "RondaFiruli": HOME + "/Music/TunaAlcala/RondaDelFiruli/RondaDelFiruli.mscz",
-    "Rondalla": HOME + "/Music/TunaAlcala/Rondalla/Rondalla.mscz",
-    "SanCayetano": HOME + "/Music/TunaAlcala/SanCayetano/SanCayetano.mscz",
-    "TrustTenorios": HOME + "/Music/TunaAlcala/TrustTenorios/TrustTenorios.mscz",
-    "TunaCompostelana": HOME + "/Music/TunaAlcala/TunaCompostelana/Compostelana.mscz",
-    "VuelaUnaLagrima": HOME + "/Music/TunaAlcala/VuelaUnaLagrima/VuelaUnaLagrima.mscz"
+// Song name -> path relative to ~/Music (without .mscz extension)
+var SONGS = {
+    "AlmaLlanera":           "TunaAlcala/AlmaLlanera/AlmaLlanera",
+    "Clavelitos":            "TunaAlcala/Clavelitos/Clavelitos",
+    "EspanaCani":            "TunaAlcala/EspañaCañi/EspañaCañi",
+    "EstudiantinaMadrilena": "TunaAlcala/EstudiantinaMadrileña/EstudiantinaMadrileña",
+    "HorasDeRonda":          "TunaAlcala/HorasDeRonda/HorasDeRonda",
+    "IsaDelCandidito":       "TunaAlcala/IsaDelCandidito/IsaDelCandidito",
+    "LosAmigos":             "TunaAlcala/LosAmigos/LosAmigos",
+    "MalaguenaSalerosa":     "Cantina/MalagueñaSalerosa/MalagueñaSalerosa",
+    "MilagroDeTusOjos":      "TunaAlcala/MilagroDeTusOjos/MilagroDeTusOjos",
+    "NochePerfumada":        "TunaAlcala/NochePerfumada/NochePerfumada",
+    "OjosDeEspaña":          "TunaAlcala/OjosDeEspaña/OjosDeEspaña",
+    "RondaFiruli":           "TunaAlcala/RondaDelFiruli/RondaFiruli",
+    "Rondalla":              "TunaAlcala/Rondalla/Rondalla",
+    "SanCayetano":           "TunaAlcala/SanCayetano/SanCayetano",
+    "TrustTenorios":         "Zarzuela/TrustTenorios/TrustTenorios",
+    "TunaCompostelana":      "TunaAlcala/TunaCompostelana/Compostelana",
+    "VuelaUnaLagrima":       "TunaAlcala/VuelaUnaLagrima/VuelaUnaLagrima"
 };
 
-// Generate CLI output for a score (same pipeline as cli/index.js)
-function generateOutput(msczPath, compact) {
-    var xml = msczReader.readScore(msczPath);
-    var excerpts = [];
-    try { excerpts = msczReader.readGuitarExcerpts(msczPath); } catch (e) {}
-    var spelling = msczReader.readSpelling(msczPath);
-    var data = xmlExtractor.extractAll(xml, excerpts.map(function(e) { return e.xml; }), spelling);
-    if (!data) return null;
-    chordUtils.prettifyChords(data.chords);
-    if (!compact) data.fullRepeat = true;
-    var output = orchestrator.processExtraction(data);
-    if (!output) return null;
-    return output.replace(/\u200B/g, "");
+var MTIME_PREFIX = "// mscz-mtime: ";
+
+function getScorePath(song) {
+    return path.join(MUSIC_DIR, SONGS[song] + ".mscz");
 }
 
-// IT loop: compare each fixture against generated output
-var fixtureFiles = fs.existsSync(ITS_DIR) ? fs.readdirSync(ITS_DIR).filter(function(f) { return f.endsWith(".txt"); }) : [];
-fixtureFiles.forEach(function(file) {
-    var match = file.match(/^(.+)\.(full|compact)\.txt$/);
-    if (!match) return;
-    var songName = match[1];
-    var mode = match[2];
-    var msczPath = SCORE_MAP[songName];
-    if (!msczPath || !fs.existsSync(msczPath)) return; // skip if score not found
+function getMsczMtime(scorePath) {
+    try { return fs.statSync(scorePath).mtime.toISOString(); } catch (e) { return null; }
+}
 
-    test("IT: " + songName + "." + mode, function() {
-        var expected = fs.readFileSync(path.join(ITS_DIR, file), "utf8");
-        var actual = generateOutput(msczPath, mode === "compact");
-        assert.ok(actual, "should produce output for " + songName);
-        if (actual !== expected) {
-            var expLines = expected.split("\n");
-            var actLines = actual.split("\n");
-            var diffs = [];
-            var maxLen = Math.max(expLines.length, actLines.length);
-            for (var d = 0; d < maxLen; d++) {
-                var el = d < expLines.length ? expLines[d] : undefined;
-                var al = d < actLines.length ? actLines[d] : undefined;
-                if (el !== al) {
-                    if (el !== undefined) diffs.push("  " + (d + 1) + " < " + el);
-                    if (al !== undefined) diffs.push("  " + (d + 1) + " > " + al);
-                }
-            }
-            if (diffs.length > 20) diffs = diffs.slice(0, 20).concat(["  ... " + (diffs.length - 20) + " more diffs"]);
-            var msg = songName + "." + mode + " diffs:\n\n" + diffs.join("\n") + "\n";
-            var err = new Error(msg);
-            err.stack = msg;
-            throw err;
+function readSnapshotMtime(snapshotPath) {
+    try {
+        var content = fs.readFileSync(snapshotPath, "utf8");
+        var lines = content.split("\n");
+        var lastLine = lines[lines.length - 1] || lines[lines.length - 2] || "";
+        if (lastLine.indexOf(MTIME_PREFIX) === 0) {
+            return lastLine.substring(MTIME_PREFIX.length).trim();
         }
-    });
-});
+    } catch (e) {}
+    return null;
+}
+
+function runCli(scorePath, flags) {
+    return child.execSync(
+        "node " + JSON.stringify(CLI) + " " + JSON.stringify(scorePath) + " " + flags,
+        { encoding: "utf8", timeout: 30000 }
+    );
+}
+
+// ============================================================
+// Snapshot tests: compare CLI output against baseline .txt files
+// ============================================================
+
+var songNames = Object.keys(SONGS);
+var scoresExist = songNames.some(function(s) { return fs.existsSync(getScorePath(s)); });
+
+for (var i = 0; i < songNames.length; i++) {
+    (function(song) {
+        var scorePath = getScorePath(song);
+        var compactSnapshot = path.join(ITS_DIR, song + ".compact.txt");
+        var fullSnapshot = path.join(ITS_DIR, song + ".full.txt");
+
+        ["--compact", "--full"].forEach(function(flag) {
+            var snapshotPath = flag === "--compact" ? compactSnapshot : fullSnapshot;
+            var label = "IT: " + song + "." + flag.replace("--", "");
+
+            test(label, { skip: !scoresExist || !fs.existsSync(scorePath) || !fs.existsSync(snapshotPath) }, function() {
+                var rawExpected = fs.readFileSync(snapshotPath, "utf8");
+                // Strip mtime comment from expected output for comparison
+                var expected = rawExpected.replace(/\n\/\/ mscz-mtime: .+\n?$/, "\n");
+
+                var actual = runCli(scorePath, flag);
+
+                if (actual !== expected) {
+                    var snapshotMtime = readSnapshotMtime(snapshotPath);
+                    var currentMtime = getMsczMtime(scorePath);
+                    var scoreChanged = snapshotMtime && currentMtime && snapshotMtime !== currentMtime;
+
+                    var msg = song + " " + flag + " output changed";
+                    if (scoreChanged) {
+                        msg += "\n\n  WARNING: Score file has changed since snapshot was generated."
+                            + "\n  Snapshot mtime: " + snapshotMtime
+                            + "\n  Current mtime:  " + currentMtime
+                            + "\n\n  To update, run:"
+                            + "\n    node cli/index.js " + JSON.stringify(scorePath) + " " + flag
+                            + " > " + JSON.stringify(snapshotPath)
+                            + "\n  Then re-run: node test/its/update-mtime.js " + song;
+                    } else if (!snapshotMtime) {
+                        msg += "\n\n  NOTE: Snapshot has no mtime marker. Run:"
+                            + "\n    node test/its/update-mtime.js " + song;
+                    }
+                    assert.equal(actual, expected, msg);
+                }
+            });
+        });
+    })(songNames[i]);
+}
+
+// ============================================================
+// fixture.mscz tests: data extraction and pipeline validation
+// ============================================================
 
 test("integration: fixture.mscz reads and extracts correctly", function() {
     var xml = msczReader.readScore(FIXTURE_PATH);
@@ -102,7 +145,6 @@ test("integration: fixture.mscz data structure integrity", function() {
     assert.ok(data.chords.length >= 2, "Should have chords");
     assert.equal(data.repeats.length, 1, "Should have 1 repeat");
 
-    // All syllables should have required fields
     for (var i = 0; i < data.syllables.length; i++) {
         var s = data.syllables[i];
         assert.ok(typeof s.tick === "number", "syllable should have tick");
@@ -111,7 +153,6 @@ test("integration: fixture.mscz data structure integrity", function() {
         assert.ok(["single", "begin", "end", "middle"].indexOf(s.syllabic) >= 0, "syllable should have valid syllabic");
     }
 
-    // All chords should have required fields
     for (var j = 0; j < data.chords.length; j++) {
         var c = data.chords[j];
         assert.ok(typeof c.tick === "number", "chord should have tick");
@@ -124,7 +165,6 @@ test("integration: fixture.mscz produces solfeo chord names", function() {
     var spelling = msczReader.readSpelling(FIXTURE_PATH);
     var data = xmlExtractor.extractAll(xml, [], spelling);
 
-    // With solfeo spelling, chords should use solfeo names
     assert.equal(data.chords[0].chord, "Lam", "first chord should be Lam (solfeo)");
     assert.equal(data.chords[1].chord, "Mi7", "second chord should be Mi7 (solfeo)");
     assert.equal(data.chords[2].chord, "La", "third chord should be La (solfeo)");
@@ -153,21 +193,17 @@ test("integration: fixture.mscz orchestrator produces output", function() {
 
 test("integration: tpcToChordName handles literal text without root", function() {
     var Constants = require("../lib/constants");
-    // Chords without root TPC should return the name as-is
     assert.equal(Constants.tpcToChordName(-99, "Bajos", "solfeggio"), "Bajos");
     assert.equal(Constants.tpcToChordName(-99, "Rem", "standard"), "Rem");
     assert.equal(Constants.tpcToChordName(-99, "", "solfeggio"), "");
 });
 
 test("integration: readSpelling returns standard when no style sheet", function() {
-    // .mscx files don't have score_style.mss, should default to standard
     var spelling = msczReader.readSpelling("/tmp/nonexistent.mscx");
     assert.equal(spelling, "standard");
 });
 
 test("integration: trailing chords appended to last line are not duplicated as coda", function() {
-    // Reproduces the 'extra Sol Do' bug: when the last lyric line has trailing
-    // chords that fit and are appended, they shouldn't be re-emitted below.
     var data = {
         title: "TEST",
         syllables: [
@@ -185,8 +221,6 @@ test("integration: trailing chords appended to last line are not duplicated as c
         systemTexts: [], barlines: [], lastTick: 1500, division: 480
     };
     var output = orchestrator.processExtraction(data);
-    // "Sol Do Sol Do" appended after "hola." should appear exactly once
-    var solDoMatches = output.match(/Sol\s+Do/g) || [];
     var solCount = (output.match(/\bSol\b/g) || []).length;
     var doCount = (output.match(/\bDo\b/g) || []).length;
     assert.equal(solCount, 2, "Sol should appear exactly twice (in trailing): " + output);
