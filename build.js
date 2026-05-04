@@ -21,6 +21,7 @@ fs.mkdirSync(BUILD + "/ui", { recursive: true });
 var jsFiles = []
     .concat(glob("lib", ".js"))
     .concat(glob("extractors", ".js"))
+    .concat(glob("cli", ".js"))
     .concat(["ui/help-text.js"]);
 
 // Generate short module ID from path hash
@@ -117,6 +118,14 @@ if (version !== "dev") {
     manifest = manifest.replace(/"version": "[^"]*"/, '"version": "' + version + '"');
     fs.writeFileSync(BUILD + "/manifest.json", manifest);
 }
+
+// Rename obfuscated CLI entry point to m/cli.js and add shebang
+var cliId = fileMap["cli/index.js"];
+var cliPath = path.join(BUILD, "m", cliId);
+var cliCode = fs.readFileSync(cliPath, "utf8");
+cliCode = cliCode.replace(/^#!.*\n?/, "");
+fs.writeFileSync(path.join(BUILD, "m", "cli.js"), "#!/usr/bin/env node\n" + cliCode);
+fs.unlinkSync(cliPath);
 
 // Package as ZIP
 childProcess.execSync("cd " + quote(BUILD) + " && zip -r ../" + quote(OUT) + " .");
