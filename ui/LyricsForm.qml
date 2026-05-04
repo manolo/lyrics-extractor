@@ -18,6 +18,7 @@ import "../lib/formatter.js" as Formatter
 import "../lib/orchestrator.js" as Orchestrator
 import "../lib/chord-formatter.js" as ChordFormatter
 import "../lib/pdf-writer.js" as PdfWriter
+import "../lib/chordpro-writer.js" as ChordProWriter
 import "../lib/fretboard-renderer.js" as FretboardRenderer
 import "../extractors/musescore-extractor.js" as Extractor
 // FretDiagram fallback: remove these 3 imports when MuseScore exposes FretDiagram.harmony
@@ -856,6 +857,37 @@ MuseScore {
         }
     }
 
+    function saveChordProFile(content) {
+        if (!content) return;
+
+        var cpOutput = ChordProWriter.convert(content);
+        var scorePath = curScore.path || "";
+        var filePath;
+        if (scorePath) {
+            filePath = scorePath.replace(/\.(mscz|mscx)$/i, "") + "-letra.cho";
+        } else {
+            var title = curScore.scoreName || curScore.title || "score";
+            var filename = title.replace(/[^a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s_-]/g, "").replace(/\s+/g, "_");
+            filePath = fileIO.homePath() + "/Documents/" + filename + "-letra.cho";
+        }
+
+        try {
+            fileIO.source = filePath;
+            fileIO.write(cpOutput);
+            savedFilePath = filePath;
+            statusText.text = tr(
+                "ChordPro guardado en: " + filePath,
+                "ChordPro saved to: " + filePath
+            );
+            openFile(filePath);
+        } catch (e) {
+            statusText.text = tr(
+                "Error guardando ChordPro: " + e,
+                "Error saving ChordPro: " + e
+            );
+        }
+    }
+
     function savePdfFile(content) {
         if (!content) return;
 
@@ -1274,6 +1306,12 @@ MuseScore {
                                 opacity: 0.85
                                 onClicked: saveLyricsToFile(Formatter.stripChordMarkers(lyricsPreview.text))
                             }
+
+                            Button {
+                                text: "Save ChordPro"
+                                opacity: 0.85
+                                onClicked: saveChordProFile(extractedOutput || lyricsPreview.text)
+                            }
                         }
                     }
                 }
@@ -1496,6 +1534,7 @@ MuseScore {
         Extractor.setTextUtils(TextUtils);
         LineBuilder.setTextUtils(TextUtils);
         Formatter.setLineBuilder(LineBuilder);
+        ChordProWriter.setConvertChord(ChordUtils.convertChord);
         LyricsFixer.setTextUtils(TextUtils);
         if (settings.scoresDirectory && settings.scoresDirectory.length > 0) {
             scoresDirectory = settings.scoresDirectory;

@@ -11,6 +11,7 @@ var pdfWriter = require("../lib/pdf-writer");
 var lyricsFixer = require("../lib/lyrics-fixer");
 var chordUtils = require("../lib/chord-utils");
 var xmlPatcher = require("./xml-patcher");
+var chordproWriter = require("../lib/chordpro-writer");
 
 function main() {
     var args = process.argv.slice(2);
@@ -50,6 +51,7 @@ function main() {
         console.log("  --single            Auto-fit to one page (gaps first, then font)");
         console.log("  --no-diagrams       Omit fretboard diagrams from PDF");
         console.log("  --chords-only       List chords even if the score has no lyrics");
+        console.log("  --chordpro          Export as ChordPro format (.cho)");
         console.log("  --debug             Export raw extracted data as JSON");
         console.log("  --check             Check lyrics for issues (synalepha, hyphens, syllabic)");
         console.log("  --fix               Fix lyrics issues in the score file");
@@ -81,6 +83,7 @@ function main() {
     var lineNumbers = flags.indexOf("--numbers") >= 0 || flags.indexOf("--line-numbers") >= 0;
     var noDiagrams = flags.indexOf("--no-diagrams") >= 0;
     var chordsOnly = flags.indexOf("--chords-only") >= 0;
+    var chordproMode = flags.indexOf("--chordpro") >= 0;
     var checkMode = flags.indexOf("--check") >= 0;
     var fixMode = flags.indexOf("--fix") >= 0;
     var headerName = "";
@@ -285,6 +288,16 @@ function main() {
         var pdfContent = pdfWriter.generatePdf(output, pdfOptions);
         fs.writeFileSync(pdfPath, pdfContent, "binary");
         console.error("PDF written to: " + pdfPath);
+        if (!outputPath && !chordproMode) return;
+    }
+
+    // ChordPro output (convert before stripping markers, since markers identify chord lines)
+    if (chordproMode) {
+        var cpExt = path.extname(inputPath);
+        var cpPath = inputPath.replace(cpExt, "-letra.cho");
+        var cpOutput = chordproWriter.convert(output);
+        fs.writeFileSync(cpPath, cpOutput, "utf8");
+        console.error("ChordPro written to: " + cpPath);
         if (!outputPath) return;
     }
 
@@ -294,7 +307,7 @@ function main() {
         fs.writeFileSync(outputPath, textOutput, "utf8");
         console.error("Written to: " + outputPath);
         console.error(data.syllables.length + " syllables, " + data.chords.length + " chords extracted");
-    } else if (!pdfMode) {
+    } else if (!pdfMode && !chordproMode) {
         process.stdout.write(textOutput);
     }
 }
