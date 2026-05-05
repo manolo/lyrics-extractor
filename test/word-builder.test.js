@@ -249,6 +249,73 @@ test("detectPhraseBreak: _voltaContinuation does not suppress when absent", func
 // repairSyllabicChains: mid-word split on strong punctuation + rest
 // ========================================
 
+// ========================================
+// Apostrophe joining: contractions stay as one word
+// ========================================
+
+test("buildWords joins apostrophe contraction: don't", function() {
+    var syls = [
+        { tick: 0, verse: 0, text: "don", syllabic: "end", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 480, verse: 0, text: "'t", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+    ];
+    var words = wb.buildWords(syls, 0);
+    assert.equal(words.length, 1);
+    assert.equal(words[0].text, "don't");
+});
+
+test("buildWords joins apostrophe contraction: I'm", function() {
+    var syls = [
+        { tick: 0, verse: 0, text: "I", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 480, verse: 0, text: "'m", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+    ];
+    var words = wb.buildWords(syls, 0);
+    assert.equal(words.length, 1);
+    assert.equal(words[0].text, "I'm");
+});
+
+test("buildWords joins unicode right quote contraction: don\u2019t", function() {
+    var syls = [
+        { tick: 0, verse: 0, text: "don", syllabic: "end", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 480, verse: 0, text: "\u2019t", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+    ];
+    var words = wb.buildWords(syls, 0);
+    assert.equal(words.length, 1);
+    assert.equal(words[0].text, "don\u2019t");
+});
+
+test("buildWords joins multi-syllable contraction: wouldn't", function() {
+    var syls = [
+        { tick: 0, verse: 0, text: "would", syllabic: "begin", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 480, verse: 0, text: "n", syllabic: "end", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 960, verse: 0, text: "'t", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+    ];
+    var words = wb.buildWords(syls, 0);
+    assert.equal(words.length, 1);
+    assert.equal(words[0].text, "wouldn't");
+});
+
+test("buildWords does NOT join long apostrophe word (quoted word)", function() {
+    var syls = [
+        { tick: 0, verse: 0, text: "say", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 480, verse: 0, text: "'hello'", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+    ];
+    var words = wb.buildWords(syls, 0);
+    assert.equal(words.length, 2);
+    assert.equal(words[0].text, "say");
+    assert.equal(words[1].text, "'hello'");
+});
+
+test("buildWords joins Italian elision: l'amore", function() {
+    var syls = [
+        { tick: 0, verse: 0, text: "l'a", syllabic: "begin", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 480, verse: 0, text: "mo", syllabic: "middle", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 960, verse: 0, text: "re", syllabic: "end", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+    ];
+    var words = wb.buildWords(syls, 0);
+    assert.equal(words.length, 1);
+    assert.equal(words[0].text, "l'amore");
+});
+
 test("repairSyllabicChains splits mid-word chain at strong punctuation + rest", function() {
     // "can" (begin) -> "ción." (middle, punct+rest) -> "A" (middle) -> "za," (end)
     // Should become: "can" (begin) -> "ción." (end) -> "A" (begin) -> "za," (end)
