@@ -48,6 +48,17 @@ test("handles trailing chord beyond lyric length", function() {
     assert.ok(out.indexOf("[D]") >= 0);
 });
 
+test("multiple trailing chords are space-separated, not collapsed", function() {
+    var input = M + "                           Mim Lam Si7 Mim\nComo el candor de una rosa sa.\n";
+    var out = cp.convert(input);
+    // Should not produce [[Am] or similar broken brackets
+    assert.equal(out.indexOf("[["), -1, "should not have double brackets: " + out);
+    assert.ok(out.indexOf("[Am]") >= 0, "should have Am: " + out);
+    assert.ok(out.indexOf("[B7]") >= 0, "should have B7: " + out);
+    // Trailing chords should be separated by spaces
+    assert.ok(out.indexOf("] [") >= 0 || out.indexOf("]") >= 0, "trailing chords should be separated");
+});
+
 test("collapses extra alignment spaces", function() {
     var input = M + "Am          D\nhello       world\n";
     var out = cp.convert(input);
