@@ -71,7 +71,10 @@ test("replaceSynalepha replaces markers BETWEEN LETTERS", function() {
     assert.equal(tu.replaceSynalepha("da\u00aces"), "da\u203Fes", "not sign as synalepha");
     assert.equal(tu.replaceSynalepha("da~es"), "da\u203Fes", "tilde as synalepha");
     assert.equal(tu.replaceSynalepha("da|es"), "da\u203Fes", "pipe as synalepha");
-    assert.equal(tu.replaceSynalepha("da'es"), "da\u203Fes", "apostrophe as synalepha");
+    // Apostrophes: NOT synalepha (used in contractions: don't, l'amore)
+    assert.equal(tu.replaceSynalepha("da'es"), "da'es", "apostrophe preserved");
+    assert.equal(tu.replaceSynalepha("don't"), "don't", "contraction preserved");
+    assert.equal(tu.replaceSynalepha("l\u2019amore"), "l\u2019amore", "unicode apostrophe preserved");
 
     // Hyphens, underscores, digits: NOT synalepha
     assert.equal(tu.replaceSynalepha("da-es"), "da-es", "hyphen preserved");

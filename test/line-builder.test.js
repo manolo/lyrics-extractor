@@ -243,6 +243,24 @@ test("applyStanzaFormatting converts small comma (U+FE50) to regular comma", fun
     assert.equal(lines[1].text, "y del sol.");
 });
 
+test("applyStanzaFormatting preserves all-caps word after comma", function() {
+    var lines = [
+        { text: "CAMPFIRE SONG Song," },
+        { text: "CAMPFIRE SONG Song" }
+    ];
+    lb.applyStanzaFormatting(lines);
+    assert.equal(lines[1].text, "CAMPFIRE SONG Song.");
+});
+
+test("applyStanzaFormatting lowercases normal word after comma", function() {
+    var lines = [
+        { text: "singing," },
+        { text: "Dancing all night" }
+    ];
+    lb.applyStanzaFormatting(lines);
+    assert.equal(lines[1].text, "dancing all night.");
+});
+
 test("applyStanzaFormatting converts small full stop (U+FE52) to regular period", function() {
     var lines = [
         { text: "rosas\uFE52" },
