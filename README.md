@@ -179,6 +179,8 @@ node cli/index.js song.mscz --chords-only             # chord progression only
 | `--numbers` | Add line numbers in PDF |
 | `--no-diagrams` | Omit fretboard diagrams from PDF |
 | `--chords-only` | Force chord-only mode (ignore lyrics) |
+| `--chordpro` | Export as ChordPro format (.cho) |
+| `--staff <name\|num>` | Extract lyrics from a specific staff (by index or instrument name) |
 | `--anglo` | Force anglo chord names (C, D, E) |
 | `--solfeo` | Force solfeo chord names (Do, Re, Mi) |
 | `--full` | Write all D.S./D.C. repeats |
