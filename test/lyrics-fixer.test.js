@@ -378,3 +378,34 @@ test("fixGroup handles synalepha + hyphens together", function() {
     assert.equal(patchMap[0].newText.indexOf("-"), -1); // no hyphens
     assert.equal(patchMap[1].newSyllabic, 2); // end
 });
+
+// ============================================================
+// checkLyrics: punctuation examples
+// ============================================================
+
+test("checkLyrics returns punctuationExamples for detected issues", function() {
+    var groups = {
+        "0_0_0": [
+            { text: "long...", syllabic: 0 },
+            { text: "word", syllabic: 0 },
+            { text: "da,,", syllabic: 0 },
+            { text: "semi;", syllabic: 0 },
+            { text: "ok", syllabic: 0 }
+        ]
+    };
+    var result = fixer.checkLyrics(groups);
+    assert.equal(result.punctuation, 3);
+    assert.ok(result.punctuationExamples.length === 3);
+    assert.ok(result.punctuationExamples.indexOf("long...") >= 0);
+    assert.ok(result.punctuationExamples.indexOf("da,,") >= 0);
+    assert.ok(result.punctuationExamples.indexOf("semi;") >= 0);
+});
+
+test("checkLyrics limits punctuationExamples to 4", function() {
+    var entries = [];
+    for (var i = 0; i < 10; i++) entries.push({ text: "w" + i + "...", syllabic: 0 });
+    var groups = { "0_0_0": entries };
+    var result = fixer.checkLyrics(groups);
+    assert.equal(result.punctuation, 10);
+    assert.equal(result.punctuationExamples.length, 4);
+});

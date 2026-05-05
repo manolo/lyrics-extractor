@@ -801,3 +801,120 @@ test("extractAll ignores <SystemText> on non-zero staff", function() {
     var data = xmlExt.extractAll(xml);
     assert.equal(data.systemTexts.length, 0, "SystemText on staff 2 should be ignored");
 });
+
+// ========================================
+// Tied notes: duration accumulation for gap calculation
+// ========================================
+
+test("extractAll accounts for tied notes in gap calculation", function() {
+    // Two eighth notes tied together (if + tied continuation), then next syllable "you"
+    // Without tie fix: gap = (960-0)/480 - 0.25 = 1.75 (false rest)
+    // With tie fix: gap = (960-0)/480 - 0.5 = 1.5... but actually the tied note
+    // occupies ticks 0-480, so gap from 480 to 960 = 1.0 quarter
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure>',
+        '<voice>',
+        '<Chord><durationType>eighth</durationType>',
+        '<Lyrics><text>if</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>67</pitch><tpc>15</tpc>',
+        '<Spanner type="Tie"><Tie/><next><location><fractions>1/8</fractions></location></next></Spanner>',
+        '</Note></Chord>',
+        '<Chord><durationType>eighth</durationType>',
+        '<Note><pitch>67</pitch><tpc>15</tpc>',
+        '<Spanner type="Tie"><Tie/><prev><location><fractions>-1/8</fractions></location></prev></Spanner>',
+        '</Note></Chord>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>you</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>65</pitch><tpc>13</tpc></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml);
+    var ifSyl = data.syllables.filter(function(s) { return s.text === "if"; })[0];
+    assert.ok(ifSyl, "should have 'if' syllable");
+    assert.equal(ifSyl.durationQ, 0.5, "durationQ should be original eighth note duration");
+    assert.equal(ifSyl.restAfter, false, "tied note should not create false rest: restAfter=" + ifSyl.restAfter + " gapQ=" + ifSyl.gapDurationQ);
+    assert.equal(ifSyl.restDurationQ, 0, "no rest duration for tied note");
+});
+
+test("extractAll handles tie chain of 3 notes", function() {
+    // Three eighth notes tied: lyrics on first, no lyrics on 2nd and 3rd
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure>',
+        '<voice>',
+        '<Chord><durationType>eighth</durationType>',
+        '<Lyrics><text>long</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>60</pitch>',
+        '<Spanner type="Tie"><Tie/><next><location><fractions>1/8</fractions></location></next></Spanner>',
+        '</Note></Chord>',
+        '<Chord><durationType>eighth</durationType>',
+        '<Note><pitch>60</pitch>',
+        '<Spanner type="Tie"><Tie/><prev><location><fractions>-1/8</fractions></location></prev></Spanner>',
+        '<Spanner type="Tie"><Tie/><next><location><fractions>1/8</fractions></location></next></Spanner>',
+        '</Note></Chord>',
+        '<Chord><durationType>eighth</durationType>',
+        '<Note><pitch>60</pitch>',
+        '<Spanner type="Tie"><Tie/><prev><location><fractions>-1/8</fractions></location></prev></Spanner>',
+        '</Note></Chord>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>next</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>62</pitch></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml);
+    var longSyl = data.syllables.filter(function(s) { return s.text === "long"; })[0];
+    assert.ok(longSyl, "should have 'long' syllable");
+    assert.equal(longSyl.durationQ, 0.5, "durationQ should be original eighth note only");
+    assert.equal(longSyl.restAfter, false, "3-note tie chain should not create false rest");
+});
+
+test("extractAll does not change durationQ for tied notes", function() {
+    // Verify that durationQ stays as the original note duration (not accumulated)
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40">',
+        '<Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1">',
+        '<Measure>',
+        '<voice>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>hold</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>60</pitch>',
+        '<Spanner type="Tie"><Tie/><next><location><fractions>1/4</fractions></location></next></Spanner>',
+        '</Note></Chord>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Note><pitch>60</pitch>',
+        '<Spanner type="Tie"><Tie/><prev><location><fractions>-1/4</fractions></location></prev></Spanner>',
+        '</Note></Chord>',
+        '<Chord><durationType>quarter</durationType>',
+        '<Lyrics><text>go</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>62</pitch></Note></Chord>',
+        '</voice></Measure>',
+        '</Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml);
+    var holdSyl = data.syllables.filter(function(s) { return s.text === "hold"; })[0];
+    assert.equal(holdSyl.durationQ, 1, "durationQ should be original quarter note (1), not accumulated (2)");
+    assert.equal(holdSyl.restAfter, false, "no false rest after tied note");
+});

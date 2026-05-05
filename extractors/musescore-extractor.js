@@ -284,6 +284,46 @@ function extractSyllables(staffIdx) {
         }
     }
 
+    // Build tied duration map: for chords with tieForward, sum following tied durations
+    var tiedDurations = {};
+    for (var ti = 0; ti < elements.length; ti++) {
+        var tElem = elements[ti].element;
+        if (tElem.type !== Element.CHORD) continue;
+        var tNotes = tElem.notes;
+        if (!tNotes || tNotes.length === 0) continue;
+        var hasTieForward = false;
+        for (var tn = 0; tn < tNotes.length; tn++) {
+            if (tNotes[tn].tieForward) { hasTieForward = true; break; }
+        }
+        if (hasTieForward) {
+            var extraQ = 0;
+            for (var tj = ti + 1; tj < elements.length; tj++) {
+                var tjElem = elements[tj].element;
+                if (tjElem.type !== Element.CHORD) continue;
+                var tjNotes = tjElem.notes;
+                var hasTieBack = false;
+                if (tjNotes) {
+                    for (var tjn = 0; tjn < tjNotes.length; tjn++) {
+                        if (tjNotes[tjn].tieBack) { hasTieBack = true; break; }
+                    }
+                }
+                if (hasTieBack) {
+                    extraQ += getDurationInQuarters(tjElem);
+                    var tjHasTieForward = false;
+                    if (tjNotes) {
+                        for (var tjf = 0; tjf < tjNotes.length; tjf++) {
+                            if (tjNotes[tjf].tieForward) { tjHasTieForward = true; break; }
+                        }
+                    }
+                    if (!tjHasTieForward) break;
+                } else {
+                    break;
+                }
+            }
+            if (extraQ > 0) tiedDurations[elements[ti].segment.tick] = extraQ;
+        }
+    }
+
     // Compute gaps between syllables (same logic as xml-extractor).
     // Uses tick difference between consecutive syllables of the same verse
     // instead of looking for physical REST elements (more reliable).
@@ -292,7 +332,11 @@ function extractSyllables(staffIdx) {
         var gSyl = syllables[gi];
         for (var gj = gi + 1; gj < syllables.length; gj++) {
             if (syllables[gj].verse === gSyl.verse) {
-                var gap = (syllables[gj].tick - gSyl.tick) / 480 - gSyl.durationQ;
+                var effectiveDurationQ = gSyl.durationQ;
+                if (tiedDurations[gSyl.tick]) {
+                    effectiveDurationQ += tiedDurations[gSyl.tick];
+                }
+                var gap = (syllables[gj].tick - gSyl.tick) / 480 - effectiveDurationQ;
                 if (gap > 0) {
                     gSyl.gapDurationQ = gap;
                     if (gap > 0.25) {

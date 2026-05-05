@@ -504,9 +504,59 @@ function extractAll(xmlString, excerptXmls, spelling) {
     var jumps = [];
     var systemTexts = [];
 
+    // Collect tied note durations per staff: { staffId: { tick: extraDurationQ } }
+    // A chord with a Tie forward means the next chord(s) at the same pitch
+    // extend this note's duration. We collect all chords and their tie status,
+    // then compute the total tied duration for each starting tick.
+    var tiedDurations = {}; // staffId -> { tick -> totalExtraDurationQ }
+
     for (var si = 0; si < staffElements.length; si++) {
         var staffNode = staffElements[si];
         var staffId = parseInt(staffNode.attrs.id || (si + 1)) - 1; // 0-based
+
+        // Collect chord info for tie detection
+        var chordInfos = [];
+        walkStaffMeasures(staffNode, division, function(elem, voiceTick, measureStartTick, mi, actualMeasureTicks) {
+            if (elem.tag === "Chord") {
+                var durType = childText(elem, "durationType") || "quarter";
+                var dotsNode = findChild(elem, "dots");
+                var dots = dotsNode ? parseInt(dotsNode.text) || 0 : 0;
+                var dQ = durationToTicks(durType, dots, division, actualMeasureTicks) / division;
+                var isGrace = findChild(elem, "acciaccatura") || findChild(elem, "appoggiatura");
+                if (isGrace) return;
+                // Check if any Note has a Tie forward (Spanner type="Tie")
+                var hasTieForward = false;
+                var hasTieBack = false;
+                var notes = findChildren(elem, "Note");
+                for (var ni = 0; ni < notes.length; ni++) {
+                    var spanners = findChildren(notes[ni], "Spanner");
+                    for (var spi = 0; spi < spanners.length; spi++) {
+                        if (spanners[spi].attrs && spanners[spi].attrs.type === "Tie") {
+                            if (findChild(spanners[spi], "next")) hasTieForward = true;
+                            if (findChild(spanners[spi], "prev")) hasTieBack = true;
+                        }
+                    }
+                }
+                chordInfos.push({ tick: voiceTick, durationQ: dQ, tieForward: hasTieForward, tieBack: hasTieBack });
+            }
+        });
+
+        // Build tied duration map: for each chord with tieForward, sum following tied durations
+        tiedDurations[staffId] = {};
+        for (var ci = 0; ci < chordInfos.length; ci++) {
+            if (chordInfos[ci].tieForward) {
+                var extraQ = 0;
+                for (var cj = ci + 1; cj < chordInfos.length; cj++) {
+                    if (chordInfos[cj].tieBack) {
+                        extraQ += chordInfos[cj].durationQ;
+                        if (!chordInfos[cj].tieForward) break; // end of tie chain
+                    } else {
+                        break;
+                    }
+                }
+                if (extraQ > 0) tiedDurations[staffId][chordInfos[ci].tick] = extraQ;
+            }
+        }
 
         walkStaffMeasures(staffNode, division, function(elem, voiceTick, measureStartTick, mi, actualMeasureTicks) {
             if (elem.tag === "Chord" || elem.tag === "Rest") {
@@ -739,7 +789,13 @@ function extractAll(xmlString, excerptXmls, spelling) {
         // Find next syllable in same verse
         for (var gj = gi + 1; gj < syllables.length; gj++) {
             if (syllables[gj].verse === gSyl.verse) {
-                var gap = (syllables[gj].tick - gSyl.tick) / division - gSyl.durationQ;
+                // Account for tied notes: the effective duration includes tied continuations
+                var effectiveDurationQ = gSyl.durationQ;
+                var lyricTies = tiedDurations[bestLyricStaff];
+                if (lyricTies && lyricTies[gSyl.tick]) {
+                    effectiveDurationQ += lyricTies[gSyl.tick];
+                }
+                var gap = (syllables[gj].tick - gSyl.tick) / division - effectiveDurationQ;
                 if (gap > 0) {
                     gSyl.gapDurationQ = gap;
                     if (gap > 0.25) {

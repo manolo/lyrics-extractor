@@ -148,7 +148,11 @@ function main() {
                 if (lyricResult.syllabic > 4) detail += ", ...";
                 console.log("Broken syllabic chains: " + lyricResult.syllabic + " (" + detail + ")");
             }
-            if (lyricResult.punctuation > 0) console.log("Punctuation issues: " + lyricResult.punctuation);
+            if (lyricResult.punctuation > 0) {
+                var punctDetail = lyricResult.punctuationExamples.join(", ");
+                if (lyricResult.punctuation > 4) punctDetail += ", ...";
+                console.log("Punctuation issues: " + lyricResult.punctuation + " (" + punctDetail + ")");
+            }
             if (syncResult.chordSync > 0) console.log("Chord sync mismatches: " + syncResult.chordSync);
             if (typoTotal > 0) console.log("Chord typos: " + typoTotal + " (" + typoExamples.join(", ") + ")");
             console.log("Total: " + total + " issues");

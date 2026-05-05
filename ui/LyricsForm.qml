@@ -143,6 +143,7 @@ MuseScore {
     property int issueSyllabic: 0
     property string issueSyllabicDetail: ""
     property int issuePunctuation: 0
+    property string issuePunctuationDetail: ""
     property int issueChordSync: 0
     property int issueChordTypos: 0
     property string issueChordTypoDetail: ""
@@ -247,6 +248,10 @@ MuseScore {
         if (lyricResult.syllabic > 4) detail += ", ...";
         issueSyllabicDetail = detail;
         issuePunctuation = lyricResult.punctuation;
+        var punctExamples = lyricResult.punctuationExamples || [];
+        var punctDetail = punctExamples.join(", ");
+        if (lyricResult.punctuation > 4) punctDetail += ", ...";
+        issuePunctuationDetail = punctDetail;
         issueChordSync = syncResult.chordSync;
         issueChordTypos = typoTotal;
         var typoDetail = typoExamples.join(", ");
@@ -1032,8 +1037,8 @@ MuseScore {
                                 tr(issueSyllabic + " cadenas sil\u00e1bicas rotas: " + issueSyllabicDetail,
                                    issueSyllabic + " broken syllabic chains: " + issueSyllabicDetail));
                             if (issuePunctuation > 0) lines.push(
-                                tr(issuePunctuation + " puntuacion pendiente (; .. ,,)",
-                                   issuePunctuation + " pending punctuation (; .. ,,)"));
+                                tr(issuePunctuation + " puntuacion pendiente (" + issuePunctuationDetail + ")",
+                                   issuePunctuation + " pending punctuation (" + issuePunctuationDetail + ")"));
                             if (issueChordSync > 0) lines.push(
                                 tr(issueChordSync + " acordes sin sincronizar (tab)",
                                    issueChordSync + " unsynchronized chords (tab)"));
