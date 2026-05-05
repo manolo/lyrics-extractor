@@ -221,9 +221,30 @@ function findStaves() {
     voiceStaves.sort(function(a, b) { return b.count - a.count; });
     harmonyStaves.sort(function(a, b) { return b.count - a.count; });
 
+    // Add part names to voice staves
+    try {
+        for (var vn = 0; vn < voiceStaves.length; vn++) {
+            var vsIdx = voiceStaves[vn].idx;
+            for (var vp = 0; vp < _getScore().parts.length; vp++) {
+                var vPart = _getScore().parts[vp];
+                var vStart = Math.floor(vPart.startTrack / 4);
+                var vEnd = Math.floor((vPart.endTrack - 1) / 4);
+                if (vsIdx >= vStart && vsIdx <= vEnd) {
+                    voiceStaves[vn].name = _stripHtml(vPart.longName || "") || _stripHtml(vPart.shortName || "") || ("Staff " + (vsIdx + 1));
+                    voiceStaves[vn].shortName = _stripHtml(vPart.shortName || "");
+                    break;
+                }
+            }
+            if (!voiceStaves[vn].name) voiceStaves[vn].name = "Staff " + (vsIdx + 1);
+        }
+    } catch (e) {
+        // API not available
+    }
+
     return {
         voiceStaff: voiceStaves.length > 0 ? voiceStaves[0].idx : -1,
         harmonyStaff: harmonyStaves.length > 0 ? harmonyStaves[0].idx : -1,
+        voiceStaves: voiceStaves,
         _allHarmonyFound: allHarmonyFound // DEBUG
     };
 }
@@ -1065,7 +1086,7 @@ function extractFretDiagramsFromAPI() {
 
 // Extract all data from the current score
 // Returns the intermediate data structure consumed by the orchestrator
-function extractAll() {
+function extractAll(options) {
     // If viewing an excerpt, use the master score for extraction
     try {
         var master = curScore.masterScore;
@@ -1076,7 +1097,11 @@ function extractAll() {
 
     var staves = findStaves();
 
-    var syllables = staves.voiceStaff >= 0 ? extractSyllables(staves.voiceStaff) : [];
+    var selectedVoiceStaff = staves.voiceStaff;
+    if (options && options.lyricStaff !== undefined && options.lyricStaff >= 0) {
+        selectedVoiceStaff = options.lyricStaff;
+    }
+    var syllables = selectedVoiceStaff >= 0 ? extractSyllables(selectedVoiceStaff) : [];
     var chords = extractChords(staves.harmonyStaff);
     var repeats = extractRepeats();
     var voltas = extractVoltas();
@@ -1146,6 +1171,8 @@ function extractAll() {
         barlines: barlines,
         lastTick: lastTick,
         fretDiagrams: fretDiagrams.length > 0 ? fretDiagrams : undefined,
+        voiceStaves: staves.voiceStaves || [],
+        selectedVoiceStaff: selectedVoiceStaff,
         _debug: {
             voiceStaff: staves.voiceStaff,
             harmonyStaff: staves.harmonyStaff,

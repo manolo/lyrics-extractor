@@ -50,6 +50,8 @@ MuseScore {
     property string lastScorePath: ""
     // True when fallback directory is needed (FBox exists but native API unavailable)
     property bool needsFallbackDir: false
+    property var availableVoiceStaves: []   // [{idx, name, shortName, count}]
+    property int selectedVoiceStaff: -1     // -1 = auto (best)
 
     SystemPalette { id: systemPalette }
 
@@ -150,6 +152,15 @@ MuseScore {
 
     function checkScore() {
         if (!curScore) { issueCount = 0; return; }
+
+        // Populate voice staff selector
+        var staves = Extractor.findStaves();
+        if (staves.voiceStaves && staves.voiceStaves.length > 0) {
+            availableVoiceStaves = staves.voiceStaves;
+            if (selectedVoiceStaff < 0) {
+                selectedVoiceStaff = staves.voiceStaff;
+            }
+        }
 
         // Build lyric groups from score
         var lyricGroups = {};
@@ -687,11 +698,31 @@ MuseScore {
             return;
         }
 
-        var data = Extractor.extractAll();
+        var extractOpts = selectedVoiceStaff >= 0 ? { lyricStaff: selectedVoiceStaff } : {};
+        var data = Extractor.extractAll(extractOpts);
         if (!data) {
             statusText.text = tr("No se encontraron letras en la partitura",
                                 "No lyrics found in the score");
             return;
+        }
+
+        // Update available voice staves for the ComboBox
+        if (data.voiceStaves && data.voiceStaves.length > 0) {
+            availableVoiceStaves = data.voiceStaves;
+            if (selectedVoiceStaff < 0) {
+                selectedVoiceStaff = data.selectedVoiceStaff;
+            }
+        }
+
+        // Append staff name to title when using a non-default staff
+        var defaultStaff = (data.voiceStaves && data.voiceStaves.length > 0) ? data.voiceStaves[0].idx : -1;
+        if (data.voiceStaves && data.voiceStaves.length > 1 && data.selectedVoiceStaff !== defaultStaff) {
+            for (var vsi = 0; vsi < data.voiceStaves.length; vsi++) {
+                if (data.voiceStaves[vsi].idx === data.selectedVoiceStaff) {
+                    data.title = (data.title || "") + " (" + data.voiceStaves[vsi].name + ")";
+                    break;
+                }
+            }
         }
 
         // Fallback: if FretDiagram annotations found but chords not extracted,
@@ -1106,6 +1137,25 @@ MuseScore {
                         }
 
                         Item { Layout.fillWidth: true }
+
+                        ComboBox {
+                            id: staffCombo
+                            Layout.preferredWidth: 150
+                            visible: availableVoiceStaves.length > 1
+                            model: {
+                                var items = [];
+                                for (var i = 0; i < availableVoiceStaves.length; i++) {
+                                    var vs = availableVoiceStaves[i];
+                                    items.push(vs.name);
+                                }
+                                return items;
+                            }
+                            onActivated: {
+                                if (index >= 0 && index < availableVoiceStaves.length) {
+                                    selectedVoiceStaff = availableVoiceStaves[index].idx;
+                                }
+                            }
+                        }
 
                         CheckBox {
                             id: solfeoCheck

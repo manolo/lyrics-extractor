@@ -918,3 +918,75 @@ test("extractAll does not change durationQ for tied notes", function() {
     assert.equal(holdSyl.durationQ, 1, "durationQ should be original quarter note (1), not accumulated (2)");
     assert.equal(holdSyl.restAfter, false, "no false rest after tied note");
 });
+
+// ========================================
+// Staff selection: voiceStaves and lyricStaff option
+// ========================================
+
+var TWO_STAFF_SCORE = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<museScore version="4.40">',
+    '<Score>',
+    '<Division>480</Division>',
+    '<metaTag name="workTitle">Two Voices</metaTag>',
+    '<Part><trackName>Voice</trackName><Instrument><longName>Soprano</longName><shortName>S</shortName></Instrument>',
+    '<Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+    '<Part><trackName>Voice 2</trackName><Instrument><longName>Alto</longName><shortName>A</shortName></Instrument>',
+    '<Staff id="2"><StaffType group="pitched"/></Staff></Part>',
+    '<Staff id="1">',
+    '<Measure><voice>',
+    '<Chord><durationType>quarter</durationType>',
+    '<Lyrics><text>so</text><syllabic>begin</syllabic></Lyrics>',
+    '<Note><pitch>67</pitch></Note></Chord>',
+    '<Chord><durationType>quarter</durationType>',
+    '<Lyrics><text>pra</text><syllabic>middle</syllabic></Lyrics>',
+    '<Note><pitch>65</pitch></Note></Chord>',
+    '<Chord><durationType>half</durationType>',
+    '<Lyrics><text>no</text><syllabic>end</syllabic></Lyrics>',
+    '<Note><pitch>64</pitch></Note></Chord>',
+    '</voice></Measure>',
+    '</Staff>',
+    '<Staff id="2">',
+    '<Measure><voice>',
+    '<Chord><durationType>half</durationType>',
+    '<Lyrics><text>al</text><syllabic>begin</syllabic></Lyrics>',
+    '<Note><pitch>60</pitch></Note></Chord>',
+    '<Chord><durationType>half</durationType>',
+    '<Lyrics><text>to</text><syllabic>end</syllabic></Lyrics>',
+    '<Note><pitch>62</pitch></Note></Chord>',
+    '</voice></Measure>',
+    '</Staff>',
+    '</Score></museScore>'
+].join("\n");
+
+test("extractAll returns voiceStaves with names sorted by count", function() {
+    var data = xmlExt.extractAll(TWO_STAFF_SCORE);
+    assert.ok(data.voiceStaves, "should have voiceStaves");
+    assert.equal(data.voiceStaves.length, 2);
+    // Staff 0 (Soprano) has 3 syllables, Staff 1 (Alto) has 2
+    assert.equal(data.voiceStaves[0].idx, 0, "first should be staff 0 (most lyrics)");
+    assert.equal(data.voiceStaves[0].name, "Soprano");
+    assert.equal(data.voiceStaves[0].shortName, "S");
+    assert.equal(data.voiceStaves[1].idx, 1);
+    assert.equal(data.voiceStaves[1].name, "Alto");
+});
+
+test("extractAll selects best staff by default", function() {
+    var data = xmlExt.extractAll(TWO_STAFF_SCORE);
+    assert.equal(data.selectedVoiceStaff, 0, "should auto-select staff 0 (most lyrics)");
+    assert.equal(data.syllables[0].text, "so");
+});
+
+test("extractAll accepts lyricStaff option to override selection", function() {
+    var data = xmlExt.extractAll(TWO_STAFF_SCORE, [], undefined, { lyricStaff: 1 });
+    assert.equal(data.selectedVoiceStaff, 1, "should select staff 1");
+    assert.equal(data.syllables[0].text, "al", "should have Alto lyrics");
+    assert.equal(data.syllables.length, 2);
+});
+
+test("extractAll lyricStaff same as default does not change result", function() {
+    var data = xmlExt.extractAll(TWO_STAFF_SCORE, [], undefined, { lyricStaff: 0 });
+    assert.equal(data.selectedVoiceStaff, 0);
+    assert.equal(data.syllables[0].text, "so");
+    assert.equal(data.syllables.length, 3);
+});

@@ -23,8 +23,8 @@ function main() {
     for (var ai = 0; ai < args.length; ai++) {
         if (args[ai].charAt(0) === "-") {
             flags.push(args[ai]);
-            // --header and --footer take a value argument
-            if ((args[ai] === "--header" || args[ai] === "--footer") && ai + 1 < args.length) {
+            // --header, --footer and --staff take a value argument
+            if ((args[ai] === "--header" || args[ai] === "--footer" || args[ai] === "--staff") && ai + 1 < args.length) {
                 flags.push(args[ai + 1]);
                 ai++;
             }
@@ -52,6 +52,7 @@ function main() {
         console.log("  --no-diagrams       Omit fretboard diagrams from PDF");
         console.log("  --chords-only       List chords even if the score has no lyrics");
         console.log("  --chordpro          Export as ChordPro format (.cho)");
+        console.log("  --staff <name|num>  Extract lyrics from a specific staff (by index or name)");
         console.log("  --debug             Export raw extracted data as JSON");
         console.log("  --check             Check lyrics for issues (synalepha, hyphens, syllabic)");
         console.log("  --fix               Fix lyrics issues in the score file");
@@ -95,6 +96,11 @@ function main() {
     var footerIdx = flags.indexOf("--footer");
     if (footerIdx >= 0 && footerIdx + 1 < flags.length) {
         footerName = flags[footerIdx + 1];
+    }
+    var staffArg = "";
+    var staffIdx = flags.indexOf("--staff");
+    if (staffIdx >= 0 && staffIdx + 1 < flags.length) {
+        staffArg = flags[staffIdx + 1];
     }
     var outputPath = null;
     if (flags.indexOf("--save") >= 0) {
@@ -220,10 +226,44 @@ function main() {
     if (angloMode) spelling = "standard";
     if (solfeoMode) spelling = "solfeggio";
 
+    // Resolve --staff argument to a staff index
+    var extractOptions = {};
+    if (staffArg) {
+        // First pass: extract to get voiceStaves list
+        var probe = xmlExtractor.extractAll(xmlString, guitarExcerpts, spelling);
+        var vs = probe ? (probe.voiceStaves || []) : [];
+        var staffNum = parseInt(staffArg);
+        if (!isNaN(staffNum) && staffNum >= 0) {
+            extractOptions.lyricStaff = staffNum;
+        } else {
+            // Match by name (case insensitive, partial match)
+            var staffLower = staffArg.toLowerCase();
+            var matched = false;
+            for (var vsi = 0; vsi < vs.length; vsi++) {
+                var n = (vs[vsi].name || "").toLowerCase();
+                var sn = (vs[vsi].shortName || "").toLowerCase();
+                if (n === staffLower || sn === staffLower ||
+                    n.indexOf(staffLower) >= 0 || sn.indexOf(staffLower) >= 0) {
+                    extractOptions.lyricStaff = vs[vsi].idx;
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                console.error("Staff not found: " + staffArg);
+                console.error("Available staves with lyrics:");
+                for (var vsk = 0; vsk < vs.length; vsk++) {
+                    console.error("  " + vs[vsk].idx + ": " + vs[vsk].name + (vs[vsk].shortName ? " (" + vs[vsk].shortName + ")" : ""));
+                }
+                process.exit(1);
+            }
+        }
+    }
+
     // Extract data from XML
     var data;
     try {
-        data = xmlExtractor.extractAll(xmlString, guitarExcerpts, spelling);
+        data = xmlExtractor.extractAll(xmlString, guitarExcerpts, spelling, extractOptions);
     } catch (e) {
         console.error("Error extracting data: " + e.message);
         process.exit(1);
@@ -232,6 +272,17 @@ function main() {
     if (!data) {
         console.error("No data found in the score");
         process.exit(1);
+    }
+
+    // Append staff name to title when using a non-default staff
+    var defaultStaff = (data.voiceStaves && data.voiceStaves.length > 0) ? data.voiceStaves[0].idx : -1;
+    if (data.voiceStaves && data.voiceStaves.length > 1 && data.selectedVoiceStaff !== defaultStaff) {
+        for (var vsi2 = 0; vsi2 < data.voiceStaves.length; vsi2++) {
+            if (data.voiceStaves[vsi2].idx === data.selectedVoiceStaff) {
+                data.title = (data.title || "") + " (" + data.voiceStaves[vsi2].name + ")";
+                break;
+            }
+        }
     }
 
     // --chords-only: force chord-only mode regardless of lyrics

@@ -421,7 +421,7 @@ function extractFretDiagrams(score, excerptXmls) {
 // Extract all data from .mscx XML string
 // Returns the same intermediate data structure as musescore-extractor.js
 // spelling: "solfeggio", "standard", etc. Controls chord name language.
-function extractAll(xmlString, excerptXmls, spelling) {
+function extractAll(xmlString, excerptXmls, spelling, options) {
     var root = parseXml(xmlString);
     if (!root) throw new Error("Failed to parse XML");
 
@@ -466,16 +466,27 @@ function extractAll(xmlString, excerptXmls, spelling) {
 
     // Find all staves (Parts contain Staff with instrument info)
     // Detect linked staves (tab/linked copies) to exclude from chord selection
+    // Build staff-to-part name mapping for UI/CLI staff selection
     var parts = findChildren(score, "Part");
     var nstaves = 0;
     var linkedStaves = {};
     var hiddenStaves = {};
+    var staffPartNames = {}; // staffIdx -> { trackName, longName, shortName }
     var staffCounter = 0;
     for (var p = 0; p < parts.length; p++) {
         var partHidden = childText(parts[p], "show") === "0";
+        var partTrackName = childText(parts[p], "trackName") || "";
+        var partInstrument = findChild(parts[p], "Instrument");
+        var partLongName = partInstrument ? childText(partInstrument, "longName") || "" : "";
+        var partShortName = partInstrument ? childText(partInstrument, "shortName") || "" : "";
         var partStaffs = findChildren(parts[p], "Staff");
         nstaves += partStaffs.length;
         for (var ps = 0; ps < partStaffs.length; ps++) {
+            staffPartNames[staffCounter] = {
+                trackName: partTrackName,
+                longName: partLongName,
+                shortName: partShortName
+            };
             staffCounter++;
             var isLinked = findChild(partStaffs[ps], "linkedTo") !== null;
             if (isLinked) {
@@ -722,17 +733,25 @@ function extractAll(xmlString, excerptXmls, spelling) {
     }
     voltas.sort(function(a, b) { return a.startTick - b.startTick; });
 
-    // Select best staves (most lyrics, most harmonies)
-    var bestLyricStaff = -1;
-    var bestLyricCount = 0;
+    // Build list of staves with lyrics, sorted by count (descending)
+    var voiceStaves = [];
     for (var ls in lyricCounts) {
         var lsIdx = parseInt(ls);
-        // Skip hidden staves
         if (hiddenStaves[lsIdx]) continue;
-        if (lyricCounts[ls] > bestLyricCount) {
-            bestLyricCount = lyricCounts[ls];
-            bestLyricStaff = lsIdx;
-        }
+        var names = staffPartNames[lsIdx] || {};
+        voiceStaves.push({
+            idx: lsIdx,
+            count: lyricCounts[ls],
+            name: names.longName || names.trackName || ("Staff " + (lsIdx + 1)),
+            shortName: names.shortName || ""
+        });
+    }
+    voiceStaves.sort(function(a, b) { return b.count - a.count; });
+
+    // Select lyric staff: user override or auto (most lyrics)
+    var bestLyricStaff = voiceStaves.length > 0 ? voiceStaves[0].idx : -1;
+    if (options && options.lyricStaff !== undefined && options.lyricStaff >= 0) {
+        bestLyricStaff = options.lyricStaff;
     }
 
     var bestHarmonyStaff = -1;
@@ -852,7 +871,9 @@ function extractAll(xmlString, excerptXmls, spelling) {
         systemTexts: systemTexts,
         barlines: barlines,
         lastTick: lastTick,
-        fretDiagrams: fretDiagrams
+        fretDiagrams: fretDiagrams,
+        voiceStaves: voiceStaves,
+        selectedVoiceStaff: bestLyricStaff
     };
 }
 
