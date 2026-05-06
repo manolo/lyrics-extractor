@@ -58,6 +58,7 @@ var es =
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Opciones de extracci\u00f3n</h3></td></tr>" +
     "<tr><td width='150' nowrap><b>Solfeo</b></td><td>Usa nombres Do, Re, Mi en vez de C, D, E.</td></tr>" +
     "<tr><td width='150' nowrap><b>Repetir todo</b></td><td>Escribe todas las repeticiones aunque el texto sea id\u00e9ntico (sin abreviar estribillos).</td></tr>" +
+    "<tr><td width='150' nowrap><b>Solo letra</b></td><td>Omite las l\u00edneas de acordes, dejando solo el texto de la letra y las etiquetas de secci\u00f3n.</td></tr>" +
     "<!--SCORES_DIR-->" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Opciones del PDF</h3></td></tr>" +
     "<tr><td width='150' nowrap><b>Cabecera</b></td><td>Texto alineado a la derecha en la parte superior de cada p\u00e1gina (ej: nombre del grupo).</td></tr>" +
@@ -128,6 +129,7 @@ var en =
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Extraction options</h3></td></tr>" +
     "<tr><td width='150' nowrap><b>Solfeo</b></td><td>Use names Do, Re, Mi instead of C, D, E.</td></tr>" +
     "<tr><td width='150' nowrap><b>Full repeat</b></td><td>Write all repetitions even if the text is identical (no abbreviated choruses).</td></tr>" +
+    "<tr><td width='150' nowrap><b>Lyrics only</b></td><td>Omit chord lines, keeping only lyrics text and section labels.</td></tr>" +
     "<!--SCORES_DIR-->" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>PDF options</h3></td></tr>" +
     "<tr><td width='150' nowrap><b>Header</b></td><td>Right-aligned text at the top of every page (e.g. group name).</td></tr>" +

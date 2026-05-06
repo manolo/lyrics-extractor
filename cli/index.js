@@ -8,6 +8,7 @@ var msczReader = require("./mscz-reader");
 var xmlExtractor = require("../extractors/xml-extractor");
 var orchestrator = require("../lib/orchestrator");
 var pdfWriter = require("../lib/pdf-writer");
+var formatter = require("../lib/formatter");
 var lyricsFixer = require("../lib/lyrics-fixer");
 var chordUtils = require("../lib/chord-utils");
 var xmlPatcher = require("./xml-patcher");
@@ -51,6 +52,7 @@ function main() {
         console.log("  --single            Auto-fit to one page (gaps first, then font)");
         console.log("  --no-diagrams       Omit fretboard diagrams from PDF");
         console.log("  --chords-only       List chords even if the score has no lyrics");
+        console.log("  --lyrics-only       Output lyrics without chord lines above");
         console.log("  --chordpro          Export as ChordPro format (.cho)");
         console.log("  --staff <name|num>  Extract lyrics from a specific staff (by index or name)");
         console.log("  --debug             Export raw extracted data as JSON");
@@ -84,6 +86,7 @@ function main() {
     var lineNumbers = flags.indexOf("--numbers") >= 0 || flags.indexOf("--line-numbers") >= 0;
     var noDiagrams = flags.indexOf("--no-diagrams") >= 0;
     var chordsOnly = flags.indexOf("--chords-only") >= 0;
+    var lyricsOnly = flags.indexOf("--lyrics-only") >= 0;
     var chordproMode = flags.indexOf("--chordpro") >= 0;
     var checkMode = flags.indexOf("--check") >= 0;
     var fixMode = flags.indexOf("--fix") >= 0;
@@ -354,6 +357,11 @@ function main() {
         fs.writeFileSync(cpPath, cpOutput, "utf8");
         console.error("ChordPro written to: " + cpPath);
         if (!outputPath) return;
+    }
+
+    // Lyrics-only: strip entire chord lines before stripping markers
+    if (lyricsOnly) {
+        output = formatter.stripChordLines(output);
     }
 
     // Text output (strip zero-width space chord markers, only needed for PDF coloring)

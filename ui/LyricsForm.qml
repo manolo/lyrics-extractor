@@ -65,6 +65,7 @@ MuseScore {
         category: "LyricsExtractor"
         property bool useSolfeo: true
         property bool fullRepeat: true
+        property bool lyricsOnly: false
         property bool onePage: false
         property bool lineNumbers: false
         property bool noDiagrams: false
@@ -772,7 +773,8 @@ MuseScore {
         extractedFretDiagrams = diagrams;
 
         extractedOutput = output; // keep markers for PDF
-        lyricsPreview.text = Formatter.stripChordMarkers(output);
+        var displayOutput = settings.lyricsOnly ? Formatter.stripChordLines(output) : output;
+        lyricsPreview.text = Formatter.stripChordMarkers(displayOutput);
         var sylCount = data.syllables ? data.syllables.length : 0;
         var chordCount = data.chords ? data.chords.length : 0;
         var diagramCount = extractedFretDiagrams.length;
@@ -1157,20 +1159,6 @@ MuseScore {
                             }
                         }
 
-                        CheckBox {
-                            id: solfeoCheck
-                            text: tr("Solfeo (Do, Re, Mi)", "Solfeo (Do, Re, Mi)")
-                            checked: settings.useSolfeo
-                            onCheckedChanged: settings.useSolfeo = checked
-                        }
-
-                        CheckBox {
-                            id: fullRepeatCheck
-                            text: tr("Repetir todo", "Full repeat")
-                            checked: settings.fullRepeat
-                            onCheckedChanged: settings.fullRepeat = checked
-                        }
-
                         Button {
                             id: extractButton
                             text: tr("Extraer", "Extract")
@@ -1191,6 +1179,32 @@ MuseScore {
                                 extractLyricsWithChords();
                                 extractButton.enabled = true;
                             }
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+
+                        CheckBox {
+                            id: solfeoCheck
+                            text: tr("Solfeo (Do, Re, Mi)", "Solfeo (Do, Re, Mi)")
+                            checked: settings.useSolfeo
+                            onCheckedChanged: settings.useSolfeo = checked
+                        }
+
+                        CheckBox {
+                            id: fullRepeatCheck
+                            text: tr("Repetir todo", "Full repeat")
+                            checked: settings.fullRepeat
+                            onCheckedChanged: settings.fullRepeat = checked
+                        }
+
+                        CheckBox {
+                            id: lyricsOnlyCheck
+                            text: tr("Solo letra", "Lyrics only")
+                            checked: settings.lyricsOnly
+                            onCheckedChanged: settings.lyricsOnly = checked
                         }
                     }
 
@@ -1612,6 +1626,7 @@ MuseScore {
         }
         solfeoCheck.checked = settings.useSolfeo;
         fullRepeatCheck.checked = settings.fullRepeat;
+        lyricsOnlyCheck.checked = settings.lyricsOnly;
         onePageCheck.checked = settings.onePage;
         lineNumbersCheck.checked = settings.lineNumbers;
         noDiagramsCheck.checked = settings.noDiagrams;

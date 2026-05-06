@@ -2514,3 +2514,38 @@ test("abbreviateRepeatedStanzas abbreviates D.S. replay stanzas via _jumpReplay"
     assert.ok(lastText.indexOf("...") >= 0 || result.length < 3,
         "D.S. replay stanza should be abbreviated: " + lastText);
 });
+
+// ========================================
+// stripChordLines: lyrics-only mode
+// ========================================
+
+test("stripChordLines removes chord lines and keeps lyrics", function() {
+    var input = M + "Am   D\nhello world\n" + M + "G\nnext line\n";
+    var result = fmt.stripChordLines(input);
+    assert.equal(result.indexOf("Am"), -1, "chord line should be removed");
+    assert.ok(result.indexOf("hello world") >= 0, "lyric should remain");
+    assert.ok(result.indexOf("next line") >= 0, "second lyric should remain");
+});
+
+test("stripChordLines collapses extra alignment spaces", function() {
+    var input = M + "Am        D\nhello     world\n";
+    var result = fmt.stripChordLines(input);
+    assert.ok(result.indexOf("hello world") >= 0, "extra spaces should collapse: " + result);
+    assert.equal(result.indexOf("  "), -1, "no double spaces");
+});
+
+test("stripChordLines preserves section labels and empty lines", function() {
+    var input = "==== TITLE ====\n\n- INTRO -\n" + M + "Am  D\n\n- VERSE -\nhello\n";
+    var result = fmt.stripChordLines(input);
+    assert.ok(result.indexOf("==== TITLE ====") >= 0);
+    assert.ok(result.indexOf("- INTRO -") >= 0);
+    assert.ok(result.indexOf("- VERSE -") >= 0);
+    assert.ok(result.indexOf("hello") >= 0);
+    assert.equal(result.indexOf("Am"), -1);
+});
+
+test("stripChordLines collapses triple newlines to double", function() {
+    var input = "line1\n" + M + "chords\n\nline2\n";
+    var result = fmt.stripChordLines(input);
+    assert.equal(result.indexOf("\n\n\n"), -1, "no triple newlines");
+});

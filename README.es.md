@@ -177,6 +177,7 @@ node cli/index.js cancion.mscz --chords-only                # solo progresion de
 | `--numbers` | Numeros de linea en PDF |
 | `--no-diagrams` | Omitir diagramas de trastes del PDF |
 | `--chords-only` | Forzar modo solo acordes (ignorar letras) |
+| `--lyrics-only` | Solo letra sin lineas de acordes |
 | `--chordpro` | Exportar en formato ChordPro (.cho) |
 | `--staff <nombre\|num>` | Extraer letras de un pentagrama especifico (por indice o nombre de instrumento) |
 | `--anglo` | Forzar nombres de acorde anglo (C, D, E) |
