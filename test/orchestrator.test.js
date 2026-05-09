@@ -628,3 +628,140 @@ test("DC al Coda filters gap labels between coda and codab", function() {
             "Estrofa label should not appear in DC gap (between coda and codab): " + afterIntro);
     }
 });
+
+// ============================================================
+// Double D.S./D.C. expansion (session fixes)
+// ============================================================
+
+test("double D.S.: sequence labels advance per replay group (ESTROFA 1, 2, 3)", function() {
+    var div = 480;
+    var segnoTick = div * 4;
+    var estrofaStart = div * 4 * 5;
+    var estrofaEnd = div * 4 * 7;
+    var estriStart = div * 4 * 7;
+    var dsOneTick = div * 4 * 10;
+    var dsTwoTick = div * 4 * 11;
+    var codaTick = div * 4 * 9;
+    var codabTick = div * 4 * 12;
+    var syls = [];
+    [["uno"], ["dos"], ["tres"]].forEach(function(texts, v) {
+        syls.push({ tick: estrofaStart, verse: v, text: texts[0], syllabic: "single", durationQ: 2, restAfter: false, restDurationQ: 0, gapDurationQ: 0 });
+    });
+    syls.push({ tick: estriStart, verse: 0, text: "coro.", syllabic: "single", durationQ: 2, restAfter: false, restDurationQ: 0, gapDurationQ: 0 });
+    var data = {
+        division: div,
+        syllables: syls,
+        chords: [{ tick: segnoTick, chord: "Do" }, { tick: estrofaStart, chord: "Re" }],
+        repeats: [{ startTick: estrofaStart, endTick: estrofaEnd, repeatCount: 2 }],
+        voltas: [],
+        markers: [
+            { tick: segnoTick, label: "segno", type: "segno" },
+            { tick: codaTick, label: "coda", type: "tocoda" },
+            { tick: codabTick, label: "codab", type: "coda" }
+        ],
+        jumps: [
+            { tick: dsOneTick, jumpTo: "segno", playUntil: "end", continueAt: "", playRepeats: true },
+            { tick: dsTwoTick, jumpTo: "segno", playUntil: "coda", continueAt: "codab", playRepeats: true }
+        ],
+        systemTexts: [{ tick: estrofaStart, text: "Estrofa 1::2::3::" }],
+        barlines: [],
+        lastTick: div * 4 * 13,
+        fullRepeat: false
+    };
+    var output = orch.processExtraction(data);
+    var stripped = output.replace(/​/g, "");
+    assert.ok(stripped.indexOf("ESTROFA 1") >= 0, "should have ESTROFA 1");
+    assert.ok(stripped.indexOf("ESTROFA 2") >= 0, "should have ESTROFA 2 (first DS replay): " + stripped.substring(0, 400));
+    assert.ok(stripped.indexOf("ESTROFA 3") >= 0, "should have ESTROFA 3 (second DS replay)");
+    // Verse content (capitalized by stanza formatting)
+    assert.ok(stripped.match(/[Uu]no/), "should have verse 0 content (uno)");
+    assert.ok(stripped.match(/[Dd]os/), "should have verse 1 content (dos)");
+    assert.ok(stripped.match(/[Tt]res/), "should have verse 2 content (tres)");
+    // Labels appear in order
+    var pos1 = stripped.indexOf("ESTROFA 1"), pos2 = stripped.indexOf("ESTROFA 2"), pos3 = stripped.indexOf("ESTROFA 3");
+    assert.ok(pos1 < pos2 && pos2 < pos3, "ESTROFA labels should appear in order 1, 2, 3");
+});
+
+test("double D.S.: instrumental intro gap appears before each replay section", function() {
+    var div = 480;
+    var segnoTick = div * 4;
+    var estrofaStart = div * 4 * 5;
+    var estrofaEnd = div * 4 * 7;
+    var estriStart = div * 4 * 7;
+    var dsOneTick = div * 4 * 9;
+    var dsTwoTick = div * 4 * 10;
+    var codaTick = div * 4 * 8;
+    var codabTick = div * 4 * 11;
+    var data = {
+        division: div,
+        syllables: [
+            { tick: estrofaStart, verse: 0, text: "a.", syllabic: "single", durationQ: 2, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: estrofaStart, verse: 1, text: "b.", syllabic: "single", durationQ: 2, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: estrofaStart, verse: 2, text: "c.", syllabic: "single", durationQ: 2, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: estriStart, verse: 0, text: "coro.", syllabic: "single", durationQ: 2, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+        ],
+        chords: [{ tick: segnoTick, chord: "Do" }, { tick: estrofaStart, chord: "Re" }],
+        repeats: [{ startTick: estrofaStart, endTick: estrofaEnd, repeatCount: 2 }],
+        voltas: [],
+        markers: [
+            { tick: segnoTick, label: "segno", type: "segno" },
+            { tick: codaTick, label: "coda", type: "tocoda" },
+            { tick: codabTick, label: "codab", type: "coda" }
+        ],
+        jumps: [
+            { tick: dsOneTick, jumpTo: "segno", playUntil: "end", continueAt: "", playRepeats: true },
+            { tick: dsTwoTick, jumpTo: "segno", playUntil: "coda", continueAt: "codab", playRepeats: true }
+        ],
+        systemTexts: [
+            { tick: segnoTick, text: "Música" },
+            { tick: estrofaStart, text: "Estrofa 1::2::3::" }
+        ],
+        barlines: [],
+        lastTick: div * 4 * 12,
+        fullRepeat: false
+    };
+    var output = orch.processExtraction(data);
+    var stripped = output.replace(/​/g, "");
+    var musicaMatches = (stripped.match(/- MÚSICA -/g) || []);
+    assert.ok(musicaMatches.length >= 2,
+        "should have MÚSICA before each replay: found " + musicaMatches.length + " occurrence(s)\n" + stripped.substring(0, 500));
+});
+
+test("home chord not shown at start of replay after abbreviated stanza", function() {
+    // When an estribillo is abbreviated in compact mode, the home chord
+    // should not bleed into the start of the next replay section chord line.
+    var div = 480;
+    var estrofaStart = div * 4;
+    var estriStart = div * 4 * 3;
+    var dsTick = div * 4 * 5;
+    var data = {
+        division: div,
+        syllables: [
+            { tick: estrofaStart, verse: 0, text: "verso0.", syllabic: "single", durationQ: 2, restAfter: true, restDurationQ: 4, gapDurationQ: 4 },
+            { tick: estrofaStart, verse: 1, text: "verso1.", syllabic: "single", durationQ: 2, restAfter: true, restDurationQ: 4, gapDurationQ: 4 },
+            { tick: estriStart, verse: 0, text: "coro.", syllabic: "single", durationQ: 2, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+        ],
+        chords: [
+            { tick: 0, chord: "Do" },
+            { tick: estrofaStart, chord: "Do" },
+            { tick: estrofaStart + div, chord: "Re" }
+        ],
+        repeats: [],
+        voltas: [],
+        markers: [{ tick: 0, label: "segno", type: "segno" }],
+        jumps: [{ tick: dsTick, jumpTo: "segno", playUntil: "end", continueAt: "", playRepeats: false }],
+        systemTexts: [],
+        barlines: [],
+        lastTick: div * 4 * 7,
+        fullRepeat: false
+    };
+    var output = orch.processExtraction(data);
+    var stripped = output.replace(/​/g, "");
+    // DS replay should show verse 1 content
+    assert.ok(stripped.match(/[Vv]erso1/), "DS replay should show verse 1");
+    // Re chord should appear (it's not the home chord, so it should always show)
+    assert.ok(stripped.indexOf("Re") >= 0, "Re chord should appear in replay");
+    // The home chord "Do" should NOT appear twice consecutively (home chord dedup)
+    // In the replay, "Do" at the start of a section is the home chord and should be suppressed
+    assert.ok(!stripped.match(/Do\s*\n[^\n]*Do/), "home chord 'Do' should not appear duplicated: " + stripped);
+});

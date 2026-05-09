@@ -1069,3 +1069,154 @@ test("D.S. lead-in that completes a word does not set noBreakAfter", function() 
         assert.ok(!sa[0].noBreakAfter, "lead-in 'sa' completing 'rosa' should NOT have noBreakAfter");
     }
 });
+
+// ============================================================
+// Double D.S./D.C. expansion (session fixes)
+// ============================================================
+
+test("DS replay honors repeats within replay range", function() {
+    // With a repeat inside the DS replay range, both passes should appear.
+    // Before fix: _repeatCount was exhausted from normal play, repeat skipped.
+    // After fix: _repeatCount reset after jump, repeat honored in replay.
+    var data = buildMeasureData(10, {
+        repeats: [{ start: 3, end: 5, count: 2 }],
+        markers: [{ measure: 1, label: "segno", type: "segno" }],
+        jumps: [{ measure: 8, jumpTo: "segno", playUntil: "end", playRepeats: true }]
+    });
+    // Normal play: m1, m2, m3, m4, m3, m4, m5, m6, m7, m8
+    // DS replay: m1, m2, m3, m4, m3, m4, m5, m6, m7, m8, m9, m10
+    // The repeat [3-5] should fire AGAIN in the replay
+    var measures = unwindToMeasures(data);
+    // Should contain the repeat twice (normal + replay)
+    var m3count = (measures.split("3").length - 1);
+    assert.ok(m3count >= 4, "measure 3 should appear at least 4 times (2 passes normal + 2 passes replay): " + measures);
+});
+
+test("DS replay segmentBoundary marks start of new replay group in stream", function() {
+    // When two D.S. jumps exist, the second replay should have segmentBoundary
+    // set on the first syllable's predecessor in the stream.
+    var div = 480;
+    var segnoTick = div * 4;
+    var lyrTick = div * 4 * 3;
+    var dsTick1 = div * 4 * 5;
+    var dsTick2 = div * 4 * 6;
+    var codaTick = div * 4 * 4;
+    var codabTick = div * 4 * 7;
+    var data = {
+        division: div,
+        syllables: [
+            { tick: lyrTick, verse: 0, text: "a", syllabic: "single", durationQ: 2, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: lyrTick, verse: 1, text: "b", syllabic: "single", durationQ: 2, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: lyrTick, verse: 2, text: "c", syllabic: "single", durationQ: 2, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+        ],
+        chords: [{ tick: segnoTick, chord: "Do" }],
+        repeats: [],
+        voltas: [],
+        markers: [
+            { tick: segnoTick, label: "segno", type: "segno" },
+            { tick: codaTick, label: "coda", type: "tocoda" },
+            { tick: codabTick, label: "codab", type: "coda" }
+        ],
+        jumps: [
+            { tick: dsTick1, jumpTo: "segno", playUntil: "end", continueAt: "", playRepeats: false },
+            { tick: dsTick2, jumpTo: "segno", playUntil: "coda", continueAt: "codab", playRepeats: false }
+        ],
+        systemTexts: [],
+        barlines: [],
+        lastTick: div * 4 * 8
+    };
+    var stream = exp.expand(data);
+    var boundaries = stream.filter(function(s) { return s.segmentBoundary; });
+    assert.ok(boundaries.length >= 2, "should have at least 2 segmentBoundary markers (one per DS): found " + boundaries.length);
+});
+
+test("replay segment mainTo not trimmed by volta within replay range", function() {
+    // Volta inside a repeat: the replay segment's mainTo should use the full
+    // raw segment range, not be trimmed at the volta's startTick.
+    // The fix: only trim mainTo by volta when NOT isJumpReplay.
+    var div = 480;
+    var segnoTick = 0;
+    var voltaStart = div * 4 * 3; // volta at measure 4
+    var voltaEnd = div * 4 * 4;
+    var dsTick = div * 4 * 6;
+    var data = {
+        division: div,
+        syllables: [
+            { tick: div * 4, verse: 0, text: "m2", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: div * 4 * 2, verse: 0, text: "m3", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: voltaStart, verse: 0, text: "v1", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: voltaEnd, verse: 0, text: "m5", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+        ],
+        chords: [{ tick: segnoTick, chord: "Do" }],
+        repeats: [{ startTick: 0, endTick: voltaEnd, repeatCount: 2 }],
+        voltas: [{ startTick: voltaStart, endTick: voltaEnd, endingList: [1] }],
+        markers: [{ tick: segnoTick, label: "segno", type: "segno" }],
+        jumps: [{ tick: dsTick, jumpTo: "segno", playUntil: "end", continueAt: "", playRepeats: false }],
+        systemTexts: [],
+        barlines: [],
+        lastTick: div * 4 * 7
+    };
+    var segments = exp.unwind(data);
+    // Non-replay segments with a volta: voltaFrom should be set (volta detected)
+    var nonReplayWithVolta = segments.filter(function(s) { return !s.isJumpReplay && s.voltaFrom >= 0; });
+    assert.ok(nonReplayWithVolta.length > 0, "should have non-replay segment with volta");
+    nonReplayWithVolta.forEach(function(seg) {
+        // mainTo should be trimmed to voltaFrom for non-replay segments
+        assert.ok(seg.mainTo <= seg.voltaFrom,
+            "non-replay: mainTo (" + seg.mainTo + ") should not exceed voltaFrom (" + seg.voltaFrom + ")");
+    });
+    // Replay segments should NOT have their mainTo trimmed by voltas
+    // (voltaFrom should be -1 or the segment should cover the full range)
+    var replaySegs = segments.filter(function(s) { return s.isJumpReplay; });
+    replaySegs.forEach(function(seg) {
+        // Replay segments should not have voltaFrom that trims their mainTo
+        if (seg.voltaFrom >= 0) {
+            assert.ok(seg.mainTo > seg.voltaFrom,
+                "replay: mainTo (" + seg.mainTo + ") should exceed voltaFrom (" + seg.voltaFrom + ") since replay is not trimmed");
+        }
+    });
+});
+
+test("lead-in assigned to correct replay group when multiple DS jumps", function() {
+    // First DS creates a lead-in. Second DS creates another lead-in.
+    // Each lead-in should be assigned to its respective replay group.
+    var div = 480;
+    var segnoTick = div;
+    var lyrTick = div * 4 * 3;
+    var dsTick1 = div * 4 * 5;
+    var dsTick2 = div * 4 * 8;
+    var codaTick = div * 4 * 7;
+    var codabTick = div * 4 * 9;
+    // Lead-in syllables exist in the jump measure (after D.S. sign)
+    var leadInTick = dsTick1 + div; // lead-in syllable in same measure as D.S.
+    var data = {
+        division: div,
+        syllables: [
+            { tick: lyrTick, verse: 0, text: "main", syllabic: "single", durationQ: 2, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: leadInTick, verse: 0, text: "lead", syllabic: "begin", durationQ: 0.5, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: leadInTick + div / 2, verse: 0, text: "in", syllabic: "end", durationQ: 0.5, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+        ],
+        chords: [{ tick: segnoTick, chord: "Do" }],
+        repeats: [],
+        voltas: [],
+        markers: [
+            { tick: segnoTick, label: "segno", type: "segno" },
+            { tick: codaTick, label: "coda", type: "tocoda" },
+            { tick: codabTick, label: "codab", type: "coda" }
+        ],
+        jumps: [
+            { tick: dsTick1, jumpTo: "segno", playUntil: "end", continueAt: "", playRepeats: false },
+            { tick: dsTick2, jumpTo: "segno", playUntil: "coda", continueAt: "codab", playRepeats: false }
+        ],
+        systemTexts: [],
+        barlines: [{ tick: div * 4 * 6, type: "double" }],
+        lastTick: div * 4 * 10
+    };
+    var segments = exp.unwind(data);
+    var replaySegs = segments.filter(function(s) { return s.isJumpReplay && s.segmentBoundary; });
+    assert.ok(replaySegs.length >= 1, "should have at least one replay group with segmentBoundary");
+    // First replay should have the lead-in covering dsTick1+1 to barline
+    if (replaySegs[0] && replaySegs[0].jumpLeadIn) {
+        assert.ok(replaySegs[0].jumpLeadIn.fromTick > dsTick1, "lead-in should start after DS1 tick");
+    }
+});
