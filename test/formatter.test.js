@@ -93,6 +93,116 @@ test("formatPerfLines suppresses homeChord at line start", function() {
     }
 });
 
+test("formatPerfLines shows dominant-seventh homeChord at labeled section start", function() {
+    // VirgenAlmudena scenario (label at lyric tick, no pickup zone gap):
+    // homeChord = "D7" (dominant seventh). The intro ends with Em, so lastChord = "Em".
+    // Without the fix, the home-chord suppression fires (sm.chord = D7 = homeChord,
+    // lastChord = Em != homeChord) and D7 is dropped, leaving G with leading spaces.
+    // Because D7 ends with "7" (dominant seventh) and a label precedes the line,
+    // the exception prevents suppression and D7 appears at position 0.
+    var lines = [{
+        text: "Salve Senora",
+        sylMap: [
+            { tick: 1440, pos: 0, chord: "D7" },   // homeChord, at lyric start
+            { tick: 1800, pos: 6, chord: "G" }      // G starts later in the measure
+        ],
+        startTick: 1440, endTick: 2880,
+        sectionEnd: false
+    }];
+    var systemTexts = [{ tick: 1440, text: "Estribillo" }];
+    // introChords ending with Em sets lastChord = "Em" (not homeChord = "D7")
+    var result = fmt.formatPerfLines(lines, ["Em"], "D7", "", null, null, systemTexts);
+    var output = result.text;
+    var outputLines = output.split("\n");
+    var lyricIdx = outputLines.findIndex(function(l) { return l.indexOf("Salve") >= 0; });
+    assert.ok(lyricIdx > 0, "lyric line should be found");
+    var chordLine = outputLines[lyricIdx - 1];
+    var stripped = chordLine.replace(/​/g, "");
+    var d7Pos = stripped.indexOf("D7");
+    assert.ok(d7Pos >= 0, "D7 should appear in chord line: " + stripped);
+    assert.ok(d7Pos <= 2, "D7 should be at the start (pos " + d7Pos + "): " + stripped);
+});
+
+test("formatPerfLines still suppresses non-seventh homeChord at labeled section start", function() {
+    // Contrast with the dominant-seventh case: homeChord = "Re" (plain major triad).
+    // The suppression should still fire, keeping Re off the chord line.
+    var lines = [{
+        text: "cada vez que pienso",
+        sylMap: [
+            { tick: 1440, pos: 0, chord: "Re" },   // homeChord, plain triad
+            { tick: 1800, pos: 6, chord: "Mim" }
+        ],
+        startTick: 1440, endTick: 2880,
+        sectionEnd: false
+    }];
+    var systemTexts = [{ tick: 1440, text: "Estrofa" }];
+    var result = fmt.formatPerfLines(lines, ["La7"], "Re", "", null, null, systemTexts);
+    var output = result.text;
+    var outputLines = output.split("\n");
+    var lyricIdx = outputLines.findIndex(function(l) { return l.indexOf("cada") >= 0; });
+    assert.ok(lyricIdx > 0, "lyric line should be found");
+    var chordLine = outputLines[lyricIdx - 1];
+    var stripped = chordLine.replace(/​/g, "");
+    var rePos = stripped.indexOf("Re");
+    var mimPos = stripped.indexOf("Mim");
+    assert.ok(mimPos >= 0, "Mim should appear: " + stripped);
+    // Re should be suppressed (not appear at pos 0), only Mim should be shown
+    if (rePos >= 0) {
+        assert.ok(rePos > 2, "Re should NOT be at the start when it is a plain triad: pos=" + rePos + " in " + stripped);
+    }
+});
+
+test("formatPerfLines re-shows pickup chord at section start when it equals lastChord", function() {
+    // VirgenAlmudena scenario: a verse ends, then measure 10 is a 6/8 pickup (3/8 actual
+    // value) with Re7. Measure 11 starts the ESTRIBILLO lyric "Salve,". Sol only begins
+    // mid-measure (tick 1800), so Re7 is still the activeChord at "Sal-" (tick 1440).
+    // Re7 is emitted as a trailing chord of the verse, making lastChord = "Re7".
+    // Without the fix, Re7 is skipped in the ESTRIBILLO chord line (sm.chord === lastChord)
+    // and Sol appears with leading spaces instead of Re7 at position 0.
+    var lines = [
+        // Verse line that ends just before the pickup measure
+        {
+            text: "Adios cantares",
+            sylMap: [{ tick: 0, pos: 0, chord: "Sol" }],
+            startTick: 0, endTick: 480,
+            sectionEnd: true
+        },
+        // ESTRIBILLO: first lyric at tick 1440, Re7 active from pickup measure
+        {
+            text: "Salve Senora",
+            sylMap: [
+                { tick: 1440, pos: 0, chord: "Re7" },
+                { tick: 1800, pos: 6, chord: "Sol" }
+            ],
+            startTick: 1440, endTick: 2880,
+            sectionEnd: false
+        }
+    ];
+    // Sol: verse chord. Re7: pickup measure (tick 720 is 3 eighth notes before lyric).
+    // Sol at 1800: changes after the first syllable.
+    var chords = [
+        { tick: 0,    chord: "Sol" },
+        { tick: 720,  chord: "Re7" },
+        { tick: 1800, chord: "Sol" }
+    ];
+    // Label at pickup measure start (before the lyric at 1440)
+    var systemTexts = [{ tick: 720, text: "Estribillo" }];
+    var result = fmt.formatPerfLines(lines, [], null, "", chords, null, systemTexts);
+    var output = result.text;
+    var outputLines = output.split("\n");
+    var lyricIdx = outputLines.findIndex(function(l) { return l.indexOf("Salve") >= 0; });
+    assert.ok(lyricIdx > 0, "lyric line should be found");
+    var chordLine = outputLines[lyricIdx - 1];
+    assert.ok(chordLine, "chord line should exist above lyric");
+    var stripped = chordLine.replace(/​/g, "");
+    var re7Pos = stripped.indexOf("Re7");
+    var solPos = stripped.indexOf("Sol");
+    assert.ok(re7Pos >= 0, "Re7 should appear in the chord line above lyric: " + stripped);
+    assert.ok(solPos >= 0, "Sol should appear in the chord line above lyric: " + stripped);
+    assert.ok(re7Pos < solPos, "Re7 should precede Sol: " + stripped);
+    assert.ok(re7Pos <= 2, "Re7 should be at the start of the chord line (pos " + re7Pos + "): " + stripped);
+});
+
 test("formatPerfLines adds blank line after sectionEnd", function() {
     var lines = [
         { text: "line1", sylMap: [], startTick: 0, endTick: 480, sectionEnd: true },
