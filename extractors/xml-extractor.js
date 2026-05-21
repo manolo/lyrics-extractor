@@ -915,7 +915,7 @@ function extractForFixer(xmlString) {
             var rootTpc = rootNode ? parseInt(rootNode.text) : -99;
             var quality = childText(hInfo, "name") || "";
             var Constants = require("../lib/constants");
-            var text = Constants.tpcToChordName(rootTpc, quality, "standard");
+            var text = Constants.tpcToChordName(rootTpc, quality, spelling);
             return { text: text, fromTpc: rootTpc !== -99 };
         }
         var text = childText(harmonyNode, "name") || "";

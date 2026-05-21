@@ -2659,3 +2659,89 @@ test("stripChordLines collapses triple newlines to double", function() {
     var result = fmt.stripChordLines(input);
     assert.equal(result.indexOf("\n\n\n"), -1, "no triple newlines");
 });
+
+// ============================================================
+// Instrumental section chords between consecutive labels
+// ============================================================
+
+test("formatPerfLines emits chord line for instrumental section between consecutive labels", function() {
+    // MÚSICA label at tick 1000, ESTRIBILLO label at tick 3000, first lyric at tick 3000.
+    // Chords in [1000, 3000) should appear as a standalone line under MÚSICA,
+    // not absorbed into the ESTRIBILLO lyric line or silently dropped.
+    var lines = [
+        {
+            text: "ultima estrofa.",
+            sylMap: [{ tick: 500, pos: 0, chord: "Do" }],
+            startTick: 500, endTick: 900, sectionEnd: true
+        },
+        {
+            text: "Madrid Madrid.",
+            sylMap: [{ tick: 3000, pos: 0, chord: "Fa" }],
+            startTick: 3000, endTick: 3480, sectionEnd: false
+        }
+    ];
+    var chords = [
+        { tick: 500,  chord: "Do"  },
+        { tick: 1000, chord: "Do7" },
+        { tick: 1480, chord: "Do"  },
+        { tick: 1960, chord: "Do7" },
+        { tick: 2440, chord: "Sol7" },
+        { tick: 2920, chord: "Do"  },
+        { tick: 3000, chord: "Fa"  }
+    ];
+    var systemTexts = [
+        { tick: 1000, text: "Musica" },
+        { tick: 3000, text: "Estribillo" }
+    ];
+    var result = fmt.formatPerfLines(lines, [], null, "TEST", chords, [], systemTexts, false);
+    var output = result.text || result;
+
+    assert.ok(output.indexOf("- MUSICA -") >= 0, "MUSICA label should appear");
+    assert.ok(output.indexOf("Do7") >= 0, "MUSICA chords should appear");
+
+    // The chords must appear AFTER the MUSICA label, not attached to estrofa line
+    var musicaIdx = output.indexOf("- MUSICA -");
+    var do7Idx    = output.indexOf("Do7");
+    assert.ok(do7Idx > musicaIdx,
+        "MUSICA chords should appear after the MUSICA label, not before: " + output);
+
+    // The ESTRIBILLO lyric line should NOT have the interlude chords on it
+    var estriLine = output.split("\n").filter(function(l) { return l.indexOf("Madrid Madrid") >= 0; })[0];
+    assert.ok(estriLine, "ESTRIBILLO lyric line should exist");
+    assert.ok(estriLine.indexOf("Do7") < 0,
+        "interlude chords should not appear on the ESTRIBILLO lyric line: " + estriLine);
+});
+
+test("formatPerfLines does not duplicate chords for intro-region label (stTick < firstLineTick)", function() {
+    // Label at tick 200 is BEFORE first lyric at tick 3000 (intro region).
+    // The in-loop chord emission guard (stTick >= firstLineTick) prevents
+    // firing for intro labels already handled by the intro-chord mechanism.
+    // Net result: chords appear EXACTLY ONCE in the output (via intro handler).
+    var lines = [
+        {
+            text: "empieza aqui.",
+            sylMap: [{ tick: 3000, pos: 0, chord: "Do" }],
+            startTick: 3000, endTick: 3480, sectionEnd: false
+        }
+    ];
+    var chords = [
+        { tick: 200,  chord: "Do7" },
+        { tick: 600,  chord: "Sol" },
+        { tick: 1000, chord: "Do"  },
+        { tick: 3000, chord: "Do"  }
+    ];
+    var systemTexts = [{ tick: 200, text: "Musica" }];
+    var introChords = ["Do7", "Sol", "Do"];
+    var result = fmt.formatPerfLines(lines, introChords, null, "TEST", chords, [], systemTexts, false);
+    var output = result.text || result;
+
+    // MUSICA label should appear exactly once
+    var firstIdx  = output.indexOf("- MUSICA -");
+    var secondIdx = output.indexOf("- MUSICA -", firstIdx + 1);
+    assert.ok(firstIdx >= 0,   "MUSICA label should appear");
+    assert.equal(secondIdx, -1, "MUSICA label should not appear twice");
+
+    // Do7 from the intro chords should appear once (intro handler), not twice
+    var count = (output.match(/Do7/g) || []).length;
+    assert.equal(count, 1, "Do7 intro chord should appear exactly once, not duplicated: " + count);
+});

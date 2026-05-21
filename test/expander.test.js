@@ -1220,3 +1220,77 @@ test("lead-in assigned to correct replay group when multiple DS jumps", function
         assert.ok(replaySegs[0].jumpLeadIn.fromTick > dsTick1, "lead-in should start after DS1 tick");
     }
 });
+
+// ============================================================
+// Volta smooth-transition suppressed when next segment has
+// long instrumental intro (repeat-start to first lyric > 4 beats)
+// ============================================================
+
+test("volta transition does NOT apply noBreakAfter when next segment has long instrumental intro", function() {
+    // Repeat starts at tick 960 (instrumental intro) but first lyric is at
+    // tick 15840 — a gap of 14880 ticks (~31 beats). The smooth volta
+    // transition must not join the last Volta-1 syllable to the first
+    // second-pass syllable, or the second pass ESTROFA would start mid-phrase.
+    var div = 480;
+    var data = {
+        division: div,
+        syllables: [
+            // ESTROFA pass 1 — starts well after repeat start (long intro gap)
+            { tick: 15840, verse: 0, text: "Cuan", syllabic: "begin", durationQ: 1, restAfter: false, gapDurationQ: 0 },
+            { tick: 16320, verse: 0, text: "do.", syllabic: "end",   durationQ: 1, restAfter: true,  gapDurationQ: 2 },
+            // Volta 1 content
+            { tick: 88320, verse: 0, text: "Madrid.", syllabic: "single", durationQ: 2, restAfter: true, gapDurationQ: 4 }
+        ],
+        chords: [{ tick: 960, chord: "Do" }],
+        repeats: [{ startTick: 960, endTick: 93120, repeatCount: 2 }],
+        voltas: [
+            { startTick: 88320, endTick: 93120, _measureIdx: 92, endingList: [1] },
+            { startTick: 93120, endTick: 94080, _measureIdx: 97, endingList: [2] }
+        ],
+        markers: [], jumps: [], systemTexts: [], barlines: [], lastTick: 96000
+    };
+    var stream = exp.expand(data);
+    // Find the last Volta-1 syllable in the stream (first occurrence of Madrid.)
+    var volta1End = null;
+    for (var i = 0; i < stream.length; i++) {
+        if (stream[i].text === "Madrid." && !volta1End) volta1End = stream[i];
+    }
+    assert.ok(volta1End, "Madrid. should be in stream");
+    assert.ok(!volta1End.noBreakAfter,
+        "last Volta-1 syllable must NOT have noBreakAfter when next segment has long instrumental intro");
+    assert.ok(volta1End.sectionEnd,
+        "last Volta-1 syllable should have sectionEnd (clean break before second pass)");
+});
+
+test("volta transition still applies noBreakAfter for short intro (normal verse repeat)", function() {
+    // Repeat starts at tick 0 and first lyric is at tick 480 — just 1 beat.
+    // Normal verse-repeat: smooth transition should still apply.
+    var div = 480;
+    var data = {
+        division: div,
+        syllables: [
+            { tick: 480,  verse: 0, text: "hoy",    syllabic: "single", durationQ: 1, restAfter: false, gapDurationQ: 0 },
+            { tick: 960,  verse: 0, text: "canto",  syllabic: "single", durationQ: 1, restAfter: false, gapDurationQ: 0 },
+            { tick: 1440, verse: 0, text: "Madrid", syllabic: "single", durationQ: 2, restAfter: true,  gapDurationQ: 4 },
+            // Volta 1
+            { tick: 1920, verse: 0, text: "fin.",   syllabic: "single", durationQ: 2, restAfter: true,  gapDurationQ: 4 },
+            // Second pass lyric
+            { tick: 2880, verse: 0, text: "ayer",   syllabic: "single", durationQ: 2, restAfter: true,  gapDurationQ: 4 }
+        ],
+        chords: [{ tick: 0, chord: "Do" }],
+        repeats: [{ startTick: 0, endTick: 1920, repeatCount: 2 }],
+        voltas: [
+            { startTick: 1440, endTick: 1920, _measureIdx: 2, endingList: [1] },
+            { startTick: 1920, endTick: 2400, _measureIdx: 3, endingList: [2] }
+        ],
+        markers: [], jumps: [], systemTexts: [], barlines: [], lastTick: 3840
+    };
+    var stream = exp.expand(data);
+    // Last Volta-1 syllable is "Madrid" (tick 1440, inside volta [1440,1920)).
+    // "fin." at tick 1920 is the volta-at-start of Seg 2 (Volta 2), not Volta 1.
+    var madridSyl = stream.filter(function(s) { return s.text === "Madrid"; })[0];
+    assert.ok(madridSyl, "Madrid should be in stream as last Volta-1 syllable");
+    // With short intro (480 ticks < 1920 threshold), smooth transition applies
+    assert.ok(madridSyl.noBreakAfter,
+        "last Volta-1 syllable SHOULD have noBreakAfter for normal short-intro verse repeat");
+});

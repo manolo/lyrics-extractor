@@ -24,6 +24,7 @@ var MUSIC_DIR = path.join(os.homedir(), "Music");
 // Song name -> path relative to ~/Music (without .mscz extension)
 var SONGS = {
     "AlmaLlanera":           "TunaAlcala/AlmaLlanera/AlmaLlanera",
+    "ChotisMadrid":          "TunaAlcala/ChotisMadrid/ChotisMadrid",
     "Clavelitos":            "TunaAlcala/Clavelitos/Clavelitos",
     "EspanaCani":            "TunaAlcala/EspañaCañi/EspañaCañi",
     "EstudiantinaMadrilena": "TunaAlcala/EstudiantinaMadrileña/EstudiantinaMadrileña",

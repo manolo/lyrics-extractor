@@ -990,3 +990,41 @@ test("extractAll lyricStaff same as default does not change result", function() 
     assert.equal(data.syllables[0].text, "so");
     assert.equal(data.syllables.length, 3);
 });
+
+// ============================================================
+// harmonyInfo TPC spelling: respects spelling parameter
+// ============================================================
+
+test("harmonyInfo TPC chords use spelling parameter (solfeggio)", function() {
+    // Harmony stored as TPC root (not text) must use the spelling parameter.
+    // Bug: readHarmonyText() had "standard" hardcoded — TPC chords always
+    // came out in English regardless of the score's chordSymbolSpelling.
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.60"><Score><Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<Harmony><harmonyInfo><root>21</root></harmonyInfo></Harmony>',
+        '<Chord><durationType>whole</durationType>',
+        '<Lyrics><text>la</text></Lyrics>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '<Harmony><harmonyInfo><root>15</root><name>7</name></harmonyInfo></Harmony>',
+        '<Chord><durationType>whole</durationType>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '<Harmony><harmonyInfo><root>13</root><name>m</name></harmonyInfo></Harmony>',
+        '<Chord><durationType>whole</durationType>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var dataSolfeo = xmlExt.extractAll(xml, [], "solfeggio");
+    assert.equal(dataSolfeo.chords[0].chord, "Do#",  "TPC 21 + solfeggio = Do#");
+    assert.equal(dataSolfeo.chords[1].chord, "Sol7", "TPC 15 + quality 7 + solfeggio = Sol7");
+    assert.equal(dataSolfeo.chords[2].chord, "Fam",  "TPC 13 + quality m + solfeggio = Fam");
+
+    var dataStd = xmlExt.extractAll(xml, [], "standard");
+    assert.equal(dataStd.chords[0].chord, "C#",  "TPC 21 + standard = C#");
+    assert.equal(dataStd.chords[1].chord, "G7",  "TPC 15 + quality 7 + standard = G7");
+    assert.equal(dataStd.chords[2].chord, "Fm",  "TPC 13 + quality m + standard = Fm");
+});

@@ -24,6 +24,7 @@ var SONGS = {
     "AlmaLlanera":           "TunaAlcala/AlmaLlanera/AlmaLlanera",
     "MalaguenaSalerosa":     "Cantina/MalagueñaSalerosa/MalagueñaSalerosa",
     "IsaDelCandidito":       "TunaAlcala/IsaDelCandidito/IsaDelCandidito",
+    "ChotisMadrid":          "TunaAlcala/ChotisMadrid/ChotisMadrid",
     "Clavelitos":            "TunaAlcala/Clavelitos/Clavelitos",
     "LosAmigos":             "TunaAlcala/LosAmigos/LosAmigos",
     "RondaFiruli":           "TunaAlcala/RondaDelFiruli/RondaFiruli",
