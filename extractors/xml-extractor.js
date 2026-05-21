@@ -908,14 +908,15 @@ function extractForFixer(xmlString) {
 
     // Read chord name from a Harmony node (handles both old <name> and new <harmonyInfo>)
     // Returns { text, fromTpc } where fromTpc is true when the name was computed from TPC root.
-    function readHarmonyText(harmonyNode) {
+    // sp: spelling parameter ("standard", "solfeggio", etc.) for TPC conversion.
+    function readHarmonyText(harmonyNode, sp) {
         var hInfo = findChild(harmonyNode, "harmonyInfo");
         if (hInfo) {
             var rootNode = findChild(hInfo, "root");
             var rootTpc = rootNode ? parseInt(rootNode.text) : -99;
             var quality = childText(hInfo, "name") || "";
             var Constants = require("../lib/constants");
-            var text = Constants.tpcToChordName(rootTpc, quality, spelling);
+            var text = Constants.tpcToChordName(rootTpc, quality, sp || "standard");
             return { text: text, fromTpc: rootTpc !== -99 };
         }
         var text = childText(harmonyNode, "name") || "";
@@ -954,7 +955,7 @@ function extractForFixer(xmlString) {
                 if (mChild.tag === "Harmony" || mChild.tag === "FretDiagram") {
                     var hNode = mChild.tag === "FretDiagram" ? findChild(mChild, "Harmony") : mChild;
                     if (hNode) {
-                        var nameResult = readHarmonyText(hNode);
+                        var nameResult = readHarmonyText(hNode, "standard");
                         if (nameResult.text) {
                             chordList.push({ tick: measureStartTick, text: nameResult.text,
                                 fromTpc: nameResult.fromTpc,
@@ -1026,7 +1027,7 @@ function extractForFixer(xmlString) {
                     if (elem.tag === "Harmony" || elem.tag === "FretDiagram") {
                         var hNode = elem.tag === "FretDiagram" ? findChild(elem, "Harmony") : elem;
                         if (hNode) {
-                            var hNameResult = readHarmonyText(hNode);
+                            var hNameResult = readHarmonyText(hNode, "standard");
                             if (hNameResult.text) {
                                 chordList.push({ tick: voiceTick, text: hNameResult.text,
                                     fromTpc: hNameResult.fromTpc,
