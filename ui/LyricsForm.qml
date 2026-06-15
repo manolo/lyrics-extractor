@@ -820,22 +820,15 @@ MuseScore {
 
         var json = JSON.stringify(data, null, 2);
 
-        var scorePath = curScore.path || "";
-        var filePath;
-        if (scorePath) {
-            filePath = scorePath.replace(/\.(mscz|mscx)$/i, "") + "-debug.json";
-        } else {
-            filePath = fileIO.homePath() + "/Documents/lyrics-debug.json";
+        var savedPath = tryWriteFile(json, buildSaveCandidates("-debug.json"));
+        if (!savedPath) {
+            statusText.isError = true;
+            statusText.text = tr("Error guardando debug", "Error saving debug");
+            return;
         }
-
-        try {
-            fileIO.source = filePath;
-            fileIO.write(json);
-            savedFilePath = filePath;
-            statusText.text = tr("Debug exportado: " + filePath, "Debug exported: " + filePath);
-        } catch (e) {
-            statusText.text = tr("Error: " + e, "Error: " + e);
-        }
+        savedFilePath = savedPath;
+        statusText.isError = false;
+        statusText.text = tr("Debug exportado: " + savedPath, "Debug exported: " + savedPath);
     }
 
     // ========================================
@@ -862,68 +855,56 @@ MuseScore {
         }
     }
 
+    function tryWriteFile(data, candidates) {
+        for (var i = 0; i < candidates.length; i++) {
+            try {
+                fileIO.source = candidates[i];
+                if (fileIO.write(data)) return candidates[i];
+            } catch (e) { /* try next */ }
+        }
+        return null;
+    }
+
+    function buildSaveCandidates(suffix) {
+        // curScore.path is not exposed in the MS4 plugin API, so we go straight to allowed dirs.
+        var title = curScore.scoreName || curScore.title || "score";
+        var filename = title.replace(/[^a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s_-]/g, "").replace(/\s+/g, "_");
+        var home = fileIO.homePath();
+        return [
+            home + "/Documents/MuseScore4/Scores/" + filename + suffix,
+            home + "/Documents/MuseScore4/" + filename + suffix
+        ];
+    }
+
     function saveLyricsToFile(content) {
         if (!content) return;
 
-        // Save alongside the .mscz file with -letra.txt suffix
-        var scorePath = curScore.path || "";
-        var filePath;
-        if (scorePath) {
-            // Remove .mscz/.mscx extension and append -letra.txt
-            filePath = scorePath.replace(/\.(mscz|mscx)$/i, "") + "-letra.txt";
-        } else {
-            // Fallback: save to Documents
-            var title = curScore.scoreName || curScore.title || "score";
-            var filename = title.replace(/[^a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s_-]/g, "").replace(/\s+/g, "_");
-            filePath = fileIO.homePath() + "/Documents/" + filename + "-letra.txt";
+        var savedPath = tryWriteFile(content, buildSaveCandidates("-letra.txt"));
+        if (!savedPath) {
+            statusText.isError = true;
+            statusText.text = tr("Error guardando texto", "Error saving text");
+            return;
         }
-
-        try {
-            fileIO.source = filePath;
-            fileIO.write(content);
-            savedFilePath = filePath;
-            statusText.text = tr(
-                "Guardado en: " + filePath,
-                "Saved to: " + filePath
-            );
-            openFile(filePath);
-        } catch (e) {
-            statusText.text = tr(
-                "Error guardando: " + e,
-                "Error saving: " + e
-            );
-        }
+        savedFilePath = savedPath;
+        statusText.isError = false;
+        statusText.text = tr("Guardado en: " + savedPath, "Saved to: " + savedPath);
+        openFile(savedPath);
     }
 
     function saveChordProFile(content) {
         if (!content) return;
 
         var cpOutput = ChordProWriter.convert(content);
-        var scorePath = curScore.path || "";
-        var filePath;
-        if (scorePath) {
-            filePath = scorePath.replace(/\.(mscz|mscx)$/i, "") + "-letra.cho";
-        } else {
-            var title = curScore.scoreName || curScore.title || "score";
-            var filename = title.replace(/[^a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s_-]/g, "").replace(/\s+/g, "_");
-            filePath = fileIO.homePath() + "/Documents/" + filename + "-letra.cho";
+        var savedPath = tryWriteFile(cpOutput, buildSaveCandidates("-letra.cho"));
+        if (!savedPath) {
+            statusText.isError = true;
+            statusText.text = tr("Error guardando ChordPro", "Error saving ChordPro");
+            return;
         }
-
-        try {
-            fileIO.source = filePath;
-            fileIO.write(cpOutput);
-            savedFilePath = filePath;
-            statusText.text = tr(
-                "ChordPro guardado en: " + filePath,
-                "ChordPro saved to: " + filePath
-            );
-            openFile(filePath);
-        } catch (e) {
-            statusText.text = tr(
-                "Error guardando ChordPro: " + e,
-                "Error saving ChordPro: " + e
-            );
-        }
+        savedFilePath = savedPath;
+        statusText.isError = false;
+        statusText.text = tr("ChordPro guardado en: " + savedPath, "ChordPro saved to: " + savedPath);
+        openFile(savedPath);
     }
 
     function savePdfFile(content) {
@@ -938,31 +919,16 @@ MuseScore {
         };
         var pdfContent = PdfWriter.generatePdf(content, pdfOptions);
 
-        var scorePath = curScore.path || "";
-        var filePath;
-        if (scorePath) {
-            filePath = scorePath.replace(/\.(mscz|mscx)$/i, "") + "-letra.pdf";
-        } else {
-            var title = curScore.scoreName || curScore.title || "score";
-            var filename = title.replace(/[^a-zA-Z0-9áéíóúüñÁÉÍÓÚÜÑ\s_-]/g, "").replace(/\s+/g, "_");
-            filePath = fileIO.homePath() + "/Documents/" + filename + "-letra.pdf";
+        var savedPath = tryWriteFile(pdfContent, buildSaveCandidates("-letra.pdf"));
+        if (!savedPath) {
+            statusText.isError = true;
+            statusText.text = tr("Error guardando PDF", "Error saving PDF");
+            return;
         }
-
-        try {
-            fileIO.source = filePath;
-            fileIO.write(pdfContent);
-            savedFilePath = filePath;
-            statusText.text = tr(
-                "PDF guardado en: " + filePath,
-                "PDF saved to: " + filePath
-            );
-            openFile(filePath);
-        } catch (e) {
-            statusText.text = tr(
-                "Error guardando PDF: " + e,
-                "Error saving PDF: " + e
-            );
-        }
+        savedFilePath = savedPath;
+        statusText.isError = false;
+        statusText.text = tr("PDF guardado en: " + savedPath, "PDF saved to: " + savedPath);
+        openFile(savedPath);
     }
 
     // ========================================
