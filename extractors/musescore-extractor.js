@@ -417,13 +417,9 @@ function extractChords(harmonyStaffIdx) {
                         }
                     }
                 }
-                // Inline text annotations -> chord line.
-                // STAFF_TEXT=52, EXPRESSION=42, PLAYTECH_ANNOTATION=55 or 56 (varies by MS4 minor version).
-                // We accept both 55 and 56 for PlayTechAnnotation since the enum shifted between releases.
+                // Inline text annotations -> chord line: STAFF_TEXT, EXPRESSION, PLAYTECH_ANNOTATION.
                 if (ann && (ann.type === Element.STAFF_TEXT || ann.type === Element.EXPRESSION
-                            || ann.type === 52 || ann.type === 42
-                            || ann.type === 55 || ann.type === 56
-                            || (typeof Element.PLAYTECH_ANNOTATION !== "undefined" && ann.type === Element.PLAYTECH_ANNOTATION))) {
+                            || ann.type === Element.PLAYTECH_ANNOTATION)) {
                     var inlineStaff = Math.floor(ann.track / 4);
                     if (inlineStaff === harmonyStaffIdx || harmonyStaffIdx === -1) {
                         var inlineText = _stripHtml(ann.text || "");
@@ -436,7 +432,7 @@ function extractChords(harmonyStaffIdx) {
                     }
                 }
                 // FretDiagram annotations: try native API (4.7+), fallback for older versions
-                if (ann && ann.type === 63) { // Type 63 = FRET_DIAGRAM
+                if (ann && ann.type === Element.FRET_DIAGRAM) {
                     var fdChord = "";
                     try { fdChord = ann.harmonyPlainText || ""; } catch (e) { fdChord = ""; }
 
@@ -679,10 +675,11 @@ function extractSystemTexts() {
             for (var a = 0; a < annotations.length; a++) {
                 var ann = annotations[a];
                 if (!ann) continue;
-                // System-wide labels only: SYSTEM_TEXT and REHEARSAL_MARK (60).
+                // System-wide labels only: SYSTEM_TEXT and REHEARSAL_MARK.
                 // STAFF_TEXT belongs to a single staff and is treated as inline chord
                 // text in extractChords(), not as a section title.
-                if (ann.type === Element.SYSTEM_TEXT || ann.type === 60) {
+                // Note: REHEARSAL_MARK enum value changed in MS 4.7 (was 60, now 63) — use the constant.
+                if (ann.type === Element.SYSTEM_TEXT || ann.type === Element.REHEARSAL_MARK) {
                     var txt = ann.text || "";
                     if (txt) {
                         // Deduplicate: same tick+text can appear on multiple staves
@@ -730,7 +727,7 @@ function extractBarlines() {
             if (annotations) {
                 for (var a = 0; a < annotations.length; a++) {
                     var ann = annotations[a];
-                    if (ann && ann.type === 10) { // BAR_LINE
+                    if (ann && ann.type === Element.BAR_LINE) {
                         try {
                             var sub = ann.subtype;
                             // BarLineType: DOUBLE=2, END/FINAL=0x20=32, HEAVY=0x200=512, DOUBLE_HEAVY=0x400=1024
@@ -766,7 +763,7 @@ function extractBarlines() {
                 if (bSeg) {
                     for (var bTrack = 0; bTrack < curScore.nstaves * 4; bTrack++) {
                         var bElem = bSeg.elementAt(bTrack);
-                        if (bElem && bElem.type === 10) {
+                        if (bElem && bElem.type === Element.BAR_LINE) {
                             var bSub = -1;
                             try { bSub = bElem.subtype || bElem.barLineType || -1; } catch (e2) {}
                             if (bSub === 32 || bSub === 2 || bSub === 512 || bSub === 1024) {
@@ -805,7 +802,7 @@ function _scorHasFretBox(score) {
                 var elems = mb.elements;
                 if (elems) {
                     for (var i = 0; i < elems.length; i++) {
-                        if (elems[i] && elems[i].type === 63) return true; // FRET_DIAGRAM
+                        if (elems[i] && elems[i].type === Element.FRET_DIAGRAM) return true;
                     }
                 }
             } catch (e) { /* skip */ }
@@ -876,7 +873,7 @@ function _fretApiAvailableInScore(score) {
                 var elems = mb.elements;
                 if (elems) {
                     for (var i = 0; i < elems.length; i++) {
-                        if (elems[i] && elems[i].type === 63) {
+                        if (elems[i] && elems[i].type === Element.FRET_DIAGRAM) {
                             return _probeFretDiagramAPI(elems[i]);
                         }
                     }
@@ -901,7 +898,7 @@ function _fretApiAvailable() {
             var annotations = segment.annotations;
             if (annotations) {
                 for (var a = 0; a < annotations.length; a++) {
-                    if (annotations[a] && annotations[a].type === 63) {
+                    if (annotations[a] && annotations[a].type === Element.FRET_DIAGRAM) {
                         return _probeFretDiagramAPI(annotations[a]);
                     }
                 }
@@ -950,7 +947,7 @@ function _extractFretDiagramsFromScore(score) {
                 if (elems) {
                     for (var i = 0; i < elems.length; i++) {
                         var fd = elems[i];
-                        if (!fd || fd.type !== 63) continue;
+                        if (!fd || fd.type !== Element.FRET_DIAGRAM) continue;
 
                         var chordName = "";
                         try { chordName = fd.harmonyPlainText || ""; } catch (e) { continue; }
