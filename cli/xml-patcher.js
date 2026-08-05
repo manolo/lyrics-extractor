@@ -417,8 +417,10 @@ function _readHarmonyName(harmonyNode, division) {
         var rootTpc = rootNode ? parseInt(rootNode.text) : -99;
         var quality = findChildByTag(hInfo, "name");
         var qualText = quality ? (quality.text || "") : "";
+        var bassNode = findChildByTag(hInfo, "bass") || findChildByTag(hInfo, "base");
+        var bassTpc = bassNode ? parseInt(bassNode.text) : -99;
         var Constants = require("../lib/constants");
-        return Constants.tpcToChordName(rootTpc, qualText, "standard");
+        return Constants.tpcToChordName(rootTpc, qualText, "standard", bassTpc);
     }
     var nameNode = findChildByTag(harmonyNode, "name");
     return nameNode ? (nameNode.text || "") : "";

@@ -123,7 +123,15 @@ function _harmonyName(hNode, C, spelling) {
     var rn = _fc(hi, "root");
     var tpc = rn ? parseInt(rn.text) : -99;
     var quality = _ct(hi, "name") || "";
-    return C.tpcToChordName(tpc, quality, spelling);
+    return C.tpcToChordName(tpc, quality, spelling, _bassTpc(hi));
+}
+
+// Slash-chord bass note TPC, or -99 when absent (<bass> in MuseScore 4, <base> in MuseScore 3)
+function _bassTpc(hi) {
+    var text = _ct(hi, "bass") || _ct(hi, "base");
+    if (!text) return -99;
+    var tpc = parseInt(text);
+    return isNaN(tpc) ? -99 : tpc;
 }
 
 // --- Main extraction ---

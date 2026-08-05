@@ -738,6 +738,25 @@ test("tpcToChordName returns literal text when no root TPC", function() {
     assert.equal(Constants.tpcToChordName(-99, "", "solfeggio"), "");
 });
 
+test("tpcToChordName appends bass note for slash chords", function() {
+    // TPC 12 = Bb/Sib, 13 = F/Fa, 17 = A/La, 18 = E/Mi
+    assert.equal(Constants.tpcToChordName(12, "", "standard", 13), "Bb/F");
+    assert.equal(Constants.tpcToChordName(12, "", "solfeggio", 13), "Sib/Fa");
+    assert.equal(Constants.tpcToChordName(17, "m", "standard", 18), "Am/E");
+    assert.equal(Constants.tpcToChordName(14, "maj7", "solfeggio", 18), "Domaj7/Mi");
+});
+
+test("tpcToChordName ignores absent or invalid bass TPC", function() {
+    assert.equal(Constants.tpcToChordName(12, "", "standard"), "Bb");
+    assert.equal(Constants.tpcToChordName(12, "", "standard", -99), "Bb");
+    assert.equal(Constants.tpcToChordName(12, "", "standard", undefined), "Bb");
+    assert.equal(Constants.tpcToChordName(12, "", "standard", NaN), "Bb");
+});
+
+test("tpcToChordName keeps bass note when the root is literal text", function() {
+    assert.equal(Constants.tpcToChordName(-99, "Bajos", "standard", 13), "Bajos");
+});
+
 test("tpcToChordName handles french spelling same as solfeggio", function() {
     assert.equal(Constants.tpcToChordName(17, "m", "french"), "Lam");
     assert.equal(Constants.tpcToChordName(14, "", "french"), "Do");

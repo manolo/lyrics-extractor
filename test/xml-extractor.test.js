@@ -1028,3 +1028,72 @@ test("harmonyInfo TPC chords use spelling parameter (solfeggio)", function() {
     assert.equal(dataStd.chords[1].chord, "G7",  "TPC 15 + quality 7 + standard = G7");
     assert.equal(dataStd.chords[2].chord, "Fm",  "TPC 13 + quality m + standard = Fm");
 });
+
+// ============================================================
+// Slash chords: <bass> element (MuseScore 4) and <base> (MuseScore 3)
+// ============================================================
+
+test("extractAll reads bass note of slash chords", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<Harmony><harmonyInfo><root>12</root><bass>13</bass></harmonyInfo></Harmony>',
+        '<Chord><durationType>whole</durationType>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '<Harmony><harmonyInfo><root>17</root><name>m</name><bass>18</bass></harmonyInfo></Harmony>',
+        '<Chord><durationType>whole</durationType>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var std = xmlExt.extractAll(xml, [], "standard");
+    assert.equal(std.chords[0].chord, "Bb/F", "TPC 12 root + TPC 13 bass = Bb/F");
+    assert.equal(std.chords[1].chord, "Am/E", "TPC 17 root + quality m + TPC 18 bass = Am/E");
+
+    var solfeo = xmlExt.extractAll(xml, [], "solfeggio");
+    assert.equal(solfeo.chords[0].chord, "Sib/Fa");
+    assert.equal(solfeo.chords[1].chord, "Lam/Mi");
+});
+
+test("extractAll reads bass note nested in FretDiagram", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<FretDiagram>',
+        '<Harmony><harmonyInfo><root>12</root><bass>13</bass></harmonyInfo></Harmony>',
+        '<fretDiagram></fretDiagram>',
+        '</FretDiagram>',
+        '<Chord><durationType>whole</durationType>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml, [], "standard");
+    assert.equal(data.chords[0].chord, "Bb/F");
+});
+
+test("extractAll accepts MuseScore 3 base tag for slash chords", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="3.02"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<Harmony><root>12</root><base>13</base></Harmony>',
+        '<Chord><durationType>whole</durationType>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml, [], "standard");
+    assert.equal(data.chords[0].chord, "Bb/F");
+});

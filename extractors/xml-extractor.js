@@ -149,6 +149,15 @@ function childText(node, tag) {
     return child ? child.text : "";
 }
 
+// Slash-chord bass note TPC, or -99 when the chord has none.
+// MuseScore 4 writes <bass>, MuseScore 3 wrote <base>.
+function bassTpc(hInfo) {
+    var text = childText(hInfo, "bass") || childText(hInfo, "base");
+    if (!text) return -99;
+    var tpc = parseInt(text);
+    return isNaN(tpc) ? -99 : tpc;
+}
+
 // Walk all measures in a staff node, computing tick positions.
 // Calls onElement(elem, voiceTick, measureStartTick, measureIdx, actualMeasureTicks) for each voice child.
 // Calls onMeasure(measureNode, startTick, endTick, measureIdx) after each measure.
@@ -604,7 +613,7 @@ function extractAll(xmlString, excerptXmls, spelling, options) {
                     var rootNode = findChild(hInfo, "root");
                     var rootTpc = rootNode ? parseInt(rootNode.text) : -99;
                     var quality = childText(hInfo, "name") || "";
-                    var harmonyName = Constants.tpcToChordName(rootTpc, quality, spelling);
+                    var harmonyName = Constants.tpcToChordName(rootTpc, quality, spelling, bassTpc(hInfo));
                     if (harmonyName) {
                         if (!harmonyCounts[staffId]) harmonyCounts[staffId] = 0;
                         harmonyCounts[staffId]++;
@@ -619,7 +628,7 @@ function extractAll(xmlString, excerptXmls, spelling, options) {
                 var rootNode = findChild(hInfo, "root");
                 var rootTpc = rootNode ? parseInt(rootNode.text) : -99;
                 var quality = childText(hInfo, "name") || "";
-                var harmonyName = Constants.tpcToChordName(rootTpc, quality, spelling);
+                var harmonyName = Constants.tpcToChordName(rootTpc, quality, spelling, bassTpc(hInfo));
                 if (harmonyName) {
                     if (!harmonyCounts[staffId]) harmonyCounts[staffId] = 0;
                     harmonyCounts[staffId]++;
@@ -916,7 +925,7 @@ function extractForFixer(xmlString) {
             var rootTpc = rootNode ? parseInt(rootNode.text) : -99;
             var quality = childText(hInfo, "name") || "";
             var Constants = require("../lib/constants");
-            var text = Constants.tpcToChordName(rootTpc, quality, sp || "standard");
+            var text = Constants.tpcToChordName(rootTpc, quality, sp || "standard", bassTpc(hInfo));
             return { text: text, fromTpc: rootTpc !== -99 };
         }
         var text = childText(harmonyNode, "name") || "";

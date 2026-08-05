@@ -463,3 +463,26 @@ test("extractChords picks up StaffText, Expression and PlayTechAnnotation as cho
     assert.ok(names.indexOf("rit.") >= 0, "should have rit.: " + names);
     assert.ok(names.indexOf("Sol") >= 0, "should have Sol: " + names);
 });
+
+test("extractChords reads bass note of slash chords", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<FretDiagram>',
+        '<Harmony><harmonyInfo><root>12</root><bass>13</bass></harmonyInfo></Harmony>',
+        '<fretDiagram></fretDiagram>',
+        '</FretDiagram>',
+        '<Chord><durationType>half</durationType><Note><pitch>60</pitch></Note></Chord>',
+        '<Harmony><harmonyInfo><root>17</root><name>m</name><bass>18</bass></harmonyInfo></Harmony>',
+        '<Chord><durationType>half</durationType><Note><pitch>62</pitch></Note></Chord>',
+        '</voice></Measure></Staff></Score></museScore>'
+    ].join("\n");
+
+    var chords = reader.extractChords(xml, Constants, "standard");
+    var names = chords.map(function(c) { return c.chord; });
+    assert.ok(names.indexOf("Bb/F") >= 0, "should include Bb/F: " + names);
+    assert.ok(names.indexOf("Am/E") >= 0, "should include Am/E: " + names);
+});
