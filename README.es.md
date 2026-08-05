@@ -179,6 +179,7 @@ node cli/index.js cancion.mscz --chords-only                # solo progresion de
 | `--chords-only` | Forzar modo solo acordes (ignorar letras) |
 | `--lyrics-only` | Solo letra sin lineas de acordes |
 | `--chordpro` | Exportar en formato ChordPro (.cho) |
+| `--no-annotations` | Omitir textos de pentagrama y expresiones de la linea de acordes |
 | `--staff <nombre\|num>` | Extraer letras de un pentagrama especifico (por indice o nombre de instrumento) |
 | `--anglo` | Forzar nombres de acorde anglo (C, D, E) |
 | `--solfeo` | Forzar nombres de acorde solfeo (Do, Re, Mi) |

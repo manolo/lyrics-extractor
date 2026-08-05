@@ -54,6 +54,7 @@ function main() {
         console.log("  --chords-only       List chords even if the score has no lyrics");
         console.log("  --lyrics-only       Output lyrics without chord lines above");
         console.log("  --chordpro          Export as ChordPro format (.cho)");
+        console.log("  --no-annotations    Omit staff text and expressions from the chord line");
         console.log("  --staff <name|num>  Extract lyrics from a specific staff (by index or name)");
         console.log("  --debug             Export raw extracted data as JSON");
         console.log("  --check             Check lyrics for issues (synalepha, hyphens, syllabic)");
@@ -231,6 +232,7 @@ function main() {
 
     // Resolve --staff argument to a staff index
     var extractOptions = {};
+    if (flags.indexOf("--no-annotations") >= 0) extractOptions.includeAnnotations = false;
     if (staffArg) {
         // First pass: extract to get voiceStaves list
         var probe = xmlExtractor.extractAll(xmlString, guitarExcerpts, spelling);

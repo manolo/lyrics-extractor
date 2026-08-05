@@ -563,6 +563,9 @@ function extractAll(xmlString, excerptXmls, spelling, options) {
     var jumps = [];
     var systemTexts = [];
     var scoreKey = ""; // key of the first key signature, for the ChordPro {key:} directive
+    // Text annotations share the chord line with the harmonies. Callers that only
+    // want chords (--no-annotations) opt out here.
+    var includeAnnotations = !(options && options.includeAnnotations === false);
 
     // Collect tied note durations per staff: { staffId: { tick: extraDurationQ } }
     // A chord with a Tie forward means the next chord(s) at the same pitch
@@ -730,7 +733,8 @@ function extractAll(xmlString, excerptXmls, spelling, options) {
             }
 
             // Staff text / Expression / Play technique -> inline text shown in chord line
-            if (elem.tag === "StaffText" || elem.tag === "Expression" || elem.tag === "PlayTechAnnotation") {
+            if (includeAnnotations &&
+                (elem.tag === "StaffText" || elem.tag === "Expression" || elem.tag === "PlayTechAnnotation")) {
                 var inlineText = childText(elem, "text");
                 if (inlineText) {
                     // Collapse internal whitespace to '-' for readability in chord line

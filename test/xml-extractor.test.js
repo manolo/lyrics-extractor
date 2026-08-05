@@ -1264,3 +1264,34 @@ test("extractAll leaves the key empty when the score has no key signature", func
     ].join("\n");
     assert.equal(xmlExt.extractAll(xml, [], "standard").key, "");
 });
+
+// ============================================================
+// includeAnnotations option
+// ============================================================
+
+test("extractAll can leave text annotations out of the chord line", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony>',
+        '<StaffText><text>Muy lento</text></StaffText>',
+        '<Chord><durationType>whole</durationType>',
+        '<Lyrics><text>uno</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var withText = xmlExt.extractAll(xml, [], "standard");
+    var names = withText.chords.map(function(c) { return c.chord; });
+    assert.ok(names.indexOf("Muy-lento") >= 0, "annotations are included by default: " + names);
+    assert.ok(names.indexOf("C") >= 0, "chord present: " + names);
+
+    var without = xmlExt.extractAll(xml, [], "standard", { includeAnnotations: false });
+    var names2 = without.chords.map(function(c) { return c.chord; });
+    assert.ok(names2.indexOf("Muy-lento") < 0, "annotations should be dropped: " + names2);
+    assert.ok(names2.indexOf("C") >= 0, "chords must stay: " + names2);
+});
