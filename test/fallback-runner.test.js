@@ -1,6 +1,6 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var fallback = require("../extractors/fretdiagram-fallback");
+var fallback = require("../extractors/fallback-runner");
 
 // needsFallback tests
 
