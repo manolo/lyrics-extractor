@@ -149,6 +149,30 @@ function childText(node, tag) {
     return child ? child.text : "";
 }
 
+// Convert a MuseScore fraction string ("-1/4", "3/8", "2") to ticks
+function fractionToTicks(text, division) {
+    var parts = String(text).split("/");
+    var num = parseInt(parts[0]);
+    var den = parts.length > 1 ? parseInt(parts[1]) : 1;
+    if (isNaN(num) || isNaN(den) || den === 0) return 0;
+    return Math.round((num / den) * 4 * division);
+}
+
+// Tick shift declared by a voice-level <location> element. MuseScore writes one
+// when the next element sits at a tick the running duration does not reach, which
+// is how annotations end up before or after the notes they belong to.
+function locationOffsetTicks(locNode, division, measureTicks) {
+    var ticks = 0;
+    var fractions = childText(locNode, "fractions");
+    if (fractions) ticks += fractionToTicks(fractions, division);
+    var measures = childText(locNode, "measures");
+    if (measures) {
+        var count = parseInt(measures);
+        if (!isNaN(count)) ticks += count * (measureTicks || division * 4);
+    }
+    return ticks;
+}
+
 // Slash-chord bass note TPC, or -99 when the chord has none.
 // MuseScore 4 writes <bass>, MuseScore 3 wrote <base>.
 function bassTpc(hInfo) {
@@ -226,6 +250,14 @@ function walkStaffMeasures(staffNode, division, onElement, onMeasure) {
 
                 if (elem.tag === "endTuplet") {
                     tupletRatio = null;
+                    continue;
+                }
+
+                // Voice-level position shift. Nested locations (tie and spanner
+                // offsets inside Note/Spanner) never reach this loop, which only
+                // sees direct children of <voice>.
+                if (elem.tag === "location") {
+                    voiceTick += locationOffsetTicks(elem, division, actualMeasureTicks);
                     continue;
                 }
 

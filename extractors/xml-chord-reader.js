@@ -126,6 +126,24 @@ function _harmonyName(hNode, C, spelling) {
     return C.tpcToChordName(tpc, quality, spelling, _bassTpc(hi));
 }
 
+// Tick shift declared by a voice-level <location> element
+function _locationTicks(locNode, div, mTicks) {
+    var ticks = 0;
+    var fractions = _ct(locNode, "fractions");
+    if (fractions) {
+        var parts = String(fractions).split("/");
+        var num = parseInt(parts[0]);
+        var den = parts.length > 1 ? parseInt(parts[1]) : 1;
+        if (!isNaN(num) && !isNaN(den) && den !== 0) ticks += Math.round((num / den) * 4 * div);
+    }
+    var measures = _ct(locNode, "measures");
+    if (measures) {
+        var count = parseInt(measures);
+        if (!isNaN(count)) ticks += count * (mTicks || div * 4);
+    }
+    return ticks;
+}
+
 // Slash-chord bass note TPC, or -99 when absent (<bass> in MuseScore 4, <base> in MuseScore 3)
 function _bassTpc(hi) {
     var text = _ct(hi, "bass") || _ct(hi, "base");
@@ -203,6 +221,12 @@ function extractChords(xmlString, C, spelling) {
                         continue;
                     }
                     if (e.tag === "endTuplet") { tuplet = null; continue; }
+
+                    // Voice-level position shift (see locationOffsetTicks in xml-extractor)
+                    if (e.tag === "location") {
+                        vt += _locationTicks(e, div, amTicks);
+                        continue;
+                    }
 
                     // Extract chord from FretDiagram (nested Harmony) or standalone Harmony
                     if (e.tag === "FretDiagram") {

@@ -1097,3 +1097,69 @@ test("extractAll accepts MuseScore 3 base tag for slash chords", function() {
     var data = xmlExt.extractAll(xml, [], "standard");
     assert.equal(data.chords[0].chord, "Bb/F");
 });
+
+// ============================================================
+// Voice-level <location> tick offsets
+// ============================================================
+
+test("extractAll applies voice-level location offsets to following elements", function() {
+    // Division 480: whole chord ends at 1920, location -1/4 rewinds 480 ticks,
+    // so the Harmony that follows belongs at 1440, not at the measure end.
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<Chord><durationType>whole</durationType>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '<location><fractions>-1/4</fractions></location>',
+        '<Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml, [], "standard");
+    assert.equal(data.chords.length, 1);
+    assert.equal(data.chords[0].chord, "C");
+    assert.equal(data.chords[0].tick, 1440, "location -1/4 should rewind one quarter from 1920");
+});
+
+test("extractAll applies positive location offsets", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<location><fractions>1/2</fractions></location>',
+        '<Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony>',
+        '<Rest><durationType>measure</durationType></Rest>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml, [], "standard");
+    assert.equal(data.chords[0].tick, 960, "location 1/2 should advance two quarters");
+});
+
+test("extractAll ignores location elements nested inside spanners", function() {
+    // Tie offsets live in Spanner/next/prev and must not move the voice cursor
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<Chord><durationType>half</durationType>',
+        '<Note><pitch>60</pitch>',
+        '<Spanner type="Tie"><next><location><fractions>1/8</fractions></location></next></Spanner>',
+        '</Note></Chord>',
+        '<Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml, [], "standard");
+    assert.equal(data.chords[0].tick, 960, "nested spanner location must not shift the cursor");
+});

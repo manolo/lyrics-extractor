@@ -486,3 +486,21 @@ test("extractChords reads bass note of slash chords", function() {
     assert.ok(names.indexOf("Bb/F") >= 0, "should include Bb/F: " + names);
     assert.ok(names.indexOf("Am/E") >= 0, "should include Am/E: " + names);
 });
+
+test("extractChords applies voice-level location offsets", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<Chord><durationType>whole</durationType><Note><pitch>60</pitch></Note></Chord>',
+        '<location><fractions>-1/4</fractions></location>',
+        '<Harmony><harmonyInfo><root>14</root></harmonyInfo></Harmony>',
+        '</voice></Measure></Staff></Score></museScore>'
+    ].join("\n");
+
+    var chords = reader.extractChords(xml, Constants, "standard");
+    assert.equal(chords.length, 1);
+    assert.equal(chords[0].tick, 1440, "location -1/4 should rewind one quarter from 1920");
+});
