@@ -831,3 +831,40 @@ test("tpcToNoteName spells the lowest TPC in solfeo", function() {
     assert.equal(Constants.tpcToNoteName(-1), "Fabb");
     assert.equal(Constants.tpcToNoteName(0), "Dobb");
 });
+
+// ============================================================
+// convertChord: slash chords and false root matches
+// ============================================================
+
+test("convertChord converts the bass note of a slash chord", function() {
+    assert.equal(cu.convertChord("Bb/F", true), "Sib/Fa");
+    assert.equal(cu.convertChord("Sib/Fa", false), "Bb/F");
+    assert.equal(cu.convertChord("Am/E", true), "Lam/Mi");
+    assert.equal(cu.convertChord("Lam/Mi", false), "Am/E");
+    assert.equal(cu.convertChord("Cmaj7/G", true), "Domaj7/Sol");
+});
+
+test("convertChord leaves anglo chords alone when converting to anglo", function() {
+    // "Fadd9" starts with the solfeo root "Fa", but "dd9" is not a chord quality
+    assert.equal(cu.convertChord("Fadd9", false), "Fadd9");
+    assert.equal(cu.convertChord("Fadd4", false), "Fadd4");
+    assert.equal(cu.convertChord("Fa", false), "F");
+    assert.equal(cu.convertChord("Fam", false), "Fm");
+    assert.equal(cu.convertChord("Fa7", false), "F7");
+});
+
+test("convertChord does not touch words that start like a root", function() {
+    assert.equal(cu.convertChord("Solo", false), "Solo");
+    assert.equal(cu.convertChord("Solista", false), "Solista");
+    assert.equal(cu.convertChord("Doble", false), "Doble");
+    assert.equal(cu.convertChord("Mismo", false), "Mismo");
+    assert.equal(cu.convertChord("Bass", true), "Bass");
+});
+
+test("convertChord keeps converting real qualities", function() {
+    assert.equal(cu.convertChord("Domaj7", false), "Cmaj7");
+    assert.equal(cu.convertChord("Solsus4", false), "Gsus4");
+    assert.equal(cu.convertChord("Ladim", false), "Adim");
+    assert.equal(cu.convertChord("Mi7(b5)", false), "E7(b5)");
+    assert.equal(cu.convertChord("Sib9", false), "Bb9");
+});
