@@ -192,9 +192,28 @@ test("escPdfString still guards against characters it cannot map", function() {
     assert.equal(pdf.escPdfString("中"), "?");
 });
 
-test("generatePdf prints flats in chord lines", function() {
-    var text = "==== TEST ====\n\n" + M + "B♭  F#  D♭7\nhola mundo que tal aqui\n";
+test("generatePdf draws accidentals with the Type3 font", function() {
+    // The base-14 fonts have no glyph for the musical signs in any encoding, so the
+    // PDF carries a Type3 font whose glyphs are drawings, and the text switches to it
+    // for those characters
+    var text = "==== TEST ====\n\n" + M + "B♭  F♯  D♭7\nhola mundo que tal aqui\n";
     var result = pdf.generatePdf(text, {});
-    assert.ok(result.indexOf("(Bb") >= 0, "flat chord should read as Bb: " + (result.match(/\(B.{0,12}/) || [])[0]);
+
+    assert.ok(result.indexOf("/Subtype /Type3") >= 0, "the accidental font should be defined");
+    assert.ok(result.indexOf("/Differences [1 /flat /sharp /natural]") >= 0,
+        "the three signs should be encoded");
+    assert.ok(result.indexOf("d0") >= 0, "glyph programs declare their advance");
+
+    // Text switches to F5 for the sign and back to the text font right after
+    assert.ok(/\(B\) Tj\n\/F5 \d+ Tf\n\(\\001\) Tj\n\/F1 \d+ Tf/.test(result),
+        "flat should be drawn between two Courier runs: " + (result.match(/\(B\) Tj[\s\S]{0,60}/) || [])[0]);
     assert.ok(result.indexOf("B?") < 0, "no question mark should remain");
+    assert.ok(result.indexOf("(Bb") < 0, "the plain spelling is no longer used here");
+});
+
+test("generatePdf keeps the accidental glyphs one Courier column wide", function() {
+    // Chord lines are aligned by column against the lyric line below, so the drawn
+    // glyphs advance exactly like a Courier character
+    var result = pdf.generatePdf("==== T ====\n\n" + M + "B♭\nhola\n", {});
+    assert.ok(result.indexOf("/Widths [600 600 600]") >= 0, "Courier advances 600 per character");
 });
