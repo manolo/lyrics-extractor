@@ -254,7 +254,7 @@ function extractChords(xmlString, C, spelling) {
                             inlineText = inlineText.replace(/\s+/g, "-");
                             if (!counts[sid]) counts[sid] = 0;
                             counts[sid]++;
-                            all.push({ staffId: sid, tick: vt, chord: inlineText });
+                            all.push({ staffId: sid, tick: vt, chord: inlineText, isText: true });
                         }
                     }
 

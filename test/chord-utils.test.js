@@ -761,3 +761,46 @@ test("tpcToChordName handles french spelling same as solfeggio", function() {
     assert.equal(Constants.tpcToChordName(17, "m", "french"), "Lam");
     assert.equal(Constants.tpcToChordName(14, "", "french"), "Do");
 });
+
+// ============================================================
+// Text annotations sharing a tick with a real chord
+// ============================================================
+
+test("findChordAtTick prefers a harmony over a text annotation at the same tick", function() {
+    var mixed = [
+        { tick: 0, chord: "Do" },
+        { tick: 480, chord: "Solo", isText: true },
+        { tick: 480, chord: "Sol" },
+        { tick: 960, chord: "Lam" }
+    ];
+    assert.equal(cu.findChordAtTick(mixed, 480), "Sol");
+    assert.equal(cu.findChordAtTick(mixed, 700), "Sol", "annotation must not become the carried chord");
+});
+
+test("findChordAtTick prefers the harmony when the annotation comes first in tick order", function() {
+    var mixed = [
+        { tick: 0, chord: "Do" },
+        { tick: 480, chord: "Sol" },
+        { tick: 480, chord: "A-cappella", isText: true },
+        { tick: 960, chord: "Lam" }
+    ];
+    assert.equal(cu.findChordAtTick(mixed, 480), "Sol");
+    assert.equal(cu.findChordAtTick(mixed, 900), "Sol");
+});
+
+test("findChordAtTick still returns an annotation when no harmony shares its tick", function() {
+    var mixed = [
+        { tick: 0, chord: "Do" },
+        { tick: 480, chord: "Solo", isText: true }
+    ];
+    assert.equal(cu.findChordAtTick(mixed, 480), "Solo");
+});
+
+test("findChordInRange prefers a harmony over a text annotation at the same tick", function() {
+    var mixed = [
+        { tick: 480, chord: "Solo", isText: true },
+        { tick: 480, chord: "Sol" },
+        { tick: 960, chord: "Lam" }
+    ];
+    assert.equal(cu.findChordInRange(mixed, 700, 0, 960), "Sol");
+});

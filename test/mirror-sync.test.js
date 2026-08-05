@@ -69,3 +69,28 @@ test("injection: findPosForTick (formatter delegates to line-builder)", function
             "findPosForTick diverges for tick " + ticks[i]);
     }
 });
+
+// --- findChordAtTick: expander keeps a private copy of the chord-utils logic ---
+
+test("mirror: findChordAtTick (expander copy matches chord-utils)", function() {
+    var chordUtils = require("../lib/chord-utils");
+    var expander = require("../lib/expander");
+    var sets = [
+        [],
+        [{ tick: 0, chord: "Do" }, { tick: 480, chord: "Sol" }],
+        [{ tick: 0, chord: "Do" }, { tick: 480, chord: "Solo", isText: true }, { tick: 480, chord: "Sol" }],
+        [{ tick: 0, chord: "Do" }, { tick: 480, chord: "Sol" }, { tick: 480, chord: "Solo", isText: true }],
+        [{ tick: 480, chord: "Solo", isText: true }],
+        [{ tick: 0, chord: "Do" }, { tick: 0, chord: "A", isText: true }, { tick: 0, chord: "B", isText: true }]
+    ];
+    var ticks = [-1, 0, 100, 480, 700, 5000];
+    for (var s = 0; s < sets.length; s++) {
+        for (var t = 0; t < ticks.length; t++) {
+            assert.equal(
+                expander._findChordAtTick(sets[s], ticks[t]),
+                chordUtils.findChordAtTick(sets[s], ticks[t]),
+                "diverges for set " + s + " at tick " + ticks[t]
+            );
+        }
+    }
+});

@@ -722,7 +722,7 @@ function extractAll(xmlString, excerptXmls, spelling, options) {
                     inlineText = inlineText.replace(/\s+/g, "-");
                     if (!harmonyCounts[staffId]) harmonyCounts[staffId] = 0;
                     harmonyCounts[staffId]++;
-                    allChords.push({ staffId: staffId, tick: voiceTick, chord: inlineText });
+                    allChords.push({ staffId: staffId, tick: voiceTick, chord: inlineText, isText: true });
                 }
             }
         });

@@ -427,7 +427,7 @@ function extractChords(harmonyStaffIdx) {
                             // Collapse internal whitespace to '-' so the chord line reads
                             // as a single token (otherwise "Staff text" looks like two chords).
                             inlineText = inlineText.replace(/\s+/g, "-");
-                            chords.push({ tick: segment.tick, chord: inlineText });
+                            chords.push({ tick: segment.tick, chord: inlineText, isText: true });
                         }
                     }
                 }
