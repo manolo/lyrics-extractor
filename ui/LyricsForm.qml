@@ -32,6 +32,7 @@ MuseScore {
     id: plugin
     title: "Lyrics Extraction"
     categoryCode: "lyrics"
+    requiresScore: true
     description: "Lyrics tools for vocal scores: synalepha formatting, lyrics+chords export"
     version: "1.0.0"
     pluginType: "dialog"
@@ -673,8 +674,15 @@ MuseScore {
         try { scorePath = curScore.path || ""; } catch (e) {}
         var scoreName = (curScore.masterScore ? curScore.masterScore.scoreName : curScore.scoreName) || "";
 
-        console.log("[fallback] extractChordsWithFallback: running cmd('file-save')");
-        cmd("file-save");
+        // The fallback reads the score from disk, so pending edits have to be written
+        // first. A score that was never saved has no path: saving it would open a
+        // Save As dialog, so the fallback runs against whatever is on disk instead.
+        if (scorePath) {
+            console.log("[fallback] extractChordsWithFallback: running cmd('file-save')");
+            cmd("file-save");
+        } else {
+            console.log("[fallback] extractChordsWithFallback: score has no path, skipping file-save");
+        }
 
         var cliPath = Qt.resolvedUrl("../cli/extract-chords.js").toString().replace(/^file:\/\//, "");
         var chords = FretFallback.extractChords({
@@ -1144,8 +1152,13 @@ MuseScore {
                             interval: 50
                             repeat: false
                             onTriggered: {
-                                extractLyricsWithChords();
-                                extractButton.enabled = true;
+                                // The button re-enables even if extraction throws, otherwise
+                                // the dialog has to be closed and reopened to try again.
+                                try {
+                                    extractLyricsWithChords();
+                                } finally {
+                                    extractButton.enabled = true;
+                                }
                             }
                         }
                     }
