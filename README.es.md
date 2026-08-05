@@ -200,16 +200,23 @@ Por defecto, los nombres de acorde usan la ortografia de la partitura. Usar `--a
 ## Tests
 
 ```bash
-node --test test/*.test.js
+npm test          # equivalente a: node --test test/*.test.js
 ```
 
-367 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
+683 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
 
-## Specs
+Los tests de snapshot en `test/its/` comparan la salida del CLI con ficheros `.txt` de referencia generados desde partituras reales en `~/Music`, y se omiten cuando esas partituras no estan disponibles. Las referencias se revisan a mano: nunca regenerar una sin comprobar antes si la partitura cambio (cada referencia guarda el mtime del `.mscz` en un comentario final).
 
-- [Titulos de seccion y acordes](specs/section-titles-and-chords.md): que elementos de MuseScore se reconocen como acordes y cuales como titulos de seccion.
-- [Layout de la linea de acordes](specs/chord-line-layout.md): como se apendizan o separan los acordes de paso, manejo de espacios en texto inline, puntuacion pegada a las silabas.
+## Construir el paquete .mext
+
+```bash
+npm run build             # build de desarrollo
+node build.js 1.4.3       # build con version
+npm run install-local     # construir y copiar al directorio local de extensiones
+```
+
+Los fuentes se publican tal cual: mismos nombres, mismas rutas relativas, sin minificar ni renombrar, de modo que los imports de QML y la ruta del fallback del CLI resuelven dentro del paquete igual que en el arbol de trabajo.
 
 ## Licencia
 
-Copyright 2026 Manolo Carrasco (do2tis)
+Licencia Publica General de GNU, version 3 o posterior, ver [LICENSE](LICENSE). Copyright (C) 2026 Manolo Carrasco (do2tis)

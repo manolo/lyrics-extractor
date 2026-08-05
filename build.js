@@ -1,152 +1,113 @@
 #!/usr/bin/env node
-// Build lyrics-extractor.mext: compile and package extension
-// Usage: node build.js [version]
+// Build lyrics-extractor-<version>.mext: package the extension for MuseScore 4.
+//
+// Sources ship as they are written: same file names, same relative paths, no
+// minification and no renaming. The QML imports ("../lib/formatter.js") and the
+// Qt.resolvedUrl("../cli/extract-chords.js") lookup therefore resolve inside the
+// package exactly as they do in the working tree.
+//
+// Usage: node build.js [version] [--install]
+//        --install also copies the staged package into the local MuseScore
+//        extensions directory, for contributors who do not develop inside it.
 
 var fs = require("fs");
 var path = require("path");
-var crypto = require("crypto");
+var os = require("os");
 var childProcess = require("child_process");
 
-var version = process.argv[2] || "dev";
+var args = process.argv.slice(2);
+var doInstall = args.indexOf("--install") !== -1;
+var version = args.filter(function(a) { return a.indexOf("--") !== 0; })[0] || "dev";
+
 var OUT = "lyrics-extractor-" + version + ".mext";
 var BUILD = ".build";
 
+// Directories copied verbatim into the package
+var RUNTIME_DIRS = ["lib", "extractors", "cli"];
+
 // Clean previous build
 fs.rmSync(BUILD, { recursive: true, force: true });
-try { fs.unlinkSync(OUT); } catch (e) {}
-fs.mkdirSync(BUILD + "/m", { recursive: true });
+fs.rmSync(OUT, { force: true });
 fs.mkdirSync(BUILD + "/ui", { recursive: true });
 
-// Discover runtime JS files
-var jsFiles = []
-    .concat(glob("lib", ".js"))
-    .concat(glob("extractors", ".js"))
-    .concat(glob("cli", ".js"))
-    .concat(["ui/help-text.js"]);
-
-// Generate short module ID from path hash
-function moduleId(filePath) {
-    return crypto.createHash("md5").update(filePath).digest("hex").substring(0, 3) + ".js";
-}
-
-// Build file mapping: original path -> obfuscated name
-var fileMap = {};
-jsFiles.forEach(function(f) { fileMap[f] = moduleId(f); });
-
-// Compile JS with terser
-jsFiles.forEach(function(f) {
-    var out = path.join(BUILD, "m", fileMap[f]);
-    var result = childProcess.execSync(
-        "npx -y terser " + quote(f) + " --compress --mangle --ecma 5",
-        { encoding: "utf8" }
-    );
-    fs.writeFileSync(out, result);
+// Copy runtime modules
+RUNTIME_DIRS.forEach(function(dir) {
+    fs.mkdirSync(path.join(BUILD, dir), { recursive: true });
+    jsFiles(dir).forEach(function(f) {
+        fs.copyFileSync(f, path.join(BUILD, f));
+    });
 });
 
-// Update require() paths in compiled JS
-var compiled = glob(BUILD + "/m", ".js");
-compiled.forEach(function(f) {
-    var code = fs.readFileSync(f, "utf8");
-    for (var src in fileMap) {
-        var name = path.basename(src, ".js");
-        var dst = fileMap[src];
-        var dstNoExt = dst.replace(".js", "");
-        code = code.replace(
-            new RegExp('require\\("[^"]*' + escRe(name) + '(\.js)?"\\)', "g"),
-            'require("./' + dstNoExt + '")'
-        );
-    }
-    fs.writeFileSync(f, code);
-});
+// Copy QML side, stamping the version into the plugin header
+fs.copyFileSync("ui/help-text.js", BUILD + "/ui/help-text.js");
 
-// Copy QML and update import paths
 var qmlSrc = fs.readFileSync("ui/LyricsForm.qml", "utf8");
-
-for (var src in fileMap) {
-    var oldPath;
-    if (src.startsWith("lib/")) oldPath = "../lib/" + path.basename(src);
-    else if (src.startsWith("extractors/")) oldPath = "../extractors/" + path.basename(src);
-    else if (src.startsWith("ui/")) oldPath = path.basename(src);
-    else continue;
-    qmlSrc = qmlSrc.split('"' + oldPath + '"').join('"../m/' + fileMap[src] + '"');
-}
-
-// Shorten QML import aliases to single letters
-var imports = qmlSrc.match(/import ".*\.js" as (\w+)/g) || [];
-var aliases = imports.map(function(s) { return s.replace(/.* as /, ""); });
-var aliasMap = {};
-aliases.forEach(function(a, i) { aliasMap[a] = String.fromCharCode(65 + i); });
-
-// Step 1: protect object literal keys that are alias names.
-// Pattern "AliasName:" in object literals must keep the original key
-// because the receiving JS module accesses them by name (e.g. opts.XmlChordReader).
-// We replace "Key: Value" with "__Key__: Value" to protect keys.
-var aliasSet = {};
-aliases.forEach(function(a) { aliasSet[a] = true; });
-qmlSrc = qmlSrc.replace(/(\b\w+)(\s*:\s*)(\w+)/g, function(m, key, sep, val) {
-    if (aliasSet[key]) return "__" + key + "__" + sep + val;
-    return m;
-});
-
-// Step 2: replace all alias occurrences (longest first to avoid partial matches)
-var sorted = aliases.slice().sort(function(a, b) { return b.length - a.length; });
-sorted.forEach(function(a) {
-    qmlSrc = qmlSrc.replace(new RegExp("\\b" + a + "\\b", "g"), aliasMap[a]);
-});
-
-// Step 3: restore protected object keys
-qmlSrc = qmlSrc.replace(/__(\w+?)__(\s*:)/g, function(m, key, sep) {
-    return key + sep;
-});
-
-// Strip single-line JS comments
-qmlSrc = qmlSrc.replace(/^\s*\/\/.*$/gm, "");
-
-// Set version
 if (version !== "dev") {
     qmlSrc = qmlSrc.replace(/version: "[^"]*"/, 'version: "' + version + '"');
 }
-
 fs.writeFileSync(BUILD + "/ui/LyricsForm.qml", qmlSrc);
 
-// Copy static files
-fs.copyFileSync("manifest.json", BUILD + "/manifest.json");
+// Static files
 fs.copyFileSync("logo.png", BUILD + "/logo.png");
 
+var manifest = fs.readFileSync("manifest.json", "utf8");
 if (version !== "dev") {
-    var manifest = fs.readFileSync(BUILD + "/manifest.json", "utf8");
     manifest = manifest.replace(/"version": "[^"]*"/, '"version": "' + version + '"');
-    fs.writeFileSync(BUILD + "/manifest.json", manifest);
 }
+fs.writeFileSync(BUILD + "/manifest.json", manifest);
 
-// Rename obfuscated CLI entry point to m/cli.js and add shebang
-var cliId = fileMap["cli/index.js"];
-var cliPath = path.join(BUILD, "m", cliId);
-var cliCode = fs.readFileSync(cliPath, "utf8");
-cliCode = cliCode.replace(/^#!.*\n?/, "");
-fs.writeFileSync(path.join(BUILD, "m", "cli.js"), "#!/usr/bin/env node\n" + cliCode);
-fs.unlinkSync(cliPath);
+// The CLI entry keeps its shebang so it stays directly executable
+ensureShebang(path.join(BUILD, "cli/index.js"));
+ensureShebang(path.join(BUILD, "cli/extract-chords.js"));
 
-// Package as ZIP
-childProcess.execSync("cd " + quote(BUILD) + " && zip -r ../" + quote(OUT) + " .");
+// Package as ZIP (OUT was removed above, so no stale entries survive)
+childProcess.execSync("cd " + quote(BUILD) + " && zip -r -q ../" + quote(OUT) + " .");
 
-var files = countFiles(BUILD);
 var size = (fs.statSync(OUT).size / 1024).toFixed(0);
-console.log("Built " + OUT + " (" + size + "K) with " + files + " files");
+console.log("Built " + OUT + " (" + size + "K) with " + countFiles(BUILD) + " files");
 
-fs.rmSync(BUILD, { recursive: true });
+if (doInstall) install(BUILD);
+
+fs.rmSync(BUILD, { recursive: true, force: true });
 
 // --- Helpers ---
 
-function glob(dir, ext) {
+function jsFiles(dir) {
     try {
         return fs.readdirSync(dir)
-            .filter(function(f) { return f.endsWith(ext); })
+            .filter(function(f) { return f.endsWith(".js"); })
             .map(function(f) { return dir + "/" + f; });
     } catch (e) { return []; }
 }
 
-function escRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+function ensureShebang(file) {
+    if (!fs.existsSync(file)) return;
+    var code = fs.readFileSync(file, "utf8");
+    if (code.indexOf("#!") !== 0) fs.writeFileSync(file, "#!/usr/bin/env node\n" + code);
+}
+
+function extensionsDir() {
+    var home = os.homedir();
+    if (process.platform === "darwin") {
+        return path.join(home, "Library/Application Support/MuseScore/MuseScore4/extensions");
+    }
+    if (process.platform === "win32") {
+        var local = process.env.LOCALAPPDATA || path.join(home, "AppData/Local");
+        return path.join(local, "MuseScore/MuseScore4/extensions");
+    }
+    return path.join(home, ".local/share/MuseScore/MuseScore4/extensions");
+}
+
+function install(stagedDir) {
+    var target = path.join(extensionsDir(), "lyrics-extractor");
+    if (path.resolve(target) === path.resolve(process.cwd())) {
+        console.log("Skipping --install: this working tree already is " + target);
+        return;
+    }
+    fs.rmSync(target, { recursive: true, force: true });
+    fs.cpSync(stagedDir, target, { recursive: true });
+    console.log("Installed into " + target + " (restart MuseScore to reload)");
+}
 
 function quote(s) { return "'" + s.replace(/'/g, "'\\''") + "'"; }
 

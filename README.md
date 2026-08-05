@@ -202,21 +202,25 @@ By default, chord names use the score's own spelling setting. Use `--anglo` or `
 ## Running tests
 
 ```bash
-node --test test/*.test.js
+npm test          # same as: node --test test/*.test.js
 ```
 
-425 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
+683 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
+
+The snapshot suites in `test/its/` compare CLI output against baseline `.txt` files generated from real scores under `~/Music`. They skip automatically when those scores are not present. Baselines are reviewed by hand: never regenerate one without checking whether the score itself changed (each baseline stores the `.mscz` mtime in a trailing comment).
 
 ## Building the .mext package
 
 ```bash
-node build.js 1.0.0
+npm run build             # dev build
+node build.js 1.4.3       # versioned build
+npm run install-local     # build and copy into the local MuseScore extensions dir
 ```
 
-Compiles all JS modules with terser, generates short module IDs, shortens QML import aliases, strips comments, and packages everything into `lyrics-extractor.mext`. Only runtime files are included (no tests, CLI tools, or documentation).
+Sources ship as written: same file names, same relative paths, no minification and no renaming, so the QML imports and the CLI fallback path resolve inside the package exactly as they do in the working tree. Only runtime files are included (no tests or documentation).
 
 The release workflow (`release.yml`) runs tests and then calls `build.js` with the version from the git tag.
 
 ## License
 
-Copyright 2026 Manolo Carrasco (do2tis)
+GNU General Public License, version 3 or later, see [LICENSE](LICENSE). Copyright (C) 2026 Manolo Carrasco (do2tis)

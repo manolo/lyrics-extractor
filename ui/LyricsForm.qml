@@ -31,7 +31,7 @@ import "help-text.js" as HelpText
 MuseScore {
     id: plugin
     title: "Lyrics Extraction"
-    categoryCode: "Pulso y Púa"
+    categoryCode: "lyrics"
     description: "Lyrics tools for vocal scores: synalepha formatting, lyrics+chords export"
     version: "1.0.0"
     pluginType: "dialog"
