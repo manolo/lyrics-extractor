@@ -168,3 +168,33 @@ test("generatePdf lineNumbers default off when not specified", function() {
     var grayMatches = result.match(/0\.6 0\.6 0\.6 rg/g);
     assert.ok(!grayMatches, "line numbers should be off by default");
 });
+
+test("escPdfString writes musical accidentals the base fonts can print", function() {
+    // The base-14 fonts use WinAnsiEncoding, which has no musical flat, sharp or
+    // natural sign, so those characters fall back to their plain spellings instead
+    // of the question mark that stood in for any unencodable character.
+    assert.equal(pdf.escPdfString("B♭"), "Bb");
+    assert.equal(pdf.escPdfString("D♭7"), "Db7");
+    assert.equal(pdf.escPdfString("F♯"), "F#");
+    assert.equal(pdf.escPdfString("F♮"), "Fn");
+    assert.equal(pdf.escPdfString("Si♭/Fa"), "Sib/Fa");
+});
+
+test("escPdfString keeps the width of a chord when replacing an accidental", function() {
+    // Chord and lyric lines are aligned by column, so a replacement has to be one
+    // character wide like the sign it replaces
+    assert.equal(pdf.escPdfString("B♭").length, "B♭".length);
+    assert.equal(pdf.escPdfString("A♭/C♭").length, "A♭/C♭".length);
+});
+
+test("escPdfString still guards against characters it cannot map", function() {
+    // A CJK character has no WinAnsi code and no plain spelling
+    assert.equal(pdf.escPdfString("中"), "?");
+});
+
+test("generatePdf prints flats in chord lines", function() {
+    var text = "==== TEST ====\n\n" + M + "B♭  F#  D♭7\nhola mundo que tal aqui\n";
+    var result = pdf.generatePdf(text, {});
+    assert.ok(result.indexOf("(Bb") >= 0, "flat chord should read as Bb: " + (result.match(/\(B.{0,12}/) || [])[0]);
+    assert.ok(result.indexOf("B?") < 0, "no question mark should remain");
+});
