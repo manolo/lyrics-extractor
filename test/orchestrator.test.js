@@ -765,3 +765,81 @@ test("home chord not shown at start of replay after abbreviated stanza", functio
     // In the replay, "Do" at the start of a section is the home chord and should be suppressed
     assert.ok(!stripped.match(/Do\s*\n[^\n]*Do/), "home chord 'Do' should not appear duplicated: " + stripped);
 });
+
+// ============================================================
+// Section labels in multi-verse output
+// ============================================================
+
+// Two verses on the same music, no repeats and no jumps, which is what routes to the
+// multi-verse branch of the simple path
+function twoVerseData(systemTexts) {
+    function syl(tick, verse, text, syllabic, rest) {
+        return { tick: tick, verse: verse, text: text, syllabic: syllabic, durationQ: 1,
+                 restAfter: !!rest, restDurationQ: rest ? 4 : 0, gapDurationQ: rest ? 4 : 0 };
+    }
+    return {
+        title: "Dos Versos",
+        // The period ends the phrase, so each verse is two lines and the label at the
+        // start of the second line has somewhere to go
+        syllables: [
+            syl(960, 0, "uno", "single"), syl(1440, 0, "dos.", "single", true),
+            syl(3840, 0, "tres", "single"), syl(4320, 0, "cuatro.", "single", true),
+            syl(960, 1, "cinco", "single"), syl(1440, 1, "seis.", "single", true),
+            syl(3840, 1, "siete", "single"), syl(4320, 1, "ocho.", "single", true)
+        ],
+        chords: [
+            { tick: 0, chord: "Lam" },
+            { tick: 960, chord: "Re" },
+            { tick: 3840, chord: "Sol" }
+        ],
+        repeats: [],
+        voltas: [],
+        systemTexts: systemTexts
+    };
+}
+
+test("processExtraction keeps section labels in multi-verse output", function() {
+    var output = orch.processExtraction(twoVerseData([
+        { tick: 0, text: "Intro" },
+        { tick: 960, text: "Estrofa" }
+    ]));
+    assert.ok(output, "should produce output");
+    assert.ok(output.indexOf("- INTRO -") >= 0, "the label before the first lyric:\n" + output);
+    assert.ok(output.indexOf("- ESTROFA -") >= 0, "the label at the first lyric:\n" + output);
+
+    // Each verse is its own stanza over the same music, so it carries the labels of
+    // that music: the whole point of handing every block its own range
+    var estrofas = output.split("- ESTROFA -").length - 1;
+    assert.equal(estrofas, 2, "one per verse, found " + estrofas + ":\n" + output);
+    var intros = output.split("- INTRO -").length - 1;
+    assert.equal(intros, 1, "the intro label belongs to the intro only:\n" + output);
+});
+
+test("processExtraction gives each multi-verse block only the labels of its range", function() {
+    // A label sitting past both verses must not be dragged to the top of a verse
+    var output = orch.processExtraction(twoVerseData([
+        { tick: 960, text: "Estrofa" },
+        { tick: 99999, text: "Coda" }
+    ]));
+    assert.ok(output.indexOf("- ESTROFA -") >= 0, "the verse label is emitted:\n" + output);
+    assert.ok(output.indexOf("- CODA -") < 0, "a label out of range is not:\n" + output);
+});
+
+test("processExtraction renders label templates before the first lyric", function() {
+    // "#" numbering and "a:b" sequences are expanded by renderLabel, which the label
+    // emitted before the intro chords was skipping
+    var data = {
+        title: "Plantillas",
+        syllables: [
+            { tick: 1920, verse: 0, text: "hola", syllabic: "single", durationQ: 1,
+              restAfter: true, restDurationQ: 4, gapDurationQ: 4 }
+        ],
+        chords: [{ tick: 0, chord: "Lam" }, { tick: 1920, chord: "Re" }],
+        repeats: [],
+        voltas: [],
+        systemTexts: [{ tick: 0, text: "Intro #" }]
+    };
+    var output = orch.processExtraction(data);
+    assert.ok(output.indexOf("- INTRO 1 -") >= 0, "the # should be numbered:\n" + output);
+    assert.ok(output.indexOf("#") < 0, "no raw template should be left:\n" + output);
+});
