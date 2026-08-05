@@ -1,5 +1,8 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
+
+global.Element = { FRET_DIAGRAM: 63, HARMONY: 11, STAFF_TEXT: 52, BAR_LINE: 10 };
+
 var fallback = require("../extractors/fretdiagram-fallback");
 var msExtractor = require("../extractors/musescore-extractor");
 
