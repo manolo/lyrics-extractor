@@ -1,3 +1,5 @@
 *.mext
 .build/
 test/its/scores/
+.DS_Store
+docs/demo.pdf
