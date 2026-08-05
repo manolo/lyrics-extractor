@@ -607,7 +607,7 @@ test("formatPerfLines appends trailing chords (<4) to chord line", function() {
     assert.ok(chordLineIdx < textIdx, "trailing chords on chord line before text: " + output);
 });
 
-test("formatPerfLines appends trailing chords inline even when they overflow width", function() {
+test("formatPerfLines moves a wide trailing run to a line of its own", function() {
     var lines = [
         {
             text: "esta linea es bastante larga, pero realmente larga si.",
@@ -631,16 +631,23 @@ test("formatPerfLines appends trailing chords inline even when they overflow wid
         { tick: 3840, chord: "Do" }
     ];
     var result = fmt.formatPerfLines(lines, [], null, "", chords);
-    var output = result.text;
-    // Trailing chords are appended to the chord line above the lyric
-    // (overflow is preferred over an orphan chord line between stanzas).
-    var textIdx = output.indexOf("esta linea es");
-    var trailIdx = output.indexOf("Fa#7");
-    assert.ok(trailIdx >= 0 && trailIdx < textIdx,
-        "trailing chords inline above lyric: " + output);
-    assert.ok(output.indexOf("Sim") < textIdx, "Sim above lyric: " + output);
-    assert.ok(output.indexOf("Mi7") < textIdx, "Mi7 above lyric: " + output);
-    assert.ok(output.indexOf("La") < textIdx, "La above lyric: " + output);
+    var output = result.text.replace(/\u200B/g, "");
+    // The run would push the chord line past the printable width, so it goes on a
+    // line of its own after the lyric instead of hanging off its end.
+    var outLines = output.split("\n");
+    var lyricIdx = outLines.findIndex(function(l) { return l.indexOf("esta linea es") >= 0; });
+    assert.ok(lyricIdx >= 0, "lyric line should be found:\n" + output);
+    assert.ok((outLines[lyricIdx - 1] || "").indexOf("Fa#7") < 0,
+        "the run must not hang on the chord line above the lyric:\n" + output);
+
+    var runLine = outLines.find(function(l) {
+        return l.indexOf("Fa#7") >= 0 && l.indexOf("Sim") >= 0 && l.indexOf("Mi7") >= 0 && l.indexOf("La") >= 0;
+    });
+    assert.ok(runLine, "the four chords should share a line of their own:\n" + output);
+    assert.ok(runLine.indexOf("esta linea") < 0 && runLine.indexOf("next stanza") < 0,
+        "the run line carries no lyrics: " + runLine);
+    assert.ok(outLines.indexOf(runLine) > lyricIdx, "the run follows its lyric line:\n" + output);
+    assert.ok(runLine.length <= 70, "the run line fits the width: [" + runLine.length + "] " + runLine);
 });
 
 test("formatPerfLines appends trailing chords when they fit on the chord line", function() {
@@ -1958,7 +1965,7 @@ test("formatPerfLines: 5 short trailing chords on a short line are appended", fu
         "trailing appended (fits in 70): " + JSON.stringify(chordLine));
 });
 
-test("formatPerfLines: 4 long chord names append inline above the lyric", function() {
+test("formatPerfLines: a run of long chord names gets its own line", function() {
     var lines = [
         { text: "linea de letra muy larga para que no entren acordes detras seguro.",
           sylMap: [{ tick: 0, pos: 0, chord: "Do" }],
@@ -1973,13 +1980,17 @@ test("formatPerfLines: 4 long chord names append inline above the lyric", functi
         { tick: 5000, chord: "Sol" }
     ];
     var result = fmt.formatPerfLines(lines, [], null, "", chords);
-    var output = result.text;
-    // Trailing chords are appended inline on the chord line above the lyric,
-    // even when this overflows the 70-char budget.
-    var lyricIdx = output.indexOf("linea de letra");
-    var trailIdx = output.indexOf("Sol7sus4");
-    assert.ok(trailIdx >= 0 && trailIdx < lyricIdx,
-        "trailing chord above lyric: " + output);
+    var output = result.text.replace(/\u200B/g, "");
+    // Long chord names on a long lyric line overflow the width, so the run moves to
+    // its own line rather than running off the page.
+    var outLines = output.split("\n");
+    var lyricIdx = outLines.findIndex(function(l) { return l.indexOf("linea de letra") >= 0; });
+    assert.ok((outLines[lyricIdx - 1] || "").indexOf("Sol7sus4") < 0,
+        "the run must not hang on the chord line above the lyric:\n" + output);
+    var runLine = outLines.find(function(l) { return l.indexOf("Sol7sus4") >= 0; });
+    assert.ok(runLine, "the run should be present:\n" + output);
+    assert.ok(runLine.indexOf("linea de letra") < 0, "on its own line: " + runLine);
+    assert.ok(runLine.length <= 70, "fitting the width: [" + runLine.length + "] " + runLine);
 });
 
 test("formatPerfLines: trailing chords exactly at width boundary", function() {
@@ -2828,4 +2839,44 @@ test("formatLines still appends a short trailing run to the lyric line", functio
     var chordLineAbove = outLines[lyricIdx - 1] || "";
     assert.ok(chordLineAbove.indexOf("ReM") >= 0 && chordLineAbove.indexOf("Solm") >= 0,
         "short trailing run should stay above the lyric line:\n" + out);
+});
+
+test("formatLines emits the chords that precede a label inside the gap", function() {
+    // The chord-only line under a section label covers the chords from the label
+    // onwards. The ones between the previous lyric and the label belonged to nobody
+    // and were dropped, which lost whole instrumental passages.
+    var lines = [
+        { text: "fin de la estrofa.", sylMap: [{ tick: 0, pos: 0, chord: "Lam" }],
+          startTick: 0, endTick: 480, sectionEnd: true },
+        { text: "vuelve la letra.", sylMap: [{ tick: 9600, pos: 0, chord: "Lam" }],
+          startTick: 9600, endTick: 10080 }
+    ];
+    var chords = [
+        { tick: 0, chord: "Lam" },
+        // before the label
+        { tick: 1000, chord: "ReM" },
+        { tick: 1500, chord: "Solm" },
+        { tick: 2000, chord: "Mi7" },
+        { tick: 2500, chord: "Lam7" },
+        // from the label onwards
+        { tick: 6000, chord: "Fa" },
+        { tick: 7000, chord: "Do7" },
+        { tick: 9600, chord: "Lam" }
+    ];
+    var systemTexts = [{ tick: 5760, text: "Musica" }];
+    var result = fmt.formatPerfLines(lines, [], null, "", chords, null, systemTexts);
+    var out = result.text.replace(/​/g, "");
+
+    ["ReM", "Solm", "Mi7", "Lam7"].forEach(function(chord) {
+        assert.ok(out.indexOf(chord) >= 0, chord + " precedes the label and must be printed:\n" + out);
+    });
+    assert.ok(out.indexOf("- MUSICA -") >= 0, "the label is still emitted:\n" + out);
+    ["Fa", "Do7"].forEach(function(chord) {
+        assert.ok(out.indexOf(chord) >= 0, chord + " follows the label and must be printed:\n" + out);
+    });
+    // Each of the four appears once: not both inline and on the interlude line
+    ["ReM", "Solm", "Lam7"].forEach(function(chord) {
+        var count = out.split(chord).length - 1;
+        assert.equal(count, 1, chord + " should appear once, found " + count + ":\n" + out);
+    });
 });
