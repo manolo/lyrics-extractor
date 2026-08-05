@@ -804,3 +804,30 @@ test("findChordInRange prefers a harmony over a text annotation at the same tick
     ];
     assert.equal(cu.findChordInRange(mixed, 700, 0, 960), "Sol");
 });
+
+// ============================================================
+// Jazz font triangle qualities and the double-flat table
+// ============================================================
+
+test("tpcToChordName translates jazz triangle qualities", function() {
+    // MuseScore jazz chord symbols store a major seventh as the quality "t"
+    assert.equal(Constants.tpcToChordName(11, "t", "standard"), "Ebmaj7");
+    assert.equal(Constants.tpcToChordName(11, "t", "solfeggio"), "Mibmaj7");
+    assert.equal(Constants.tpcToChordName(14, "t9", "standard"), "Cmaj9");
+    assert.equal(Constants.tpcToChordName(14, "t9", "solfeggio"), "Domaj9");
+});
+
+test("tpcToChordName leaves other qualities untouched", function() {
+    assert.equal(Constants.tpcToChordName(14, "m", "standard"), "Cm");
+    assert.equal(Constants.tpcToChordName(14, "maj7", "standard"), "Cmaj7");
+    assert.equal(Constants.tpcToChordName(14, "sus4", "standard"), "Csus4");
+    assert.equal(Constants.tpcToChordName(14, "7", "standard"), "C7");
+    // A quality that merely starts with t must not be rewritten
+    assert.equal(Constants.tpcToChordName(14, "tristeza", "standard"), "Ctristeza");
+});
+
+test("tpcToNoteName spells the lowest TPC in solfeo", function() {
+    // TPC -1 is F double flat: every other entry of the table is solfeo
+    assert.equal(Constants.tpcToNoteName(-1), "Fabb");
+    assert.equal(Constants.tpcToNoteName(0), "Dobb");
+});
