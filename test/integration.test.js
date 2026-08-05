@@ -1,5 +1,11 @@
 // Integration tests: snapshot comparison + fixture.mscz tests
 // Snapshot tests compare CLI output against baseline .txt files in test/its/.
+//
+// The scores live in test/its/scores/ as test_le_<Song>.mscz, copies of the real
+// scores that are kept out of git (see .gitignore). Working on copies keeps the
+// baselines stable while the originals under ~/Music keep being edited: to pick up
+// a change, copy the original over its test_le_ copy by hand.
+//
 // Each snapshot stores the mtime of the .mscz used to generate it as a trailing
 // comment. When a test fails and the score mtime differs, the error warns that
 // the score has changed and suggests regenerating.
@@ -9,7 +15,6 @@ var assert = require("node:assert/strict");
 var path = require("path");
 var fs = require("fs");
 var child = require("child_process");
-var os = require("os");
 var msczReader = require("../cli/mscz-reader");
 var xmlExtractor = require("../extractors/xml-extractor");
 var orchestrator = require("../lib/orchestrator");
@@ -19,34 +24,38 @@ var FIXTURE_PATH = path.join(__dirname, "fixture.mscz");
 var BASE = path.resolve(__dirname, "..");
 var CLI = path.join(BASE, "cli/index.js");
 var ITS_DIR = path.join(__dirname, "its");
-var MUSIC_DIR = path.join(os.homedir(), "Music");
+var SCORES_DIR = path.join(ITS_DIR, "scores");
+var SCORE_PREFIX = "test_le_";
 
-// Song name -> path relative to ~/Music (without .mscz extension)
-var SONGS = {
-    "AlmaLlanera":           "TunaAlcala/AlmaLlanera/AlmaLlanera",
-    "ChotisMadrid":          "TunaAlcala/ChotisMadrid/ChotisMadrid",
-    "Clavelitos":            "TunaAlcala/Clavelitos/Clavelitos",
-    "EspanaCani":            "TunaAlcala/EspañaCañi/EspañaCañi",
-    "EstudiantinaMadrilena": "TunaAlcala/EstudiantinaMadrileña/EstudiantinaMadrileña",
-    "HorasDeRonda":          "TunaAlcala/HorasDeRonda/HorasDeRonda",
-    "IsaDelCandidito":       "TunaAlcala/IsaDelCandidito/IsaDelCandidito",
-    "LosAmigos":             "TunaAlcala/LosAmigos/LosAmigos",
-    "MalaguenaSalerosa":     "Cantina/MalagueñaSalerosa/MalagueñaSalerosa",
-    "MilagroDeTusOjos":      "TunaAlcala/MilagroDeTusOjos/MilagroDeTusOjos",
-    "NochePerfumada":        "TunaAlcala/NochePerfumada/NochePerfumada",
-    "OjosDeEspaña":          "TunaAlcala/OjosDeEspaña/OjosDeEspaña",
-    "RondaFiruli":           "TunaAlcala/RondaDelFiruli/RondaFiruli",
-    "Rondalla":              "TunaAlcala/Rondalla/Rondalla",
-    "SanCayetano":           "TunaAlcala/SanCayetano/SanCayetano",
-    "TrustTenorios":         "Zarzuela/TrustTenorios/TrustTenorios",
-    "TunaCompostelana":      "TunaAlcala/TunaCompostelana/Compostelana",
-    "VuelaUnaLagrima":       "TunaAlcala/VuelaUnaLagrima/VuelaUnaLagrima"
-};
+var SONGS = [
+    "AlmaLlanera",
+    "ChotisMadrid",
+    "Clavelitos",
+    "EspanaCani",
+    "EstudiantinaMadrilena",
+    "HorasDeRonda",
+    "IsaDelCandidito",
+    "LosAmigos",
+    "MalaguenaSalerosa",
+    "MilagroDeTusOjos",
+    "NochePerfumada",
+    "OjosDeEspaña",
+    "RondaFiruli",
+    "Rondalla",
+    "SanCayetano",
+    "TrustTenorios",
+    "TunaCompostelana",
+    "VuelaUnaLagrima"
+];
 
 var MTIME_PREFIX = "// mscz-mtime: ";
 
 function getScorePath(song) {
-    return path.join(MUSIC_DIR, SONGS[song] + ".mscz");
+    return path.join(SCORES_DIR, SCORE_PREFIX + song + ".mscz");
+}
+
+function getSnapshotPath(song, mode) {
+    return path.join(ITS_DIR, SCORE_PREFIX + song + "." + mode + ".txt");
 }
 
 function getMsczMtime(scorePath) {
@@ -76,14 +85,14 @@ function runCli(scorePath, flags) {
 // Snapshot tests: compare CLI output against baseline .txt files
 // ============================================================
 
-var songNames = Object.keys(SONGS);
+var songNames = SONGS;
 var scoresExist = songNames.some(function(s) { return fs.existsSync(getScorePath(s)); });
 
 for (var i = 0; i < songNames.length; i++) {
     (function(song) {
         var scorePath = getScorePath(song);
-        var compactSnapshot = path.join(ITS_DIR, song + ".compact.txt");
-        var fullSnapshot = path.join(ITS_DIR, song + ".full.txt");
+        var compactSnapshot = getSnapshotPath(song, "compact");
+        var fullSnapshot = getSnapshotPath(song, "full");
 
         ["--compact", "--full"].forEach(function(flag) {
             var snapshotPath = flag === "--compact" ? compactSnapshot : fullSnapshot;

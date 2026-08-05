@@ -1,48 +1,49 @@
 #!/usr/bin/env node
 // Update mtime markers in snapshot .txt files.
+// Scores are the test_le_ copies in test/its/scores/ (kept out of git).
 // Usage:
 //   node test/its/update-mtime.js              # update all snapshots
 //   node test/its/update-mtime.js SongName     # update one song
 
 var fs = require("fs");
 var path = require("path");
-var os = require("os");
 
 var SNAPSHOTS_DIR = __dirname;
-var MUSIC_DIR = path.join(os.homedir(), "Music");
+var SCORES_DIR = path.join(__dirname, "scores");
+var SCORE_PREFIX = "test_le_";
 var MTIME_PREFIX = "// mscz-mtime: ";
 
-var SONGS = {
-    "EstudiantinaMadrilena": "TunaAlcala/EstudiantinaMadrileña/EstudiantinaMadrileña",
-    "EspanaCani":            "TunaAlcala/EspañaCañi/EspañaCañi",
-    "TrustTenorios":         "Zarzuela/TrustTenorios/TrustTenorios",
-    "SanCayetano":           "TunaAlcala/SanCayetano/SanCayetano",
-    "NochePerfumada":        "TunaAlcala/NochePerfumada/NochePerfumada",
-    "Rondalla":              "TunaAlcala/Rondalla/Rondalla",
-    "HorasDeRonda":          "TunaAlcala/HorasDeRonda/HorasDeRonda",
-    "TunaCompostelana":      "TunaAlcala/TunaCompostelana/Compostelana",
-    "AlmaLlanera":           "TunaAlcala/AlmaLlanera/AlmaLlanera",
-    "MalaguenaSalerosa":     "Cantina/MalagueñaSalerosa/MalagueñaSalerosa",
-    "IsaDelCandidito":       "TunaAlcala/IsaDelCandidito/IsaDelCandidito",
-    "ChotisMadrid":          "TunaAlcala/ChotisMadrid/ChotisMadrid",
-    "Clavelitos":            "TunaAlcala/Clavelitos/Clavelitos",
-    "LosAmigos":             "TunaAlcala/LosAmigos/LosAmigos",
-    "RondaFiruli":           "TunaAlcala/RondaDelFiruli/RondaFiruli",
-    "OjosDeEspaña":          "TunaAlcala/OjosDeEspaña/OjosDeEspaña",
-    "VuelaUnaLagrima":       "TunaAlcala/VuelaUnaLagrima/VuelaUnaLagrima",
-    "MilagroDeTusOjos":      "TunaAlcala/MilagroDeTusOjos/MilagroDeTusOjos"
-};
+var SONGS = [
+    "AlmaLlanera",
+    "ChotisMadrid",
+    "Clavelitos",
+    "EspanaCani",
+    "EstudiantinaMadrilena",
+    "HorasDeRonda",
+    "IsaDelCandidito",
+    "LosAmigos",
+    "MalaguenaSalerosa",
+    "MilagroDeTusOjos",
+    "NochePerfumada",
+    "OjosDeEspaña",
+    "RondaFiruli",
+    "Rondalla",
+    "SanCayetano",
+    "TrustTenorios",
+    "TunaCompostelana",
+    "VuelaUnaLagrima"
+];
 
 var filter = process.argv[2] || null;
-var songNames = filter ? [filter] : Object.keys(SONGS);
+var songNames = filter ? [filter] : SONGS;
 var updated = 0;
 
 songNames.forEach(function(song) {
-    if (!SONGS[song]) {
+    if (SONGS.indexOf(song) < 0) {
         console.error("Unknown song: " + song);
         process.exit(1);
     }
-    var scorePath = path.join(MUSIC_DIR, SONGS[song] + ".mscz");
+    var scorePath = path.join(SCORES_DIR, SCORE_PREFIX + song + ".mscz");
     if (!fs.existsSync(scorePath)) {
         console.log("  SKIP " + song + " (score not found)");
         return;
@@ -50,7 +51,7 @@ songNames.forEach(function(song) {
     var mtime = fs.statSync(scorePath).mtime.toISOString();
 
     ["compact", "full"].forEach(function(mode) {
-        var snapshotPath = path.join(SNAPSHOTS_DIR, song + "." + mode + ".txt");
+        var snapshotPath = path.join(SNAPSHOTS_DIR, SCORE_PREFIX + song + "." + mode + ".txt");
         if (!fs.existsSync(snapshotPath)) {
             console.log("  SKIP " + song + "." + mode + ".txt (not found)");
             return;
