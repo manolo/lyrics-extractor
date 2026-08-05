@@ -2745,3 +2745,87 @@ test("formatPerfLines does not duplicate chords for intro-region label (stTick <
     var count = (output.match(/Do7/g) || []).length;
     assert.equal(count, 1, "Do7 intro chord should appear exactly once, not duplicated: " + count);
 });
+
+test("formatLines does not repeat labeled vamp chords in the pickup zone", function() {
+    // A label opens a long instrumental gap (> 4 beats) before the next lyric, so the
+    // chords of that gap print as a chord-only line under the label. The pickup-zone
+    // scan covers the very same range, and used to print all of them again at pos 0.
+    var lines = [
+        { text: "primera estrofa.", sylMap: [{ tick: 0, pos: 0, chord: "Lam" }],
+          startTick: 0, endTick: 480, sectionEnd: true },
+        { text: "sigue la cancion.", sylMap: [{ tick: 5760, pos: 0, chord: "Lam" }],
+          startTick: 5760, endTick: 6240 }
+    ];
+    var chords = [
+        { tick: 0, chord: "Lam" },
+        { tick: 1920, chord: "Re" },
+        { tick: 2880, chord: "Sol" },
+        { tick: 3840, chord: "Mi7" },
+        { tick: 5760, chord: "Lam" }
+    ];
+    var systemTexts = [{ tick: 1920, text: "Musica" }];
+    var result = fmt.formatLines(lines, chords, null, -1, systemTexts);
+    var out = result.output.replace(/​/g, "");
+
+    var musicaIdx = out.indexOf("- MUSICA -");
+    assert.ok(musicaIdx >= 0, "should have the MUSICA label: " + out);
+
+    // Every gap chord must appear exactly once in the whole output
+    ["Re", "Sol", "Mi7"].forEach(function(chord) {
+        var re = new RegExp("(^|[\\s])" + chord.replace("7", "7") + "([\\s]|$)", "g");
+        var matches = out.match(re) || [];
+        assert.equal(matches.length, 1,
+            chord + " should appear once, found " + matches.length + " in:\n" + out);
+    });
+});
+
+test("formatLines keeps trailing chords when a label sits in the same gap", function() {
+    // Four trailing chords at a section end with a label in the gap: they were dropped
+    // outright, since the inline path deferred to the interlude handler and the
+    // interlude handler only ran when there were no trailing chords at all.
+    var lines = [
+        { text: "final de la estrofa.", sylMap: [{ tick: 0, pos: 0, chord: "Lam" }],
+          startTick: 0, endTick: 480, sectionEnd: true },
+        { text: "siguiente verso.", sylMap: [{ tick: 5000, pos: 0, chord: "Lam" }],
+          startTick: 5000, endTick: 5480 }
+    ];
+    var chords = [
+        { tick: 0, chord: "Lam" },
+        { tick: 1000, chord: "ReM" },
+        { tick: 1500, chord: "Solm" },
+        { tick: 2000, chord: "Mi7" },
+        { tick: 2500, chord: "Lam7" },
+        { tick: 5000, chord: "Lam" }
+    ];
+    var systemTexts = [{ tick: 800, text: "Musica" }];
+    var result = fmt.formatLines(lines, chords, null, -1, systemTexts);
+    var out = result.output.replace(/​/g, "");
+
+    assert.ok(out.indexOf("- MUSICA -") >= 0, "should have the MUSICA label: " + out);
+    ["ReM", "Solm", "Mi7", "Lam7"].forEach(function(chord) {
+        assert.ok(out.indexOf(chord) >= 0, chord + " must not be dropped:\n" + out);
+    });
+});
+
+test("formatLines still appends a short trailing run to the lyric line", function() {
+    // Below the threshold the chords stay inline after the text, as before.
+    var lines = [
+        { text: "final de la estrofa.", sylMap: [{ tick: 0, pos: 0, chord: "Lam" }],
+          startTick: 0, endTick: 480, sectionEnd: true },
+        { text: "siguiente verso.", sylMap: [{ tick: 5000, pos: 0, chord: "Lam" }],
+          startTick: 5000, endTick: 5480 }
+    ];
+    var chords = [
+        { tick: 0, chord: "Lam" },
+        { tick: 1000, chord: "ReM" },
+        { tick: 1500, chord: "Solm" },
+        { tick: 5000, chord: "Lam" }
+    ];
+    var result = fmt.formatLines(lines, chords, null, -1, null);
+    var out = result.output.replace(/​/g, "");
+    var outLines = out.split("\n");
+    var lyricIdx = outLines.findIndex(function(l) { return l.indexOf("final de la estrofa") >= 0; });
+    var chordLineAbove = outLines[lyricIdx - 1] || "";
+    assert.ok(chordLineAbove.indexOf("ReM") >= 0 && chordLineAbove.indexOf("Solm") >= 0,
+        "short trailing run should stay above the lyric line:\n" + out);
+});
