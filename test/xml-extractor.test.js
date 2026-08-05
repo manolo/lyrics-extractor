@@ -1165,61 +1165,74 @@ test("extractAll ignores location elements nested inside spanners", function() {
 });
 
 // ============================================================
-// Auto-numbered rehearsal marks are not section labels
+// Rehearsal marks named after their own measure
 // ============================================================
 
-test("extractAll skips purely numeric rehearsal marks", function() {
-    // MuseScore numbers rehearsal marks automatically, so a score using them for
-    // navigation would otherwise produce section headings like "- 9 -".
-    var xml = [
+// Two measures, whole note each: mark texts are what varies
+function markScore(mark1, mark2) {
+    return [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<museScore version="4.40"><Score>',
         '<Division>480</Division>',
         '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
-        '<Staff id="1"><Measure><voice>',
-        '<RehearsalMark><text>9</text></RehearsalMark>',
-        '<Chord><durationType>half</durationType>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<RehearsalMark><text>' + mark1 + '</text></RehearsalMark>',
+        '<Chord><durationType>whole</durationType>',
         '<Lyrics><text>uno</text><syllabic>single</syllabic></Lyrics>',
         '<Note><pitch>60</pitch></Note></Chord>',
-        '<RehearsalMark><text>Estribillo</text></RehearsalMark>',
-        '<Chord><durationType>half</durationType>',
+        '</voice></Measure>',
+        '<Measure><voice>',
+        '<RehearsalMark><text>' + mark2 + '</text></RehearsalMark>',
+        '<Chord><durationType>whole</durationType>',
         '<Lyrics><text>dos</text><syllabic>single</syllabic></Lyrics>',
         '<Note><pitch>62</pitch></Note></Chord>',
         '</voice></Measure>',
-        '<Measure><voice>',
-        '<RehearsalMark><text>A</text></RehearsalMark>',
-        '<Chord><durationType>whole</durationType>',
-        '<Lyrics><text>tres</text><syllabic>single</syllabic></Lyrics>',
-        '<Note><pitch>64</pitch></Note></Chord>',
-        '</voice></Measure></Staff>',
-        '</Score></museScore>'
+        '</Staff></Score></museScore>'
     ].join("\n");
+}
 
-    var data = xmlExt.extractAll(xml, [], "standard");
-    var labels = data.systemTexts.map(function(st) { return st.text; });
-    assert.ok(labels.indexOf("9") < 0, "numeric mark should be skipped: " + labels);
-    assert.ok(labels.indexOf("Estribillo") >= 0, "named mark should be kept: " + labels);
-    assert.ok(labels.indexOf("A") >= 0, "letter mark should be kept: " + labels);
+function labelsOf(xml) {
+    return xmlExt.extractAll(xml, [], "standard").systemTexts.map(function(st) { return st.text; });
+}
+
+test("extractAll skips rehearsal marks named after their own measure", function() {
+    // MuseScore names marks after their measure once one of them matches, which makes
+    // them rehearsal references rather than section titles
+    var labels = labelsOf(markScore("1", "2"));
+    assert.equal(labels.length, 0, "both marks match their measure: " + labels);
 });
 
-test("extractAll keeps system texts that merely contain digits", function() {
+test("extractAll keeps numeric rehearsal marks that are not measure numbers", function() {
+    // A deliberate numbering of sections: neither number matches its measure
+    var labels = labelsOf(markScore("7", "9"));
+    assert.deepEqual(labels, ["7", "9"], "numbered sections stay titles: " + labels);
+});
+
+test("extractAll judges each rehearsal mark on its own measure", function() {
+    var labels = labelsOf(markScore("5", "2"));
+    assert.deepEqual(labels, ["5"], "only the mark matching its measure is skipped: " + labels);
+});
+
+test("extractAll keeps named rehearsal marks", function() {
+    var labels = labelsOf(markScore("A", "Estribillo"));
+    assert.deepEqual(labels, ["A", "Estribillo"], "named marks stay titles: " + labels);
+});
+
+test("extractAll never skips a system text, whatever its text", function() {
     var xml = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<museScore version="4.40"><Score>',
         '<Division>480</Division>',
         '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
         '<Staff id="1"><Measure><voice>',
-        '<SystemText><text>Estrofa 2</text></SystemText>',
+        '<SystemText><text>1</text></SystemText>',
         '<Chord><durationType>whole</durationType>',
         '<Lyrics><text>uno</text><syllabic>single</syllabic></Lyrics>',
         '<Note><pitch>60</pitch></Note></Chord>',
-        '</voice></Measure></Staff>',
-        '</Score></museScore>'
+        '</voice></Measure></Staff></Score></museScore>'
     ].join("\n");
-
-    var data = xmlExt.extractAll(xml, [], "standard");
-    var labels = data.systemTexts.map(function(st) { return st.text; });
-    assert.ok(labels.indexOf("Estrofa 2") >= 0, "labels with digits are kept: " + labels);
+    assert.deepEqual(labelsOf(xml), ["1"], "system texts are the author's own words");
 });
 
 // ============================================================

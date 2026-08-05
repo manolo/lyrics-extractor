@@ -173,11 +173,24 @@ function locationOffsetTicks(locNode, division, measureTicks) {
     return ticks;
 }
 
-// A rehearsal mark whose text is only digits comes from MuseScore's automatic
-// numbering (measure number or running count), not from a section name, so it must
-// not become a section heading. System texts are always the author's own words.
-function isAutoNumberedMark(tag, text) {
-    return tag === "RehearsalMark" && /^\d+$/.test(text.trim());
+// MuseScore can name rehearsal marks after the measure they sit in. Its own
+// sequencer (EditRehearsalMark::nextRehearsalMarkText) works it out the same way:
+// when a mark's number equals its measure number, it assumes the score numbers
+// marks by measure throughout and names every new mark after its measure. Those
+// marks are rehearsal references ("we start at bar 26"), placed every few bars
+// regardless of the music, so they are not section titles.
+//
+// A number that does not match its measure is a deliberate name (a numbered
+// section such as 1, 2, 3) and stays a title, as does any non-numeric text.
+//
+// measureNumber counts measures from 1. A score that excludes measures from the
+// count shifts the real numbering, and then a genuine measure-number mark no
+// longer matches and is kept as a title: the safe direction to fail in.
+function isMeasureNumberMark(tag, text, measureNumber) {
+    if (tag !== "RehearsalMark") return false;
+    var trimmed = text.trim();
+    if (!/^\d+$/.test(trimmed)) return false;
+    return parseInt(trimmed, 10) === measureNumber;
 }
 
 // Slash-chord bass note TPC, or -99 when the chord has none.
@@ -722,7 +735,7 @@ function extractAll(xmlString, excerptXmls, spelling, options) {
             // System text / Rehearsal mark (staff 0 only) -> section labels
             if ((elem.tag === "SystemText" || elem.tag === "RehearsalMark") && staffId === 0) {
                 var sysText = childText(elem, "text");
-                if (sysText && !isAutoNumberedMark(elem.tag, sysText)) {
+                if (sysText && !isMeasureNumberMark(elem.tag, sysText, mi + 1)) {
                     systemTexts.push({ tick: voiceTick, text: sysText });
                 }
             }

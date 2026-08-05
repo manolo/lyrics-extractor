@@ -50,7 +50,7 @@ The **Fix** button corrects all issues automatically:
 - Handles repeats, voltas, D.S., D.C., Coda, Fine
 - Expands multi-verse sections (verse 0, verse 1, etc.)
 - Abbreviates repeated sections with "..." or section labels
-- Detects system text labels (INTRO, SOLISTA, ESTRIBILLO) and rehearsal marks as section markers (auto-deduplicates when present on multiple staves)
+- Detects system text labels (INTRO, SOLISTA, ESTRIBILLO) and rehearsal marks as section markers (auto-deduplicates when present on multiple staves). A rehearsal mark whose text is the number of its own measure is skipped: MuseScore names marks that way for rehearsal references, so they mark bars rather than sections
 - Chord names follow the score's spelling setting (solfeo or anglo), no manual conversion needed
 - Works from any tab, including excerpt/part views (uses masterScore automatically)
 

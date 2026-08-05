@@ -674,8 +674,46 @@ function extractNavigation() {
 }
 
 // Extract system texts (section labels like "Solista", "Estribillo", etc.)
+// Start tick of every measure, in order, so a tick maps to its measure number.
+// Read through firstMeasure/nextMeasure and the first segment of each measure,
+// which are long-standing plugin API properties.
+function _measureStartTicks() {
+    var starts = [];
+    try {
+        var m = _getScore().firstMeasure;
+        while (m) {
+            var seg = m.firstSegment;
+            starts.push(seg ? seg.tick : 0);
+            m = m.nextMeasure;
+        }
+    } catch (e) {
+        console.log("[systemtexts] measure walk unavailable: " + e);
+        return null;
+    }
+    return starts.length > 0 ? starts : null;
+}
+
+// Measure number (counting from 1) containing a tick
+function _measureNumberAt(starts, tick) {
+    for (var i = starts.length - 1; i >= 0; i--) {
+        if (tick >= starts[i]) return i + 1;
+    }
+    return 1;
+}
+
+// See isMeasureNumberMark in xml-extractor.js: a rehearsal mark named after its own
+// measure comes from MuseScore's measure numbering sequence and is a rehearsal
+// reference, not a section title. When the measure list cannot be read, every mark
+// stays a title, which is the documented behaviour.
+function _isMeasureNumberMark(text, measureNumber) {
+    var trimmed = (text || "").trim();
+    if (!/^\d+$/.test(trimmed)) return false;
+    return measureNumber !== null && parseInt(trimmed, 10) === measureNumber;
+}
+
 function extractSystemTexts() {
     var texts = [];
+    var measureStarts = _measureStartTicks();
     var segment = _getScore().firstSegment();
     while (segment) {
         var annotations = segment.annotations;
@@ -689,9 +727,10 @@ function extractSystemTexts() {
                 // Note: REHEARSAL_MARK enum value changed in MS 4.7 (was 60, now 63) — use the constant.
                 if (ann.type === Element.SYSTEM_TEXT || ann.type === Element.REHEARSAL_MARK) {
                     var txt = ann.text || "";
-                    // A rehearsal mark of digits only comes from MuseScore's automatic
-                    // numbering, not from a section name, so it is not a heading.
-                    if (ann.type === Element.REHEARSAL_MARK && /^\d+$/.test(txt.trim())) txt = "";
+                    if (ann.type === Element.REHEARSAL_MARK && measureStarts &&
+                        _isMeasureNumberMark(txt, _measureNumberAt(measureStarts, segment.tick))) {
+                        txt = "";
+                    }
                     if (txt) {
                         // Deduplicate: same tick+text can appear on multiple staves
                         var dup = false;

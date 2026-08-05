@@ -18,11 +18,13 @@ var es =
     "<tr><td width='150' nowrap><b>Texto de sistema</b></td><td><code>Ctrl+Shift+T</code>. Marca secciones (Intro, Estrofa, Estribillo, M\u00fasica). " +
     "Aparecen como nueva secci\u00f3n <b>ETIQUETA</b> en la salida. Usa <code>#</code> para numeraci\u00f3n autom\u00e1tica: <code>Coro #</code> produce Coro 1, Coro 2, etc. " +
     "Usa <code>:</code> o <code>-</code> para secuencias expl\u00edcitas: <code>Solista manolo:juan</code> produce Solista Manolo, Solista Juan, luego Solista.</td></tr>" +
-    "<tr><td width='150' nowrap><b>Marca de ensayo</b></td><td><code>Ctrl+M</code>. Se tratan igual que los textos de sistema (generan etiquetas de secci\u00f3n).</td></tr>" +
+    "<tr><td width='150' nowrap><b>Marca de ensayo</b></td><td><code>Ctrl+M</code>. Se tratan igual que los textos de sistema (generan etiquetas de secci\u00f3n). " +
+    "Excepci\u00f3n: si el texto de la marca es el n\u00famero de su propio comp\u00e1s, es una referencia de ensayo de las que MuseScore numera sola, no un t\u00edtulo, y se ignora. " +
+    "Una marca numerada a mano que no coincida con su comp\u00e1s (<code>1</code>, <code>2</code>, <code>3</code> como secciones) s\u00ed genera etiqueta.</td></tr>" +
     "<tr><td width='150' nowrap><b>Repeticiones</b></td><td>Las barras de repetici\u00f3n, casillas de volta, Da Capo, Da Segno y saltos se respetan. " +
     "El plugin expande las repeticiones en orden de ejecuci\u00f3n.</td></tr>" +
     "<tr><td width='150' nowrap><b>Separar estrofas</b></td><td>Estos elementos generan un salto de p\u00e1rrafo (l\u00ednea en blanco) en la salida: " +
-    "textos de sistema, marcas de ensayo, barras de fin, doble barra y barra gruesa.</td></tr>" +
+    "textos de sistema, marcas de ensayo (salvo las numeradas por comp\u00e1s), barras de fin, doble barra y barra gruesa.</td></tr>" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Preparar la partitura de Guitarra</h3></td></tr>" +
     "<tr><td width='150' nowrap><b>Acordes</b></td><td><code>Ctrl+K</code>. A\u00f1ade s\u00edmbolos de acorde en la nota justa donde cambia la armon\u00eda. " +
     "Utiliza el estilo solfeo o anglosaj\u00f3n seg\u00fan tus preferencias. " +
@@ -89,11 +91,13 @@ var en =
     "<tr><td width='150' nowrap><b>System text</b></td><td><code>Ctrl+Shift+T</code>. Mark sections (Intro, Verse, Chorus, Music). " +
     "They appear as <code>- LABEL -</code> in the output. Use <code>#</code> for auto-numbering: <code>Chorus #</code> produces Chorus 1, Chorus 2, etc. " +
     "Use <code>:</code> or <code>-</code> for explicit sequences: <code>Solo manolo:juan</code> produces Solo Manolo, Solo Juan, then Solo.</td></tr>" +
-    "<tr><td width='150' nowrap><b>Rehearsal mark</b></td><td><code>Ctrl+M</code>. Treated the same as system text (they generate section labels).</td></tr>" +
+    "<tr><td width='150' nowrap><b>Rehearsal mark</b></td><td><code>Ctrl+M</code>. Treated the same as system text (they generate section labels). " +
+    "Exception: a mark whose text is the number of its own measure is one of the rehearsal references MuseScore numbers by itself, not a title, and is ignored. " +
+    "A hand numbered mark that does not match its measure (<code>1</code>, <code>2</code>, <code>3</code> as sections) does generate a label.</td></tr>" +
     "<tr><td width='150' nowrap><b>Repeats</b></td><td>Repeat barlines, volta brackets, Da Capo, Da Segno and jumps are respected. " +
     "The plugin expands repeats in performance order.</td></tr>" +
     "<tr><td width='150' nowrap><b>Separate stanzas</b></td><td>These elements create a paragraph break (blank line) in the output: " +
-    "system texts, rehearsal marks, final barlines, double barlines and heavy barlines.</td></tr>" +
+    "system texts, rehearsal marks (except those numbered by measure), final barlines, double barlines and heavy barlines.</td></tr>" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Preparing the Guitar part</h3></td></tr>" +
     "<tr><td width='150' nowrap><b>Chords</b></td><td><code>Ctrl+K</code>. Add chord symbols on the exact note where the harmony changes. " +
     "Use solfeo or anglo-saxon style according to your preferences. " +
