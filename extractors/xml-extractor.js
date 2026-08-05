@@ -173,6 +173,13 @@ function locationOffsetTicks(locNode, division, measureTicks) {
     return ticks;
 }
 
+// A rehearsal mark whose text is only digits comes from MuseScore's automatic
+// numbering (measure number or running count), not from a section name, so it must
+// not become a section heading. System texts are always the author's own words.
+function isAutoNumberedMark(tag, text) {
+    return tag === "RehearsalMark" && /^\d+$/.test(text.trim());
+}
+
 // Slash-chord bass note TPC, or -99 when the chord has none.
 // MuseScore 4 writes <bass>, MuseScore 3 wrote <base>.
 function bassTpc(hInfo) {
@@ -711,7 +718,9 @@ function extractAll(xmlString, excerptXmls, spelling, options) {
             // System text / Rehearsal mark (staff 0 only) -> section labels
             if ((elem.tag === "SystemText" || elem.tag === "RehearsalMark") && staffId === 0) {
                 var sysText = childText(elem, "text");
-                if (sysText) systemTexts.push({ tick: voiceTick, text: sysText });
+                if (sysText && !isAutoNumberedMark(elem.tag, sysText)) {
+                    systemTexts.push({ tick: voiceTick, text: sysText });
+                }
             }
 
             // Staff text / Expression / Play technique -> inline text shown in chord line

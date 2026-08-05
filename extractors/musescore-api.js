@@ -681,6 +681,9 @@ function extractSystemTexts() {
                 // Note: REHEARSAL_MARK enum value changed in MS 4.7 (was 60, now 63) — use the constant.
                 if (ann.type === Element.SYSTEM_TEXT || ann.type === Element.REHEARSAL_MARK) {
                     var txt = ann.text || "";
+                    // A rehearsal mark of digits only comes from MuseScore's automatic
+                    // numbering, not from a section name, so it is not a heading.
+                    if (ann.type === Element.REHEARSAL_MARK && /^\d+$/.test(txt.trim())) txt = "";
                     if (txt) {
                         // Deduplicate: same tick+text can appear on multiple staves
                         var dup = false;

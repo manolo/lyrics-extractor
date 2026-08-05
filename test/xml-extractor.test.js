@@ -1163,3 +1163,61 @@ test("extractAll ignores location elements nested inside spanners", function() {
     var data = xmlExt.extractAll(xml, [], "standard");
     assert.equal(data.chords[0].tick, 960, "nested spanner location must not shift the cursor");
 });
+
+// ============================================================
+// Auto-numbered rehearsal marks are not section labels
+// ============================================================
+
+test("extractAll skips purely numeric rehearsal marks", function() {
+    // MuseScore numbers rehearsal marks automatically, so a score using them for
+    // navigation would otherwise produce section headings like "- 9 -".
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<RehearsalMark><text>9</text></RehearsalMark>',
+        '<Chord><durationType>half</durationType>',
+        '<Lyrics><text>uno</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '<RehearsalMark><text>Estribillo</text></RehearsalMark>',
+        '<Chord><durationType>half</durationType>',
+        '<Lyrics><text>dos</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>62</pitch></Note></Chord>',
+        '</voice></Measure>',
+        '<Measure><voice>',
+        '<RehearsalMark><text>A</text></RehearsalMark>',
+        '<Chord><durationType>whole</durationType>',
+        '<Lyrics><text>tres</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>64</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml, [], "standard");
+    var labels = data.systemTexts.map(function(st) { return st.text; });
+    assert.ok(labels.indexOf("9") < 0, "numeric mark should be skipped: " + labels);
+    assert.ok(labels.indexOf("Estribillo") >= 0, "named mark should be kept: " + labels);
+    assert.ok(labels.indexOf("A") >= 0, "letter mark should be kept: " + labels);
+});
+
+test("extractAll keeps system texts that merely contain digits", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<SystemText><text>Estrofa 2</text></SystemText>',
+        '<Chord><durationType>whole</durationType>',
+        '<Lyrics><text>uno</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+
+    var data = xmlExt.extractAll(xml, [], "standard");
+    var labels = data.systemTexts.map(function(st) { return st.text; });
+    assert.ok(labels.indexOf("Estrofa 2") >= 0, "labels with digits are kept: " + labels);
+});
