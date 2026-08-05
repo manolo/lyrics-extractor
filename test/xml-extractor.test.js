@@ -1221,3 +1221,46 @@ test("extractAll keeps system texts that merely contain digits", function() {
     var labels = data.systemTexts.map(function(st) { return st.text; });
     assert.ok(labels.indexOf("Estrofa 2") >= 0, "labels with digits are kept: " + labels);
 });
+
+// ============================================================
+// Key signature
+// ============================================================
+
+test("extractAll reports the key from the first key signature", function() {
+    function score(concertKey) {
+        return [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<museScore version="4.40"><Score>',
+            '<Division>480</Division>',
+            '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+            '<Staff id="1"><Measure><voice>',
+            '<KeySig><concertKey>' + concertKey + '</concertKey></KeySig>',
+            '<Chord><durationType>whole</durationType>',
+            '<Lyrics><text>uno</text><syllabic>single</syllabic></Lyrics>',
+            '<Note><pitch>60</pitch></Note></Chord>',
+            '</voice></Measure></Staff>',
+            '</Score></museScore>'
+        ].join("\n");
+    }
+
+    assert.equal(xmlExt.extractAll(score(-2), [], "standard").key, "Bb", "two flats is Bb major");
+    assert.equal(xmlExt.extractAll(score(4), [], "standard").key, "E", "four sharps is E major");
+    assert.equal(xmlExt.extractAll(score(0), [], "standard").key, "C", "no accidentals is C major");
+    assert.equal(xmlExt.extractAll(score(-2), [], "solfeggio").key, "Sib", "key follows the score spelling");
+});
+
+test("extractAll leaves the key empty when the score has no key signature", function() {
+    var xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<museScore version="4.40"><Score>',
+        '<Division>480</Division>',
+        '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+        '<Staff id="1"><Measure><voice>',
+        '<Chord><durationType>whole</durationType>',
+        '<Lyrics><text>uno</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure></Staff>',
+        '</Score></museScore>'
+    ].join("\n");
+    assert.equal(xmlExt.extractAll(xml, [], "standard").key, "");
+});

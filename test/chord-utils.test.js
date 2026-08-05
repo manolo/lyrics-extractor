@@ -868,3 +868,21 @@ test("convertChord keeps converting real qualities", function() {
     assert.equal(cu.convertChord("Mi7(b5)", false), "E7(b5)");
     assert.equal(cu.convertChord("Sib9", false), "Bb9");
 });
+
+// ============================================================
+// isChordName: chord names vs annotation text
+// ============================================================
+
+test("isChordName accepts chord names in both spellings", function() {
+    ["Do", "Lam", "Sol7", "Sib", "Sib/Fa", "Do#m7", "Mi7(b5)", "Domaj7", "Fa##",
+     "C", "Am", "G7", "Bb", "Bb/F", "C#m7", "Cmaj7", "Csus4", "Adim"].forEach(function(name) {
+        assert.equal(cu.isChordName(name), true, name + " should be a chord");
+    });
+});
+
+test("isChordName rejects annotation text", function() {
+    ["Solo", "Solista", "Doble", "A-cappella", "Muy-lento", "-CAPELLA-", "8va-2nd-time",
+     "Bass", "N.C.", "rit.", "harmonics", "", null].forEach(function(text) {
+        assert.equal(cu.isChordName(text), false, JSON.stringify(text) + " should not be a chord");
+    });
+});

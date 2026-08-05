@@ -26,6 +26,14 @@ function _titleFromFileName(name) {
 }
 
 // Get score title: metaTags first, then VBox title text, then file name.
+// Key signature of the score as the number of accidentals (negative for flats).
+// Not every MuseScore build exposes it, so an absent property reports nothing.
+function _getKeySig() {
+    var score = _getScore();
+    if (!score || typeof score.keysig === "undefined" || score.keysig === null) return null;
+    return score.keysig;
+}
+
 function _getTitle() {
     var s = _getScore();
     // 1. Project properties (metaTags)
@@ -1159,6 +1167,7 @@ function extractAll(options) {
 
     return {
         title: _getTitle(),
+        keysig: _getKeySig(),
         nstaves: _getScore().nstaves,
         division: 480,
         syllables: syllables,

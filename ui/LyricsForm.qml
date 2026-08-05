@@ -46,6 +46,7 @@ MuseScore {
     property var extractedFretDiagrams: []
     property string extractedOutput: "" // output with chord markers for PDF
     property string scoresDirectory: ""
+    property string extractedKey: ""   // key of the score, for the ChordPro {key:} directive
     property bool scoresDirectoryExists: false
     property string lastScorePath: ""
     // True when fallback directory is needed (FBox exists but native API unavailable)
@@ -748,6 +749,7 @@ MuseScore {
         }
 
         data.fullRepeat = settings.fullRepeat;
+        extractedKey = Constants.concertKeyName(data.keysig, settings.useSolfeo ? "solfeggio" : "standard");
         var output = Orchestrator.processExtraction(data, mods);
 
         if (!output) {
@@ -894,7 +896,7 @@ MuseScore {
     function saveChordProFile(content) {
         if (!content) return;
 
-        var cpOutput = ChordProWriter.convert(content);
+        var cpOutput = ChordProWriter.convert(content, { key: extractedKey });
         var savedPath = tryWriteFile(cpOutput, buildSaveCandidates("-letra.cho"));
         if (!savedPath) {
             statusText.isError = true;
@@ -1570,6 +1572,7 @@ MuseScore {
         LineBuilder.setTextUtils(TextUtils);
         Formatter.setLineBuilder(LineBuilder);
         ChordProWriter.setConvertChord(ChordUtils.convertChord);
+        ChordProWriter.setIsChordName(ChordUtils.isChordName);
         LyricsFixer.setTextUtils(TextUtils);
         if (settings.scoresDirectory && settings.scoresDirectory.length > 0) {
             scoresDirectory = settings.scoresDirectory;

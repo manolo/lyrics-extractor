@@ -353,7 +353,7 @@ function main() {
     if (chordproMode) {
         var cpExt = path.extname(inputPath);
         var cpPath = inputPath.replace(cpExt, "-letra.cho");
-        var cpOutput = chordproWriter.convert(output);
+        var cpOutput = chordproWriter.convert(output, { key: data.key });
         fs.writeFileSync(cpPath, cpOutput, "utf8");
         console.error("ChordPro written to: " + cpPath);
         if (!outputPath) return;

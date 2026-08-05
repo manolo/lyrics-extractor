@@ -155,3 +155,50 @@ test("converts a complete formatted document", function() {
     assert.equal(out.indexOf("[Lam]"), -1);
     assert.equal(out.indexOf("[Mi7]"), -1);
 });
+
+// --- Text annotations vs chords ---
+
+test("emits text annotations with the ChordPro annotation syntax", function() {
+    // "Muy-lento" is staff text carried on the chord line, not a chord: as a plain
+    // [Muy-lento] tag a ChordPro reader would try to transpose it.
+    var input = M + "Do        Muy-lento   Sol\nhola mundo que tal\n";
+    var out = cp.convert(input);
+    assert.ok(out.indexOf("[*Muy-lento]") >= 0, "annotation should use [*...]: " + out);
+    assert.ok(out.indexOf("[C]") >= 0, "real chords stay plain: " + out);
+    assert.ok(out.indexOf("[G]") >= 0, "real chords stay plain: " + out);
+});
+
+test("emits annotations on a chord-only line with the annotation syntax", function() {
+    var input = M + "-CAPELLA-\n\n";
+    var out = cp.convert(input);
+    assert.ok(out.indexOf("[*-CAPELLA-]") >= 0, "annotation should use [*...]: " + out);
+});
+
+test("treats slash chords and qualities as chords, not annotations", function() {
+    var input = M + "Sib/Fa   Domaj7   Mi7(b5)\nhola mundo que tal\n";
+    var out = cp.convert(input);
+    assert.ok(out.indexOf("[Bb/F]") >= 0, "slash chord: " + out);
+    assert.ok(out.indexOf("[Cmaj7]") >= 0, "quality chord: " + out);
+    assert.ok(out.indexOf("[E7(b5)]") >= 0, "bracketed quality: " + out);
+    assert.ok(out.indexOf("[*") < 0, "no annotations expected: " + out);
+});
+
+// --- Key directive ---
+
+test("emits a {key:} directive when the key is known", function() {
+    var input = "==== MY SONG ====\n" + M + "Do\nhola\n";
+    var out = cp.convert(input, { key: "Bb" });
+    assert.ok(out.indexOf("{key: Bb}") >= 0, "should have the key directive: " + out);
+    assert.ok(out.indexOf("{key: Bb}") > out.indexOf("{title: MY SONG}"),
+        "key should follow the title: " + out);
+});
+
+test("converts a solfeo key name to anglo in the directive", function() {
+    var out = cp.convert("==== X ====\n", { key: "Sib" });
+    assert.ok(out.indexOf("{key: Bb}") >= 0, "key should be anglo: " + out);
+});
+
+test("omits the key directive when no key is given", function() {
+    var out = cp.convert("==== X ====\n");
+    assert.ok(out.indexOf("{key:") < 0, "no key directive expected: " + out);
+});

@@ -562,6 +562,7 @@ function extractAll(xmlString, excerptXmls, spelling, options) {
     var markers = [];
     var jumps = [];
     var systemTexts = [];
+    var scoreKey = ""; // key of the first key signature, for the ChordPro {key:} directive
 
     // Collect tied note durations per staff: { staffId: { tick: extraDurationQ } }
     // A chord with a Tie forward means the next chord(s) at the same pitch
@@ -721,6 +722,11 @@ function extractAll(xmlString, excerptXmls, spelling, options) {
                 if (sysText && !isAutoNumberedMark(elem.tag, sysText)) {
                     systemTexts.push({ tick: voiceTick, text: sysText });
                 }
+            }
+
+            // Key signature (first one on the top staff) for the ChordPro {key:} directive
+            if (elem.tag === "KeySig" && staffId === 0 && !scoreKey) {
+                scoreKey = Constants.concertKeyName(childText(elem, "concertKey"), spelling);
             }
 
             // Staff text / Expression / Play technique -> inline text shown in chord line
@@ -919,6 +925,7 @@ function extractAll(xmlString, excerptXmls, spelling, options) {
         markers: markers,
         jumps: jumps,
         systemTexts: systemTexts,
+        key: scoreKey,
         barlines: barlines,
         lastTick: lastTick,
         fretDiagrams: fretDiagrams,
