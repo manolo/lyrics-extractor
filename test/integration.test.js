@@ -37,6 +37,7 @@ var SONGS = [
     "IsaDelCandidito",
     "LosAmigos",
     "MalaguenaSalerosa",
+    "MalaguenaMini",
     "MilagroDeTusOjos",
     "MultiVerso",
     "NochePerfumada",
