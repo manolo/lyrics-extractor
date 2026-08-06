@@ -30,36 +30,9 @@ var ITS_DIR = path.join(__dirname, "its");
 var SCORES_DIR = path.join(ITS_DIR, "scores");
 var SCORE_PREFIX = "test_le_";
 
-var SONGS = [
-    "AlmaLlanera",
-    "ChotisMadrid",
-    "Clavelitos",
-    "EspanaCani",
-    "EstudiantinaMadrilena",
-    "HorasDeRonda",
-    "IsaDelCandidito",
-    "LosAmigos",
-    "MalaguenaSalerosa",
-    "MalaguenaMini",
-    "MilagroDeTusOjos",
-    "MultiVerso",
-    "NochePerfumada",
-    "OjosDeEspaña",
-    "RondaFiruli",
-    "Rondalla",
-    "SanCayetano",
-    "TrustTenorios",
-    "TunaCompostelana",
-    "VuelaUnaLagrima"
-];
+var songs = require("./its/songs");
 
 var MTIME_PREFIX = "// mscz-mtime: ";
-
-// Songs whose structure leaves a lyric line that no pass sings. They get a third
-// snapshot, taken with --orphan-lyrics, since the other two modes leave that line out
-// by design and would never show a change in it. On any other song the flag prints
-// exactly the full output, so there is nothing to snapshot.
-var ORPHAN_SONGS = { MalaguenaMini: true };
 
 function getScorePath(song) {
     return path.join(SCORES_DIR, SCORE_PREFIX + song + ".mscz");
@@ -96,20 +69,14 @@ function runCli(scorePath, flags) {
 // Snapshot tests: compare CLI output against baseline .txt files
 // ============================================================
 
-var songNames = SONGS;
+var songNames = songs.SONGS;
 var scoresExist = songNames.some(function(s) { return fs.existsSync(getScorePath(s)); });
 
 for (var i = 0; i < songNames.length; i++) {
     (function(song) {
         var scorePath = getScorePath(song);
 
-        var modes = [
-            { mode: "compact", flag: "--compact" },
-            { mode: "full", flag: "--full" }
-        ];
-        if (ORPHAN_SONGS[song]) modes.push({ mode: "orphan", flag: "--full --orphan-lyrics" });
-
-        modes.forEach(function(m) {
+        songs.modesFor(song).forEach(function(m) {
             var flag = m.flag;
             var snapshotPath = getSnapshotPath(song, m.mode);
             var label = "IT: " + song + "." + m.mode;

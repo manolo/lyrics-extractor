@@ -13,28 +13,7 @@ var SCORES_DIR = path.join(__dirname, "scores");
 var SCORE_PREFIX = "test_le_";
 var MTIME_PREFIX = "// mscz-mtime: ";
 
-var SONGS = [
-    "AlmaLlanera",
-    "ChotisMadrid",
-    "Clavelitos",
-    "EspanaCani",
-    "EstudiantinaMadrilena",
-    "HorasDeRonda",
-    "IsaDelCandidito",
-    "LosAmigos",
-    "MalaguenaSalerosa",
-    "MalaguenaMini",
-    "MilagroDeTusOjos",
-    "MultiVerso",
-    "NochePerfumada",
-    "OjosDeEspaña",
-    "RondaFiruli",
-    "Rondalla",
-    "SanCayetano",
-    "TrustTenorios",
-    "TunaCompostelana",
-    "VuelaUnaLagrima"
-];
+var SONGS = require("./songs").SONGS;
 
 var filter = process.argv[2] || null;
 var songNames = filter ? [filter] : SONGS;
