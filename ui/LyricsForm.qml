@@ -68,7 +68,7 @@ MuseScore {
         property bool useSolfeo: true
         property bool fullRepeat: true
         property bool lyricsOnly: false
-        property bool extraLyrics: false
+        property bool orphanLyrics: false
         property bool onePage: false
         property bool lineNumbers: false
         property bool noDiagrams: false
@@ -758,7 +758,7 @@ MuseScore {
         }
 
         data.fullRepeat = settings.fullRepeat;
-        data.extraLyrics = settings.extraLyrics;
+        data.orphanLyrics = settings.orphanLyrics;
         extractedKey = Constants.concertKeyName(data.keysig, settings.useSolfeo ? "solfeggio" : "standard");
 
         // Lyric lines that no pass of the score sings (spec 7.1.2). Reported rather than
@@ -817,13 +817,13 @@ MuseScore {
             setStatus(tr(
                 sylCount + " silabas, " + chordCount + " acordes. Typos corregidos: " + typoList,
                 sylCount + " syllables, " + chordCount + " chords. Typos fixed: " + typoList), true);
-        } else if (orphanVerseList.length > 0 && !settings.extraLyrics) {
+        } else if (orphanVerseList.length > 0 && !settings.orphanLyrics) {
             var orphanNums = orphanVerseList.map(function(v) { return v + 1; }).join(", ");
             setStatus(tr(
                 sylCount + " silabas, " + chordCount + " acordes. La estructura no canta la letra " +
-                    orphanNums + ": marca Letras extra para incluirla",
+                    orphanNums + ": marca Letras huerfanas para incluirla",
                 sylCount + " syllables, " + chordCount + " chords. No pass sings verse " +
-                    orphanNums + ": tick Extra lyrics to include it"), true);
+                    orphanNums + ": tick Orphan lyrics to include it"), true);
         } else {
             setStatus(tr(
                 sylCount + " silabas, " + chordCount + " acordes extraidos",
@@ -1208,10 +1208,10 @@ MuseScore {
                         }
 
                         CheckBox {
-                            id: extraLyricsCheck
-                            text: tr("Letras extra", "Extra lyrics")
-                            checked: settings.extraLyrics
-                            onCheckedChanged: settings.extraLyrics = checked
+                            id: orphanLyricsCheck
+                            text: tr("Letras huerfanas", "Orphan lyrics")
+                            checked: settings.orphanLyrics
+                            onCheckedChanged: settings.orphanLyrics = checked
                         }
                     }
 
@@ -1635,7 +1635,7 @@ MuseScore {
         solfeoCheck.checked = settings.useSolfeo;
         fullRepeatCheck.checked = settings.fullRepeat;
         lyricsOnlyCheck.checked = settings.lyricsOnly;
-        extraLyricsCheck.checked = settings.extraLyrics;
+        orphanLyricsCheck.checked = settings.orphanLyrics;
         onePageCheck.checked = settings.onePage;
         lineNumbersCheck.checked = settings.lineNumbers;
         noDiagramsCheck.checked = settings.noDiagrams;

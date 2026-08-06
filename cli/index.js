@@ -55,7 +55,7 @@ function main() {
         console.log("  --lyrics-only       Output lyrics without chord lines above");
         console.log("  --chordpro          Export as ChordPro format (.cho)");
         console.log("  --no-annotations    Omit staff text and expressions from the chord line");
-        console.log("  --extra-lyrics      Print lyric verses that no pass of the score sings");
+        console.log("  --orphan-lyrics     Print lyric verses that no pass of the score sings");
         console.log("  --staff <name|num>  Extract lyrics from a specific staff (by index or name)");
         console.log("  --debug             Export raw extracted data as JSON");
         console.log("  --check             Check lyrics for issues (synalepha, hyphens, syllabic)");
@@ -90,7 +90,7 @@ function main() {
     var chordsOnly = flags.indexOf("--chords-only") >= 0;
     var lyricsOnly = flags.indexOf("--lyrics-only") >= 0;
     var chordproMode = flags.indexOf("--chordpro") >= 0;
-    var extraLyrics = flags.indexOf("--extra-lyrics") >= 0;
+    var orphanLyrics = flags.indexOf("--orphan-lyrics") >= 0;
     var checkMode = flags.indexOf("--check") >= 0;
     var fixMode = flags.indexOf("--fix") >= 0;
     var headerName = "";
@@ -165,7 +165,7 @@ function main() {
             if (orphanCount > 0) {
                 console.log("Lyric verses with no pass to sing them: " + orphanCount +
                     " (verse " + orphanList.map(function(v) { return v + 1; }).join(", ") +
-                    "; use --extra-lyrics to print them)");
+                    "; use --orphan-lyrics to print them)");
             }
             if (lyricResult.synalepha > 0) console.log("Synalepha candidates: " + lyricResult.synalepha);
             if (lyricResult.hyphens > 0) console.log("Manual hyphens: " + lyricResult.hyphens);
@@ -343,7 +343,7 @@ function main() {
 
     // Process through the orchestrator pipeline
     if (fullRepeat) data.fullRepeat = true;
-    if (extraLyrics) data.extraLyrics = true;
+    if (orphanLyrics) data.orphanLyrics = true;
     var output = orchestrator.processExtraction(data);
 
     if (!output) {

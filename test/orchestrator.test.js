@@ -921,9 +921,9 @@ test("processExtraction leaves orphan verses out by default", function() {
         "the orphan verse is not printed unless asked for:\n" + output);
 });
 
-test("processExtraction prints orphan verses when extraLyrics is set", function() {
+test("processExtraction prints orphan verses when orphanLyrics is set", function() {
     var data = threeVerseDaCapoData();
-    data.extraLyrics = true;
+    data.orphanLyrics = true;
     var output = orch.processExtraction(data);
     assert.ok(output.toLowerCase().indexOf("cinco") >= 0, "the orphan verse is printed:\n" + output);
 
