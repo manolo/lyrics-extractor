@@ -969,3 +969,79 @@ test("processExtraction keeps a verse whole when another verse is much shorter",
     assert.ok(i1 >= 0 && i2 >= 0 && i3 >= 0, "every verse should be printed:\n" + out);
     assert.ok(i2 < i3, "the tail of the first verse stays in its stanza:\n" + out);
 });
+
+// ============================================================
+// A verse that covers only part of the music
+// ============================================================
+
+// The first verse spans two stanzas; the sparse verse marks one note of one of them
+function sparseVerseData(sparseTick) {
+    function syl(tick, verse, text, rest) {
+        return { tick: tick, verse: verse, text: text, syllabic: "single", durationQ: 1,
+                 restAfter: !!rest, restDurationQ: rest ? 4 : 0, gapDurationQ: rest ? 4 : 0 };
+    }
+    return {
+        title: "Marco",
+        syllables: [
+            syl(0, 0, "primera"), syl(480, 0, "linea de la primera estrofa.", true),
+            syl(1920, 0, "segunda"), syl(2400, 0, "linea de la primera estrofa.", true),
+            syl(sparseTick, 1, "sola")
+        ],
+        chords: [
+            { tick: 0, chord: "Lam" }, { tick: 480, chord: "Re" },
+            { tick: 1920, chord: "Sol" }, { tick: 2400, chord: "Do" }
+        ],
+        repeats: [],
+        voltas: [],
+        systemTexts: [{ tick: 0, text: "Estrofa" }, { tick: 1920, text: "Estribillo" }]
+    };
+}
+
+test("a verse covering one note of the first stanza is drawn on that stanza", function() {
+    var out = orch.processExtraction(sparseVerseData(0)).replace(/​/g, "");
+    var lines = out.split("\n");
+    var idx = lines.findIndex(function(l) { return l.trim() === "sola" || l.indexOf("sola") === 0; });
+    assert.ok(idx > 0, "the sparse verse should be printed:\n" + out);
+
+    // Its label and the chords of its stanza come with it
+    var chordLine = lines[idx - 1];
+    assert.ok(chordLine.indexOf("Lam") >= 0 && chordLine.indexOf("Re") >= 0,
+        "the chords of the stanza:\n" + out);
+    assert.ok(chordLine.indexOf("Sol") < 0, "and not the next stanza:\n" + out);
+    assert.ok(lines.slice(0, idx).join("\n").lastIndexOf("- ESTROFA -") >= 0,
+        "with its section label:\n" + out);
+});
+
+test("a verse covering one note of a later stanza is drawn on that stanza", function() {
+    var out = orch.processExtraction(sparseVerseData(2400)).replace(/​/g, "");
+    var lines = out.split("\n");
+    var idx = lines.findIndex(function(l) { return l.indexOf("sola") >= 0; });
+    assert.ok(idx > 0, "the sparse verse should be printed:\n" + out);
+
+    var chordLine = lines[idx - 1];
+    assert.ok(chordLine.indexOf("Sol") >= 0 || chordLine.indexOf("Do") >= 0,
+        "the chords of its own stanza:\n" + out);
+    var before = lines.slice(0, idx).join("\n");
+    assert.ok(before.lastIndexOf("- ESTRIBILLO -") > before.lastIndexOf("- ESTROFA -"),
+        "introduced by the label of that stanza:\n" + out);
+
+    // The word sits under the column of its own tick, not at the start of the line
+    assert.ok(lines[idx].indexOf("sola") > 0, "aligned to its tick:\n" + JSON.stringify(lines[idx]));
+});
+
+test("a verse with its own words keeps its own layout", function() {
+    // Not sparse: same number of syllables as the frame, so nothing is borrowed
+    var data = sparseVerseData(0);
+    data.syllables = data.syllables.concat([
+        { tick: 480, verse: 1, text: "linea distinta de la segunda estrofa.", syllabic: "single",
+          durationQ: 1, restAfter: true, restDurationQ: 4, gapDurationQ: 4 },
+        { tick: 1920, verse: 1, text: "segunda", syllabic: "single", durationQ: 1,
+          restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 2400, verse: 1, text: "linea distinta de la segunda estrofa.", syllabic: "single",
+          durationQ: 1, restAfter: true, restDurationQ: 4, gapDurationQ: 4 }
+    ]);
+    var out = orch.processExtraction(data).replace(/​/g, "");
+    assert.ok(out.indexOf("linea distinta") >= 0, "its own words are printed:\n" + out);
+    assert.ok(out.indexOf("Sola linea distinta") >= 0 || out.indexOf("sola linea distinta") >= 0,
+        "on its own line, not on the frame of the first verse:\n" + out);
+});
