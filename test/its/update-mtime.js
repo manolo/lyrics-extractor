@@ -52,10 +52,12 @@ songNames.forEach(function(song) {
     }
     var mtime = fs.statSync(scorePath).mtime.toISOString();
 
-    ["compact", "full"].forEach(function(mode) {
+    // "orphan" only exists for the songs that have a verse no pass sings, so a missing
+    // file there is the normal case rather than something to report
+    ["compact", "full", "orphan"].forEach(function(mode) {
         var snapshotPath = path.join(SNAPSHOTS_DIR, SCORE_PREFIX + song + "." + mode + ".txt");
         if (!fs.existsSync(snapshotPath)) {
-            console.log("  SKIP " + song + "." + mode + ".txt (not found)");
+            if (mode !== "orphan") console.log("  SKIP " + song + "." + mode + ".txt (not found)");
             return;
         }
         var content = fs.readFileSync(snapshotPath, "utf8");

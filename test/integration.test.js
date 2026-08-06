@@ -52,6 +52,12 @@ var SONGS = [
 
 var MTIME_PREFIX = "// mscz-mtime: ";
 
+// Songs whose structure leaves a lyric line that no pass sings. They get a third
+// snapshot, taken with --orphan-lyrics, since the other two modes leave that line out
+// by design and would never show a change in it. On any other song the flag prints
+// exactly the full output, so there is nothing to snapshot.
+var ORPHAN_SONGS = { MalaguenaMini: true };
+
 function getScorePath(song) {
     return path.join(SCORES_DIR, SCORE_PREFIX + song + ".mscz");
 }
@@ -93,12 +99,17 @@ var scoresExist = songNames.some(function(s) { return fs.existsSync(getScorePath
 for (var i = 0; i < songNames.length; i++) {
     (function(song) {
         var scorePath = getScorePath(song);
-        var compactSnapshot = getSnapshotPath(song, "compact");
-        var fullSnapshot = getSnapshotPath(song, "full");
 
-        ["--compact", "--full"].forEach(function(flag) {
-            var snapshotPath = flag === "--compact" ? compactSnapshot : fullSnapshot;
-            var label = "IT: " + song + "." + flag.replace("--", "");
+        var modes = [
+            { mode: "compact", flag: "--compact" },
+            { mode: "full", flag: "--full" }
+        ];
+        if (ORPHAN_SONGS[song]) modes.push({ mode: "orphan", flag: "--full --orphan-lyrics" });
+
+        modes.forEach(function(m) {
+            var flag = m.flag;
+            var snapshotPath = getSnapshotPath(song, m.mode);
+            var label = "IT: " + song + "." + m.mode;
 
             test(label, { skip: !scoresExist || !fs.existsSync(scorePath) || !fs.existsSync(snapshotPath) }, function() {
                 var rawExpected = fs.readFileSync(snapshotPath, "utf8");
