@@ -1,7 +1,7 @@
 // Patch lyrics in .mscx XML using lyrics-fixer results.
 // Uses extractForFixer for analysis (correct grouping), then patches XML directly.
 
-var xmlExtractor = require("../extractors/xml-extractor");
+var xmlExtractor = require("./xml-extractor");
 var lyricsFixer = require("../lib/lyrics-fixer");
 var chordUtils = require("../lib/chord-utils");
 

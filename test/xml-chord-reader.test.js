@@ -1,6 +1,6 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var reader = require("../extractors/xml-chord-reader");
+var reader = require("../score/xml-chord-reader");
 var Constants = require("../lib/constants");
 
 // Score with FretDiagram chords (the case the plugin can't handle via QML API)

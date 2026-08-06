@@ -4,14 +4,14 @@
 
 var fs = require("fs");
 var path = require("path");
-var msczReader = require("./mscz-reader");
-var xmlExtractor = require("../extractors/xml-extractor");
+var msczReader = require("../score/mscz-reader");
+var xmlExtractor = require("../score/xml-extractor");
 var orchestrator = require("../lib/orchestrator");
 var pdfWriter = require("../lib/pdf-writer");
 var formatter = require("../lib/formatter");
 var lyricsFixer = require("../lib/lyrics-fixer");
 var chordUtils = require("../lib/chord-utils");
-var xmlPatcher = require("./xml-patcher");
+var xmlPatcher = require("../score/xml-patcher");
 var chordproWriter = require("../lib/chordpro-writer");
 
 function main() {

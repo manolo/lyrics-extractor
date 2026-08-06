@@ -1,6 +1,6 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var xmlExtractor = require("../extractors/xml-extractor");
+var xmlExtractor = require("../score/xml-extractor");
 
 test("extractFretDiagrams extracts from FBox", function() {
     var xml = `<?xml version="1.0"?>

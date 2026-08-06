@@ -15,7 +15,7 @@ var path = require("path");
 var vm = require("vm");
 
 var BASE = path.resolve(__dirname, "..");
-var RUNTIME_DIRS = ["lib", "extractors", "cli"];
+var RUNTIME_DIRS = ["lib", "score", "cli"];
 
 var terser = null;
 try { terser = require("terser"); } catch (e) { /* optional, see build.js */ }
@@ -60,6 +60,15 @@ function loadFrom(code, rel) {
     vm.runInNewContext(code, sandbox, { filename: rel });
     return sandbox.exports;
 }
+
+test("the runtime directories match the ones build.js packages", function() {
+    // This suite minifies the same files build.js does, so the two lists have to agree
+    var build = fs.readFileSync(path.join(BASE, "build.js"), "utf8");
+    var m = build.match(/var RUNTIME_DIRS = \[([^\]]*)\]/);
+    assert.ok(m, "build.js should declare RUNTIME_DIRS");
+    var fromBuild = m[1].split(",").map(function(x) { return x.trim().replace(/"/g, ""); });
+    assert.deepEqual(fromBuild, RUNTIME_DIRS, "build.js packages other directories than these");
+});
 
 test("minified modules keep every export", { skip: !terser }, function() {
     var checked = 0;
@@ -108,8 +117,8 @@ test("minified modules keep the names the QML dialog calls", { skip: !terser }, 
 
 test("minified output produces the same text as the sources", { skip: !terser }, function() {
     // End to end on the committed fixture: same data through both, byte for byte
-    var msczReader = require("../cli/mscz-reader");
-    var xmlExtractor = require("../extractors/xml-extractor");
+    var msczReader = require("../score/mscz-reader");
+    var xmlExtractor = require("../score/xml-extractor");
     var fixture = path.join(__dirname, "fixture.mscz");
     var data = xmlExtractor.extractAll(msczReader.readScore(fixture));
 

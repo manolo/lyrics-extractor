@@ -2024,7 +2024,7 @@ test("formatPerfLines: trailing chords exactly at width boundary", function() {
 // Here we verify orchestrator output renders multi-word StaffText as one chord token
 
 test("xml-extractor: StaffText with internal whitespace collapses to '-'", function() {
-    var xmlExt = require("../extractors/xml-extractor");
+    var xmlExt = require("../score/xml-extractor");
     var xml = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<museScore version="4.40"><Score><Division>480</Division>',

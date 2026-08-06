@@ -6,8 +6,8 @@
 // Usage: node extract-chords.js <score-path>
 // Output: JSON array of {tick, chord} objects
 
-var msczReader = require("./mscz-reader");
-var xmlExtractor = require("../extractors/xml-extractor");
+var msczReader = require("../score/mscz-reader");
+var xmlExtractor = require("../score/xml-extractor");
 
 var filePath = process.argv[2];
 if (!filePath) {

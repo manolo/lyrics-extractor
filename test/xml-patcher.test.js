@@ -2,9 +2,9 @@ var test = require("node:test");
 var assert = require("node:assert/strict");
 var path = require("path");
 var fs = require("fs");
-var msczReader = require("../cli/mscz-reader");
-var xmlExtractor = require("../extractors/xml-extractor");
-var xmlPatcher = require("../cli/xml-patcher");
+var msczReader = require("../score/mscz-reader");
+var xmlExtractor = require("../score/xml-extractor");
+var xmlPatcher = require("../score/xml-patcher");
 var lyricsFixer = require("../lib/lyrics-fixer");
 
 // ============================================================

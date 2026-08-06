@@ -36,7 +36,7 @@ var terser = noMinify ? null : loadTerser();
 var minified = 0;
 
 // Directories whose .js files go into the package
-var RUNTIME_DIRS = ["lib", "extractors", "cli"];
+var RUNTIME_DIRS = ["lib", "score", "cli"];
 
 // Clean previous build
 fs.rmSync(BUILD, { recursive: true, force: true });

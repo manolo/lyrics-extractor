@@ -199,6 +199,28 @@ Por defecto, los nombres de acorde usan la ortografia de la partitura. Usar `--a
 | Linux | `~/.local/share/MuseScore/MuseScore4/extensions/lyrics-extractor/` |
 | Windows | `%LOCALAPPDATA%\MuseScore\MuseScore4\extensions\lyrics-extractor\` |
 
+## Estructura del repositorio
+
+```
+lib/     convierte los datos extraidos en texto, PDF y ChordPro. Lo comparten el dialogo
+         y el CLI, y no depende de nada mas del arbol
+score/   lee una partitura de MuseScore, y escribe en ella. musescore-api.js coge la
+         partitura abierta en MuseScore por la API de QML, xml-extractor.js y
+         xml-chord-reader.js parsean el XML, mscz-reader.js descomprime el .mscz,
+         xml-patcher.js es con lo que escribe el boton Corregir, y fallback-runner.js
+         lanza el CLI cuando la API del plugin no da los diagramas de trastes
+cli/     los dos puntos de entrada: index.js para la linea de comandos, y
+         extract-chords.js, que el dialogo lanza para ese fallback
+ui/      el dialogo y su texto de ayuda
+test/    suites unitarias, y test/its/ para las de snapshot
+```
+
+Las dependencias van en una sola direccion: `score/` y `cli/` tiran de `lib/`, nunca al
+contrario. Todo `.js` fuera de `cli/` funciona igual en el motor de QML y en Node, y por eso
+el mismo codigo de formateo sirve al dialogo y a la linea de comandos. Un modulo que
+necesita a otro lo recibe por `require` en Node y por referencia inyectada en QML
+(`setTextUtils`, `setLineBuilder`, `setConvertChord`), porque en QML no hay `require`.
+
 ## Tests
 
 ```bash
@@ -206,7 +228,7 @@ npm test          # equivalente a: node --test test/*.test.js
 npm run test:package  # construye el paquete y corre los snapshots contra su CLI minificado
 ```
 
-757 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
+758 tests cubriendo lectores de partitura, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
 
 Los tests de snapshot en `test/its/` comparan la salida del CLI con ficheros `.txt` de referencia. Las partituras que leen son copias congeladas en `test/its/scores/test_le_<Cancion>.mscz`, que no se versionan, asi que los tests se omiten cuando ese directorio esta vacio. Las referencias se revisan a mano: nunca regenerar una sin comprobar antes si la partitura cambio (cada referencia guarda el mtime del `.mscz` en un comentario final).
 

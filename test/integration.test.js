@@ -15,8 +15,8 @@ var assert = require("node:assert/strict");
 var path = require("path");
 var fs = require("fs");
 var child = require("child_process");
-var msczReader = require("../cli/mscz-reader");
-var xmlExtractor = require("../extractors/xml-extractor");
+var msczReader = require("../score/mscz-reader");
+var xmlExtractor = require("../score/xml-extractor");
 var orchestrator = require("../lib/orchestrator");
 var chordUtils = require("../lib/chord-utils");
 

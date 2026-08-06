@@ -1,6 +1,6 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var fallback = require("../extractors/fallback-runner");
+var fallback = require("../score/fallback-runner");
 
 // needsFallback tests
 
@@ -279,7 +279,7 @@ test("extractChords extracts fretDiagrams from guitar excerpt via tar", function
     var data = {
         _debug: { hasFretBox: true },
     };
-    var XmlChordReader = require("../extractors/xml-chord-reader");
+    var XmlChordReader = require("../score/xml-chord-reader");
     var Constants = require("../lib/constants");
     var chords = fallback.extractChords({
         scoreName: "Test",
@@ -323,7 +323,7 @@ test("extractChords always attempts excerpt extraction when FBox present", funct
         }
     };
     var data = { _debug: { hasFretBox: true } };
-    var XmlChordReader = require("../extractors/xml-chord-reader");
+    var XmlChordReader = require("../score/xml-chord-reader");
     var Constants = require("../lib/constants");
     fallback.extractChords({
         scoreName: "Test",

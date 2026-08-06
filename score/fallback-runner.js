@@ -6,7 +6,7 @@
 //
 // TO REMOVE THIS HACK: If a future MuseScore version exposes FretDiagram.harmony
 // in the QML plugin API, delete this file along with:
-//   - extractors/xml-chord-reader.js
+//   - score/xml-chord-reader.js
 //   - cli/extract-chords.js
 // And remove the import + call from ui/LyricsForm.qml
 

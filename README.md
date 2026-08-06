@@ -201,6 +201,28 @@ By default, chord names use the score's own spelling setting. Use `--anglo` or `
 | Linux | `~/.local/share/MuseScore/MuseScore4/extensions/lyrics-extractor/` |
 | Windows | `%LOCALAPPDATA%\MuseScore\MuseScore4\extensions\lyrics-extractor\` |
 
+## Repository layout
+
+```
+lib/     transforms extracted data into text, PDF and ChordPro. Shared by the dialog
+         and the CLI, and depends on nothing else in the tree
+score/   reads a MuseScore score, and writes back into it. musescore-api.js takes the
+         score open in MuseScore through the QML API, xml-extractor.js and
+         xml-chord-reader.js parse the XML, mscz-reader.js unzips the .mscz,
+         xml-patcher.js is what the Fix button writes with, and fallback-runner.js runs
+         the CLI when the plugin API cannot give the fret diagrams
+cli/     the two entry points: index.js for the command line, and extract-chords.js,
+         which the dialog spawns for that fallback
+ui/      the dialog itself and its help text
+test/    unit suites, plus test/its/ for the snapshot ones
+```
+
+Dependencies run one way: `score/` and `cli/` reach into `lib/`, never the reverse. Every
+`.js` outside `cli/` works in both the QML engine and Node, which is why the same
+formatting code serves the dialog and the command line. Modules that need a sibling get it
+through `require` in Node and through an injected reference in QML (`setTextUtils`,
+`setLineBuilder`, `setConvertChord`), since QML has no `require`.
+
 ## Running tests
 
 ```bash
@@ -208,7 +230,7 @@ npm test          # same as: node --test test/*.test.js
 npm run test:package  # build the package, then run the snapshot suite against its minified CLI
 ```
 
-757 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
+758 tests covering score readers, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
 
 The snapshot suites in `test/its/` compare CLI output against baseline `.txt` files. The scores they read are frozen copies in `test/its/scores/test_le_<Song>.mscz`, which are not committed, so the suites skip when the directory is empty. Two of them are generated instead of copied (`build-multiverse.js`, `build-malaguena-mini.js`), which is what lets CI run them. Baselines are reviewed by hand: never regenerate one without checking whether the score itself changed (each baseline stores the `.mscz` mtime in a trailing comment).
 
