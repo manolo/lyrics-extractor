@@ -217,3 +217,27 @@ test("generatePdf keeps the accidental glyphs one Courier column wide", function
     var result = pdf.generatePdf("==== T ====\n\n" + M + "B♭\nhola\n", {});
     assert.ok(result.indexOf("/Widths [600 600 600]") >= 0, "Courier advances 600 per character");
 });
+
+test("generatePdf draws the orphan lyrics rule instead of typesetting dashes", function() {
+    // The rule reaches the PDF as the dashes the text output carries. It has to become a
+    // real line: its pattern also matches the section label one ("- NAME -"), so without
+    // its own branch it would be typeset as a heading.
+    var rule = new Array(25).join("- ").replace(/\s+$/, "");
+    var text = "==== TEST ====\n\n" + M + "Lam\nprimera estrofa cantada.\n\n" +
+        rule + "\n" + M + "Lam\nletra que nadie canta.\n";
+    var result = pdf.generatePdf(text, {});
+
+    assert.ok(/0\.5 w\n0\.75 0\.75 0\.75 RG\n50 [\d.]+ m 545 [\d.]+ l S/.test(result),
+        "a stroked rule should span the text column: " +
+        (result.match(/[\d.]+ w\n[\d.\s]+RG\n[^\n]+l S/) || ["none"])[0]);
+    assert.ok(result.indexOf("(- - -") < 0, "the dashes must not be drawn as text");
+    assert.ok(result.indexOf("/Helvetica-Bold") < 0 || result.indexOf("(- -") < 0,
+        "the rule must not be taken for a section label");
+});
+
+test("generatePdf still typesets a section label that looks like a rule", function() {
+    // Guard the boundary: a label carries letters, so only dash-and-blank lines are rules
+    var text = "==== TEST ====\n\n- ESTROFA 1 -\n" + M + "Lam\nprimera estrofa.\n";
+    var result = pdf.generatePdf(text, {});
+    assert.ok(result.indexOf("(ESTROFA 1) Tj") >= 0, "the label is still text");
+});
