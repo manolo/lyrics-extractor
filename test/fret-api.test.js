@@ -4,7 +4,7 @@ var assert = require("node:assert/strict");
 global.Element = { FRET_DIAGRAM: 63, HARMONY: 11, STAFF_TEXT: 52, BAR_LINE: 10 };
 
 var fallback = require("../score/fallback-runner");
-var msExtractor = require("../score/musescore-api");
+var msExtractor = require("../score/api-extractor");
 
 // ============================================================
 // needsFallback: fretDiagramsExtracted flag (native API bypass)

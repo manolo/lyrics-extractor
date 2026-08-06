@@ -410,7 +410,7 @@ test("materialize produces syllables from segments", function() {
 // _titleFromFileName (musescore-api)
 // ========================================
 
-var extractor = require("../score/musescore-api");
+var extractor = require("../score/api-extractor");
 
 test("titleFromFileName splits camelCase", function() {
     assert.equal(extractor._titleFromFileName("OjosDeEspaña"), "Ojos de España");

@@ -480,7 +480,7 @@ function extractFretDiagrams(score, excerptXmls) {
 }
 
 // Extract all data from .mscx XML string
-// Returns the same intermediate data structure as musescore-api.js
+// Returns the same intermediate data structure as api-extractor.js
 // spelling: "solfeggio", "standard", etc. Controls chord name language.
 function extractAll(xmlString, excerptXmls, spelling, options) {
     var root = parseXml(xmlString);

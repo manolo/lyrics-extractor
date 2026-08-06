@@ -20,7 +20,7 @@ import "../lib/chord-formatter.js" as ChordFormatter
 import "../lib/pdf-writer.js" as PdfWriter
 import "../lib/chordpro-writer.js" as ChordProWriter
 import "../lib/fretboard-renderer.js" as FretboardRenderer
-import "../score/musescore-api.js" as Extractor
+import "../score/api-extractor.js" as Extractor
 // FretDiagram fallback: remove these 3 imports when MuseScore exposes FretDiagram.harmony
 import "../score/fallback-runner.js" as FretFallback
 import "../score/xml-chord-reader.js" as XmlChordReader

@@ -1,5 +1,5 @@
 // Tests for chord and section title classification by element type
-// in score/musescore-api.js
+// in score/api-extractor.js
 
 var test = require("node:test");
 var assert = require("node:assert/strict");
@@ -21,7 +21,7 @@ global.Element = {
     VOLTA: 80
 };
 
-var msExtractor = require("../score/musescore-api");
+var msExtractor = require("../score/api-extractor");
 
 // Build a single-segment score with the given annotations.
 // Each annotation may have: type, text, track, harmonyPlainText.
