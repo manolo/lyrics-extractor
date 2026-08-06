@@ -843,3 +843,23 @@ test("processExtraction renders label templates before the first lyric", functio
     assert.ok(output.indexOf("- INTRO 1 -") >= 0, "the # should be numbered:\n" + output);
     assert.ok(output.indexOf("#") < 0, "no raw template should be left:\n" + output);
 });
+
+test("processExtraction prints the outro chords once in multi-verse output", function() {
+    // Chords after the last syllable are the outro, played once at the end. They were
+    // appended to the chord line of every verse and then printed again as the coda.
+    var data = twoVerseData([{ tick: 960, text: "Estrofa" }]);
+    data.chords = data.chords.concat([
+        { tick: 5760, chord: "Do" },   // outro, after the last syllable at 4320
+        { tick: 6720, chord: "Mi7" }
+    ]);
+    var output = orch.processExtraction(data).replace(/​/g, "");
+
+    var dos = output.split("Do").length - 1;
+    var mi7 = output.split("Mi7").length - 1;
+    assert.equal(dos, 1, "Do belongs to the outro only, found " + dos + ":\n" + output);
+    assert.equal(mi7, 1, "Mi7 belongs to the outro only, found " + mi7 + ":\n" + output);
+
+    // And it comes after the last lyric, not hanging off a verse
+    var lastLyric = output.lastIndexOf("Cinco");
+    assert.ok(output.indexOf("Do") > lastLyric, "the outro follows the last verse:\n" + output);
+});
