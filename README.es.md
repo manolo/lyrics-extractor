@@ -205,7 +205,7 @@ Por defecto, los nombres de acorde usan la ortografia de la partitura. Usar `--a
 npm test          # equivalente a: node --test test/*.test.js
 ```
 
-683 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
+695 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
 
 Los tests de snapshot en `test/its/` comparan la salida del CLI con ficheros `.txt` de referencia. Las partituras que leen son copias congeladas en `test/its/scores/test_le_<Cancion>.mscz`, que no se versionan, asi que los tests se omiten cuando ese directorio esta vacio. Las referencias se revisan a mano: nunca regenerar una sin comprobar antes si la partitura cambio (cada referencia guarda el mtime del `.mscz` en un comentario final).
 
@@ -217,7 +217,7 @@ node build.js 1.4.3       # build con version
 npm run install-local     # construir y copiar al directorio local de extensiones
 ```
 
-Los fuentes se publican tal cual: mismos nombres, mismas rutas relativas, sin minificar ni renombrar, de modo que los imports de QML y la ruta del fallback del CLI resuelven dentro del paquete igual que en el arbol de trabajo.
+Los fuentes se publican tal cual: mismos nombres, mismas rutas relativas, sin minificar ni renombrar, de modo que los imports de QML resuelven dentro del paquete igual que en el arbol de trabajo.
 
 ## Licencia
 

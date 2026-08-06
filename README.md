@@ -207,7 +207,7 @@ By default, chord names use the score's own spelling setting. Use `--anglo` or `
 npm test          # same as: node --test test/*.test.js
 ```
 
-683 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
+695 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
 
 The snapshot suites in `test/its/` compare CLI output against baseline `.txt` files. The scores they read are frozen copies in `test/its/scores/test_le_<Song>.mscz`, which are not committed, so the suites skip when the directory is empty. Baselines are reviewed by hand: never regenerate one without checking whether the score itself changed (each baseline stores the `.mscz` mtime in a trailing comment).
 
@@ -219,7 +219,7 @@ node build.js 1.4.3       # versioned build
 npm run install-local     # build and copy into the local MuseScore extensions dir
 ```
 
-Sources ship as written: same file names, same relative paths, no minification and no renaming, so the QML imports and the CLI fallback path resolve inside the package exactly as they do in the working tree. Only runtime files are included (no tests or documentation).
+Sources ship as written: same file names, same relative paths, no minification and no renaming, so the QML imports resolve inside the package exactly as they do in the working tree. Only runtime files are included (no tests or documentation).
 
 The release workflow (`release.yml`) runs tests and then calls `build.js` with the version from the git tag.
 

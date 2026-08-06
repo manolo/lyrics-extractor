@@ -667,9 +667,6 @@ MuseScore {
             }
         }
 
-        // Fallback: if FretDiagram annotations found but chords not extracted,
-        // use CLI to read .mscz file and extract chords from XML
-
         // Normalize chord names: fix common typos from manual entry
         var chordTypos = [];
         if (data.chords && data.chords.length > 0) {
@@ -773,8 +770,6 @@ MuseScore {
             statusText.text = tr("No se encontraron datos", "No data found");
             return;
         }
-
-        // Run fallback so its log is captured in _debug.fallbackLog
 
         var json = JSON.stringify(data, null, 2);
 

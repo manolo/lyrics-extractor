@@ -1127,11 +1127,7 @@ if (typeof exports !== "undefined") {
     exports._dedup = _dedup;
     exports.extractAll = extractAll;
     exports.findStaves = findStaves;
-    exports.extractSyllables = extractSyllables;
     exports.extractChords = extractChords;
-    exports.extractRepeats = extractRepeats;
-    exports.extractVoltas = extractVoltas;
-    exports.extractNavigation = extractNavigation;
     exports.extractSystemTexts = extractSystemTexts;
     exports._extractFretDiagramsFromScore = _extractFretDiagramsFromScore;
     exports.setTextUtils = setTextUtils;
