@@ -803,14 +803,22 @@ MuseScore {
         var hasFBox = data._debug && data._debug.hasFretBox;
 
         if (hasFBox && diagramCount === 0) {
+            // The score carries a diagram box, so name the file the fallback looked
+            // for and the directory it searched: that is what the user has to fix.
+            var wantedName = (curScore.masterScore ? curScore.masterScore.scoreName : curScore.scoreName) || "";
+            var wantedFile = wantedName ? wantedName + ".mscz" : tr("el archivo .mscz", "the .mscz file");
             if (data.scorePath) {
                 setStatus(tr(
-                    "Diagramas detectados pero no extraidos. Exporta debug para diagnostico.",
-                    "Diagrams detected but not extracted. Run debug export to diagnose."), true);
+                    "Diagramas detectados pero no extraidos de " + data.scorePath + ". Exporta debug para diagnostico.",
+                    "Diagrams detected but not extracted from " + data.scorePath + ". Run debug export to diagnose."), true);
+            } else if (!scoresDirectoryExists) {
+                setStatus(tr(
+                    "El directorio de partituras " + scoresDirectory + " no existe. Ajustalo a la carpeta que contiene " + wantedFile,
+                    "The scores directory " + scoresDirectory + " does not exist. Set it to the folder holding " + wantedFile), true);
             } else {
                 setStatus(tr(
-                    "Diagramas de acordes no encontrados. Ajusta el directorio donde esta el archivo .mscz",
-                    "Chord diagrams not found. Set the directory where the .mscz file is located"), true);
+                    wantedFile + " no esta en ningun sitio dentro de " + scoresDirectory + ". Ajusta el directorio de partituras",
+                    wantedFile + " is nowhere under " + scoresDirectory + ". Set the scores directory"), true);
             }
         } else if (chordTypos.length > 0) {
             var typoList = chordTypos.map(function(t) { return t.original + " -> " + t.normalized; }).join(", ");
