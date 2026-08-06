@@ -38,6 +38,7 @@ var SONGS = [
     "LosAmigos",
     "MalaguenaSalerosa",
     "MilagroDeTusOjos",
+    "MultiVerso",
     "NochePerfumada",
     "OjosDeEspaña",
     "RondaFiruli",
