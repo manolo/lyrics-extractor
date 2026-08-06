@@ -2,8 +2,9 @@
 // Build lyrics-extractor-<version>.mext: package the extension for MuseScore 4.
 //
 // Sources ship as they are written: same file names, same relative paths, no
-// minification and no renaming, so the QML imports ("../lib/formatter.js") resolve
-// inside the package exactly as they do in the working tree.
+// minification and no renaming. The QML imports ("../lib/formatter.js") and the
+// Qt.resolvedUrl("../cli/extract-chords.js") lookup therefore resolve inside the
+// package exactly as they do in the working tree.
 //
 // Usage: node build.js [version] [--install]
 //        --install also copies the staged package into the local MuseScore
@@ -57,6 +58,7 @@ fs.writeFileSync(BUILD + "/manifest.json", manifest);
 
 // The CLI entry keeps its shebang so it stays directly executable
 ensureShebang(path.join(BUILD, "cli/index.js"));
+ensureShebang(path.join(BUILD, "cli/extract-chords.js"));
 
 // Package as ZIP (OUT was removed above, so no stale entries survive)
 childProcess.execSync("cd " + quote(BUILD) + " && zip -r -q ../" + quote(OUT) + " .");

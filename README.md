@@ -58,7 +58,7 @@ The **Fix** button corrects all issues automatically:
 For scores without lyrics (instrumentals), the plugin automatically shows the chord progression structured by sections, barlines, and repeat markers.
 
 ### Fretboard diagrams
-Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) and renders them graphically in the PDF header, reading them through the native QML API. Requires MuseScore 4.7 or later, which is where that API landed.
+Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) and renders them graphically in the PDF header. Where the QML API exposes `FretDiagram`, diagrams and chord names are read straight from the score in memory. No 4.7.x release exposes it (the class reaches `api/v1/elements.h` after the 4.7 branch point), so on those builds a fallback reads the data from the `.mscz` file on disk and the plugin asks for the directory it lives in. The CLI always reads the file directly and needs neither.
 
 ### PDF output
 - Compact layout optimized for printing (A4, safe margins)
@@ -207,7 +207,7 @@ By default, chord names use the score's own spelling setting. Use `--anglo` or `
 npm test          # same as: node --test test/*.test.js
 ```
 
-695 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
+748 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
 
 The snapshot suites in `test/its/` compare CLI output against baseline `.txt` files. The scores they read are frozen copies in `test/its/scores/test_le_<Song>.mscz`, which are not committed, so the suites skip when the directory is empty. Baselines are reviewed by hand: never regenerate one without checking whether the score itself changed (each baseline stores the `.mscz` mtime in a trailing comment).
 

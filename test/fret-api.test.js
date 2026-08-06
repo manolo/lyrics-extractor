@@ -3,7 +3,56 @@ var assert = require("node:assert/strict");
 
 global.Element = { FRET_DIAGRAM: 63, HARMONY: 11, STAFF_TEXT: 52, BAR_LINE: 10 };
 
+var fallback = require("../extractors/fallback-runner");
 var msExtractor = require("../extractors/musescore-api");
+
+// ============================================================
+// needsFallback: fretDiagramsExtracted flag (native API bypass)
+// ============================================================
+
+test("needsFallback returns false when fretDiagramsExtracted is true", function() {
+    var debug = { fretDiagramsExtracted: true };
+    assert.strictEqual(fallback.needsFallback(debug), false);
+});
+
+test("needsFallback returns false when fretDiagramsExtracted is true even with hasFretBox", function() {
+    var debug = {
+        fretDiagramsExtracted: true,
+        hasFretBox: true,
+        fretDiagramDebug: {
+            fretDiagramsFound: [{ tick: 0, staff: 0, extracted: true }]
+        }
+    };
+    assert.strictEqual(fallback.needsFallback(debug), false);
+});
+
+test("needsFallback returns false when fretDiagramsExtracted is true even with unextracted entries", function() {
+    // fretDiagramsExtracted takes priority over individual entries
+    var debug = {
+        fretDiagramsExtracted: true,
+        fretDiagramDebug: {
+            fretDiagramsFound: [{ tick: 0, staff: 0 }]
+        }
+    };
+    assert.strictEqual(fallback.needsFallback(debug), false);
+});
+
+test("needsFallback still returns true when fretDiagramsExtracted is false and FBox present", function() {
+    var debug = {
+        fretDiagramsExtracted: false,
+        hasFretBox: true
+    };
+    assert.strictEqual(fallback.needsFallback(debug), true);
+});
+
+test("needsFallback still returns true when fretDiagramsExtracted absent and unextracted FDs", function() {
+    var debug = {
+        fretDiagramDebug: {
+            fretDiagramsFound: [{ tick: 0, staff: 0 }]
+        }
+    };
+    assert.strictEqual(fallback.needsFallback(debug), true);
+});
 
 // ============================================================
 // _fretApiAvailableInScore: probe FretDiagram elements in FBox
@@ -36,6 +85,39 @@ function mockFretDiagram(opts) {
     // Without hasAPI, dots/markers/barres are not functions (simulating pre-4.7)
     return fd;
 }
+
+test("_fretApiAvailableInScore returns null when score has no measures", function() {
+    var score = mockScore([]);
+    assert.strictEqual(msExtractor._fretApiAvailableInScore(score), null);
+});
+
+test("_fretApiAvailableInScore returns null when no FretDiagram elements", function() {
+    var score = mockScore([
+        { elements: [{ type: 1 }, { type: 2 }] }
+    ]);
+    assert.strictEqual(msExtractor._fretApiAvailableInScore(score), null);
+});
+
+test("_fretApiAvailableInScore returns true when FretDiagram has dots() function", function() {
+    var fd = mockFretDiagram({ hasAPI: true });
+    var score = mockScore([{ elements: [fd] }]);
+    assert.strictEqual(msExtractor._fretApiAvailableInScore(score), true);
+});
+
+test("_fretApiAvailableInScore returns false when FretDiagram lacks dots() function", function() {
+    var fd = mockFretDiagram({ hasAPI: false });
+    var score = mockScore([{ elements: [fd] }]);
+    assert.strictEqual(msExtractor._fretApiAvailableInScore(score), false);
+});
+
+test("_fretApiAvailableInScore finds FretDiagram in second MeasureBase", function() {
+    var fd = mockFretDiagram({ hasAPI: true });
+    var score = mockScore([
+        { elements: [{ type: 1 }] },
+        { elements: [fd] }
+    ]);
+    assert.strictEqual(msExtractor._fretApiAvailableInScore(score), true);
+});
 
 // ============================================================
 // _extractFretDiagramsFromScore: read diagram data via mock API

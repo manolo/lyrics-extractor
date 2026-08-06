@@ -56,7 +56,7 @@ El boton **Corregir** arregla todos los problemas automaticamente:
 Para partituras sin letras (instrumentales), el plugin muestra automaticamente la progresion de acordes estructurada por secciones, barlines y marcas de repeticion.
 
 ### Diagramas de trastes
-Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) y los renderiza graficamente en la cabecera del PDF, leyendolos por la API nativa de QML. Requiere MuseScore 4.7 o posterior, que es donde llego esa API.
+Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) y los renderiza graficamente en la cabecera del PDF. Cuando la API de QML expone `FretDiagram`, los diagramas y nombres de acordes se leen de la partitura en memoria. Ninguna release 4.7.x la expone (la clase llega a `api/v1/elements.h` despues del corte de la rama 4.7), asi que en esos builds un fallback lee los datos del archivo .mscz en disco y el plugin pide el directorio donde esta. El CLI lee siempre el archivo directamente y no necesita ninguna de las dos cosas.
 
 ### Salida PDF
 - Layout compacto optimizado para impresion (A4, margenes seguros)
@@ -205,7 +205,7 @@ Por defecto, los nombres de acorde usan la ortografia de la partitura. Usar `--a
 npm test          # equivalente a: node --test test/*.test.js
 ```
 
-695 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
+748 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
 
 Los tests de snapshot en `test/its/` comparan la salida del CLI con ficheros `.txt` de referencia. Las partituras que leen son copias congeladas en `test/its/scores/test_le_<Cancion>.mscz`, que no se versionan, asi que los tests se omiten cuando ese directorio esta vacio. Las referencias se revisan a mano: nunca regenerar una sin comprobar antes si la partitura cambio (cada referencia guarda el mtime del `.mscz` en un comentario final).
 

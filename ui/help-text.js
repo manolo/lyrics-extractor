@@ -61,6 +61,7 @@ var es =
     "<tr><td width='150' nowrap><b>Solfeo</b></td><td>Usa nombres Do, Re, Mi en vez de C, D, E.</td></tr>" +
     "<tr><td width='150' nowrap><b>Repetir todo</b></td><td>Escribe todas las repeticiones aunque el texto sea id\u00e9ntico (sin abreviar estribillos).</td></tr>" +
     "<tr><td width='150' nowrap><b>Solo letra</b></td><td>Omite las l\u00edneas de acordes, dejando solo el texto de la letra y las etiquetas de secci\u00f3n.</td></tr>" +
+    "<!--SCORES_DIR-->" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>Opciones del PDF</h3></td></tr>" +
     "<tr><td width='150' nowrap><b>Cabecera</b></td><td>Texto alineado a la derecha en la parte superior de cada p\u00e1gina (ej: nombre del grupo).</td></tr>" +
     "<tr><td width='150' nowrap><b>Pie de p\u00e1gina</b></td><td>Texto centrado al pie de cada p\u00e1gina (ej: nombre de la banda).</td></tr>" +
@@ -133,6 +134,7 @@ var en =
     "<tr><td width='150' nowrap><b>Solfeo</b></td><td>Use names Do, Re, Mi instead of C, D, E.</td></tr>" +
     "<tr><td width='150' nowrap><b>Full repeat</b></td><td>Write all repetitions even if the text is identical (no abbreviated choruses).</td></tr>" +
     "<tr><td width='150' nowrap><b>Lyrics only</b></td><td>Omit chord lines, keeping only lyrics text and section labels.</td></tr>" +
+    "<!--SCORES_DIR-->" +
     "<tr><td colspan='2'><hr></td></tr><tr><td colspan='2'><h3>PDF options</h3></td></tr>" +
     "<tr><td width='150' nowrap><b>Header</b></td><td>Right-aligned text at the top of every page (e.g. group name).</td></tr>" +
     "<tr><td width='150' nowrap><b>Footer</b></td><td>Centered text at the bottom of every page (e.g. band name).</td></tr>" +
@@ -145,4 +147,8 @@ var en =
     "<tr><td width='150' nowrap><b>Debug</b></td><td>Export internal data as JSON for diagnostics.</td></tr>" +
     "</table>";
 
+var scoresDirEs = "<tr><td width='150' nowrap><b>Directorio de partituras</b></td><td>Mientras la API de QML no exponga los diagramas de acordes, y ninguna 4.7.x lo hace, el plugin necesita leer el archivo .mscz del disco para extraerlos. " +
+    "Configura aqu\u00ed la carpeta ra\u00edz donde guardas tus partituras (ej: HOME/Music).</td></tr>";
+var scoresDirEn = "<tr><td width='150' nowrap><b>Scores directory</b></td><td>While the QML API does not expose chord diagrams, which no 4.7.x release does, the plugin needs to read the .mscz file from disk to extract them. " +
+    "Set the root folder where you store your scores (e.g. HOME/Music).</td></tr>";
 

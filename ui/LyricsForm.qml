@@ -21,6 +21,9 @@ import "../lib/pdf-writer.js" as PdfWriter
 import "../lib/chordpro-writer.js" as ChordProWriter
 import "../lib/fretboard-renderer.js" as FretboardRenderer
 import "../extractors/musescore-api.js" as Extractor
+// FretDiagram fallback: remove these 3 imports when MuseScore exposes FretDiagram.harmony
+import "../extractors/fallback-runner.js" as FretFallback
+import "../extractors/xml-chord-reader.js" as XmlChordReader
 import "../lib/constants.js" as Constants
 import "../lib/lyrics-fixer.js" as LyricsFixer
 import "help-text.js" as HelpText
@@ -43,8 +46,12 @@ MuseScore {
     property int selectionEndTick: 0
     property var extractedFretDiagrams: []
     property string extractedOutput: "" // output with chord markers for PDF
+    property string scoresDirectory: ""
     property string extractedKey: ""   // key of the score, for the ChordPro {key:} directive
+    property bool scoresDirectoryExists: false
     property string lastScorePath: ""
+    // True when fallback directory is needed (FBox exists but native API unavailable)
+    property bool needsFallbackDir: false
     property var availableVoiceStaves: []   // [{idx, name, shortName, count}]
     property int selectedVoiceStaff: -1     // -1 = auto (best)
 
@@ -52,6 +59,7 @@ MuseScore {
 
     FileIO { id: fileIO }
 
+    QProcess { id: chordProcess }
     QProcess { id: openProcess }
 
     Settings {
@@ -66,6 +74,7 @@ MuseScore {
         property bool noDiagrams: false
         property string pdfHeader: ""
         property string pdfFooter: ""
+        property string scoresDirectory: ""
         property int settingsVersion: 0
     }
 
@@ -76,6 +85,24 @@ MuseScore {
     function setStatus(msg, error) {
         statusText.text = msg;
         statusText.isError = !!error;
+    }
+
+    function getDefaultScoresPath() {
+        var home = fileIO.homePath();
+        var path = home + "/Documents";
+        if (Qt.platform.os === "windows") path = path.replace(/\//g, "\\");
+        return path;
+    }
+
+    function checkScoresDirectory() {
+        if (!scoresDirectory || scoresDirectory.length === 0) {
+            scoresDirectoryExists = false;
+            return;
+        }
+        var path = scoresDirectory;
+        if (Qt.platform.os === "windows") path = path.replace(/\//g, "\\");
+        fileIO.source = path;
+        scoresDirectoryExists = fileIO.exists();
     }
 
     // Module bundle for orchestrator
@@ -634,6 +661,48 @@ MuseScore {
     // EXTRACT (read-only, uses shared modules)
     // ========================================
 
+    // FretDiagram fallback: remove this function when MuseScore exposes FretDiagram.harmony
+    function extractChordsWithFallback(data) {
+        console.log("[fallback] extractChordsWithFallback: called, scoresDirectory='" + scoresDirectory + "'");
+        var fallbackNeeded = FretFallback.needsFallback(data._debug);
+        needsFallbackDir = fallbackNeeded;
+        if (!fallbackNeeded) {
+            console.log("[fallback] extractChordsWithFallback: not needed, returning original chords");
+            return data.chords;
+        }
+
+        var scorePath = "";
+        try { scorePath = curScore.path || ""; } catch (e) {}
+        var scoreName = (curScore.masterScore ? curScore.masterScore.scoreName : curScore.scoreName) || "";
+
+        // The fallback reads the score from disk, so pending edits have to be written
+        // first. A score that was never saved has no path: saving it would open a
+        // Save As dialog, so the fallback runs against whatever is on disk instead.
+        if (scorePath) {
+            console.log("[fallback] extractChordsWithFallback: running cmd('file-save')");
+            cmd("file-save");
+        } else {
+            console.log("[fallback] extractChordsWithFallback: score has no path, skipping file-save");
+        }
+
+        var cliPath = Qt.resolvedUrl("../cli/extract-chords.js").toString().replace(/^file:\/\//, "");
+        var chords = FretFallback.extractChords({
+            scoreName: scoreName,
+            scorePath: scorePath,
+            fileIO: fileIO,
+            process: chordProcess,
+            XmlChordReader: XmlChordReader,
+            Constants: Constants,
+            cliPath: cliPath,
+            data: data,
+            spelling: settings.useSolfeo ? "solfeggio" : "standard",
+            scoresDirectory: scoresDirectory
+        });
+
+        if (data.scorePath) lastScorePath = data.scorePath;
+        return chords || data.chords;
+    }
+
     function extractLyricsWithChords() {
         if (!curScore) {
             statusText.text = tr("Error: No hay partitura abierta", "Error: No score open");
@@ -666,6 +735,10 @@ MuseScore {
                 }
             }
         }
+
+        // Fallback: if FretDiagram annotations found but chords not extracted,
+        // use CLI to read .mscz file and extract chords from XML
+        data.chords = extractChordsWithFallback(data);
 
         // Normalize chord names: fix common typos from manual entry
         var chordTypos = [];
@@ -770,6 +843,9 @@ MuseScore {
             statusText.text = tr("No se encontraron datos", "No data found");
             return;
         }
+
+        // Run fallback so its log is captured in _debug.fallbackLog
+        extractChordsWithFallback(data);
 
         var json = JSON.stringify(data, null, 2);
 
@@ -1142,6 +1218,41 @@ MuseScore {
                     RowLayout {
                         Layout.fillWidth: true
                         spacing: 6
+                        visible: needsFallbackDir
+
+                        Text {
+                            text: tr("Directorio:", "Directory:")
+                            color: systemPalette.windowText
+                            font.pixelSize: 11
+                        }
+
+                        TextField {
+                            id: scoresDirField
+                            Layout.fillWidth: true
+                            text: scoresDirectory
+                            font.family: "monospace"
+                            font.pixelSize: 11
+                            selectByMouse: true
+                            onTextChanged: {
+                                if (text !== scoresDirectory) {
+                                    scoresDirectory = text;
+                                    settings.scoresDirectory = text;
+                                    checkScoresDirectory();
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: scoresDirectoryExists ? "OK" : "X"
+                            color: scoresDirectoryExists ? "#4CAF50" : "#f44336"
+                            font.bold: true
+                            font.pixelSize: 12
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
                         visible: lastScorePath.length > 0
 
                         Text {
@@ -1466,7 +1577,10 @@ MuseScore {
                 textFormat: Text.RichText
                 color: systemPalette.windowText
                 font.pixelSize: 12
-                text: isSpanish ? HelpText.es : HelpText.en
+                text: (isSpanish ? HelpText.es : HelpText.en).replace(
+                    "<!--SCORES_DIR-->",
+                    needsFallbackDir ? (isSpanish ? HelpText.scoresDirEs : HelpText.scoresDirEn) : ""
+                )
             }
         }
 
@@ -1499,6 +1613,13 @@ MuseScore {
         ChordProWriter.setConvertChord(ChordUtils.convertChord);
         ChordProWriter.setIsChordName(ChordUtils.isChordName);
         LyricsFixer.setTextUtils(TextUtils);
+        if (settings.scoresDirectory && settings.scoresDirectory.length > 0) {
+            scoresDirectory = settings.scoresDirectory;
+        } else {
+            scoresDirectory = getDefaultScoresPath();
+        }
+        checkScoresDirectory();
+        needsFallbackDir = Extractor.needsFallbackDirectory();
         hasSelection = checkSelection();
         PdfWriter.setFretboardRenderer(FretboardRenderer);
         checkScore();
