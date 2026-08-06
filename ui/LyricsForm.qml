@@ -1506,7 +1506,6 @@ MuseScore {
         LyricsFixer.setTextUtils(TextUtils);
         hasSelection = checkSelection();
         PdfWriter.setFretboardRenderer(FretboardRenderer);
-        PdfWriter.setLayoutTables(Constants);
         checkScore();
     }
 
