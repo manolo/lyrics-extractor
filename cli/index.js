@@ -55,6 +55,7 @@ function main() {
         console.log("  --lyrics-only       Output lyrics without chord lines above");
         console.log("  --chordpro          Export as ChordPro format (.cho)");
         console.log("  --no-annotations    Omit staff text and expressions from the chord line");
+        console.log("  --extra-lyrics      Print lyric verses that no pass of the score sings");
         console.log("  --staff <name|num>  Extract lyrics from a specific staff (by index or name)");
         console.log("  --debug             Export raw extracted data as JSON");
         console.log("  --check             Check lyrics for issues (synalepha, hyphens, syllabic)");
@@ -89,6 +90,7 @@ function main() {
     var chordsOnly = flags.indexOf("--chords-only") >= 0;
     var lyricsOnly = flags.indexOf("--lyrics-only") >= 0;
     var chordproMode = flags.indexOf("--chordpro") >= 0;
+    var extraLyrics = flags.indexOf("--extra-lyrics") >= 0;
     var checkMode = flags.indexOf("--check") >= 0;
     var fixMode = flags.indexOf("--fix") >= 0;
     var headerName = "";
@@ -145,12 +147,26 @@ function main() {
             }
         }
 
+        // Lyric lines that no pass of the score sings (spec 7.1.2)
+        var orphanCount = 0;
+        var orphanList = [];
+        try {
+            var checkData2 = xmlExtractor.extractAll(checkXml, [], "standard");
+            orphanList = orchestrator.orphanVerses(checkData2);
+            orphanCount = orphanList.length;
+        } catch (e) {}
+
         var total = lyricResult.synalepha + lyricResult.hyphens + lyricResult.syllabic +
-                    lyricResult.punctuation + syncResult.chordSync + typoTotal;
+                    lyricResult.punctuation + syncResult.chordSync + typoTotal + orphanCount;
 
         if (total === 0) {
             console.log("No issues found");
         } else {
+            if (orphanCount > 0) {
+                console.log("Lyric verses with no pass to sing them: " + orphanCount +
+                    " (verse " + orphanList.map(function(v) { return v + 1; }).join(", ") +
+                    "; use --extra-lyrics to print them)");
+            }
             if (lyricResult.synalepha > 0) console.log("Synalepha candidates: " + lyricResult.synalepha);
             if (lyricResult.hyphens > 0) console.log("Manual hyphens: " + lyricResult.hyphens);
             if (lyricResult.syllabic > 0) {
@@ -327,6 +343,7 @@ function main() {
 
     // Process through the orchestrator pipeline
     if (fullRepeat) data.fullRepeat = true;
+    if (extraLyrics) data.extraLyrics = true;
     var output = orchestrator.processExtraction(data);
 
     if (!output) {

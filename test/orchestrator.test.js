@@ -863,3 +863,72 @@ test("processExtraction prints the outro chords once in multi-verse output", fun
     var lastLyric = output.lastIndexOf("Cinco");
     assert.ok(output.indexOf("Do") > lastLyric, "the outro follows the last verse:\n" + output);
 });
+
+// ============================================================
+// Orphan lyric verses: more lyric lines than passes
+// ============================================================
+
+// Three verses over music that a Da Capo plays twice, so the third verse has no pass
+function threeVerseDaCapoData() {
+    function syl(tick, verse, text, rest) {
+        return { tick: tick, verse: verse, text: text, syllabic: "single", durationQ: 1,
+                 restAfter: !!rest, restDurationQ: rest ? 4 : 0, gapDurationQ: rest ? 4 : 0 };
+    }
+    return {
+        title: "Tres Letras",
+        syllables: [
+            syl(0, 0, "uno"), syl(480, 0, "dos.", true),
+            syl(0, 1, "tres"), syl(480, 1, "cuatro.", true),
+            syl(0, 2, "cinco"), syl(480, 2, "seis.", true)
+        ],
+        chords: [{ tick: 0, chord: "Lam" }, { tick: 480, chord: "Re" }],
+        repeats: [],
+        voltas: [],
+        markers: [],
+        jumps: [{ tick: 1920, jumpTo: "start", playUntil: "end", continueAt: "", type: "dacapo" }],
+        lastTick: 1920,
+        systemTexts: []
+    };
+}
+
+test("orphanVerses reports the lyric lines no pass sings", function() {
+    var orphans = orch.orphanVerses(threeVerseDaCapoData());
+    assert.deepEqual(orphans, [2], "the third verse has no pass: " + JSON.stringify(orphans));
+});
+
+test("orphanVerses reports none when every verse has a pass", function() {
+    var data = threeVerseDaCapoData();
+    data.syllables = data.syllables.filter(function(s) { return s.verse < 2; });
+    assert.deepEqual(orch.orphanVerses(data), [], "two verses and two passes");
+});
+
+test("orphanVerses reports none without repeats or jumps", function() {
+    // Without passes to assign, every verse becomes its own stanza, so none is orphan
+    var data = threeVerseDaCapoData();
+    data.jumps = [];
+    assert.deepEqual(orch.orphanVerses(data), [], "the multi-verse path prints them all");
+});
+
+test("processExtraction leaves orphan verses out by default", function() {
+    var output = orch.processExtraction(threeVerseDaCapoData());
+    assert.ok(output.indexOf("Uno") >= 0 || output.indexOf("uno") >= 0, "first verse:\n" + output);
+    assert.ok(output.toLowerCase().indexOf("tres") >= 0, "second verse:\n" + output);
+    assert.ok(output.toLowerCase().indexOf("cinco") < 0,
+        "the orphan verse is not printed unless asked for:\n" + output);
+});
+
+test("processExtraction prints orphan verses when extraLyrics is set", function() {
+    var data = threeVerseDaCapoData();
+    data.extraLyrics = true;
+    var output = orch.processExtraction(data);
+    assert.ok(output.toLowerCase().indexOf("cinco") >= 0, "the orphan verse is printed:\n" + output);
+
+    // After the passes, and with its chords above it
+    var lastPass = output.toLowerCase().lastIndexOf("tres");
+    assert.ok(output.toLowerCase().indexOf("cinco") > lastPass,
+        "it follows the last pass:\n" + output);
+    var lines = output.replace(/​/g, "").split("\n");
+    var idx = lines.findIndex(function(l) { return l.toLowerCase().indexOf("cinco") >= 0; });
+    assert.ok((lines[idx - 1] || "").indexOf("Lam") >= 0,
+        "its chord line comes with it:\n" + output);
+});

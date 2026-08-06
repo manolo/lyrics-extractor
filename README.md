@@ -182,6 +182,7 @@ node cli/index.js song.mscz --chords-only             # chord progression only
 | `--lyrics-only` | Output lyrics without chord lines above |
 | `--chordpro` | Export as ChordPro format (.cho) |
 | `--no-annotations` | Omit staff text and expressions from the chord line |
+| `--extra-lyrics` | Print lyric verses that no pass of the score sings |
 | `--staff <name\|num>` | Extract lyrics from a specific staff (by index or instrument name) |
 | `--anglo` | Force anglo chord names (C, D, E) |
 | `--solfeo` | Force solfeo chord names (Do, Re, Mi) |
