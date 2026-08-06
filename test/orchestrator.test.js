@@ -859,9 +859,13 @@ test("processExtraction prints the outro chords once in multi-verse output", fun
     assert.equal(dos, 1, "Do belongs to the outro only, found " + dos + ":\n" + output);
     assert.equal(mi7, 1, "Mi7 belongs to the outro only, found " + mi7 + ":\n" + output);
 
-    // And it comes after the last lyric, not hanging off a verse
-    var lastLyric = output.lastIndexOf("Cinco");
-    assert.ok(output.indexOf("Do") > lastLyric, "the outro follows the last verse:\n" + output);
+    // It sits right after the first verse, where the music has it, so a short or orphan
+    // verse stays the last thing in the output
+    var firstVerse = output.indexOf("Uno");
+    var secondVerse = output.indexOf("Cinco");
+    var outro = output.indexOf("Do");
+    assert.ok(outro > firstVerse && outro < secondVerse,
+        "the outro follows the first verse:\n" + output);
 });
 
 // ============================================================
@@ -931,4 +935,37 @@ test("processExtraction prints orphan verses when extraLyrics is set", function(
     var idx = lines.findIndex(function(l) { return l.toLowerCase().indexOf("cinco") >= 0; });
     assert.ok((lines[idx - 1] || "").indexOf("Lam") >= 0,
         "its chord line comes with it:\n" + output);
+});
+
+test("processExtraction keeps a verse whole when another verse is much shorter", function() {
+    // Three lyric lines of very different length: the third has a single syllable, as
+    // happens while writing a score. The tail of the first verse belongs to its own
+    // stanza, not to a block printed after every verse.
+    function syl(tick, verse, text, rest) {
+        return { tick: tick, verse: verse, text: text, syllabic: "single", durationQ: 1,
+                 restAfter: !!rest, restDurationQ: rest ? 4 : 0, gapDurationQ: rest ? 4 : 0 };
+    }
+    // Long enough that the lines are not merged into one
+    var data = {
+        title: "Desigual",
+        syllables: [
+            syl(0, 0, "primera"), syl(480, 0, "linea de la primera estrofa.", true),
+            syl(1920, 0, "segunda"), syl(2400, 0, "linea de la primera estrofa.", true),
+            syl(0, 1, "primera"), syl(480, 1, "linea de la segunda estrofa.", true),
+            syl(1920, 1, "segunda"), syl(2400, 1, "linea de la segunda estrofa.", true),
+            syl(0, 2, "sola")
+        ],
+        chords: [{ tick: 0, chord: "Lam" }, { tick: 1920, chord: "Re" }],
+        repeats: [],
+        voltas: []
+    };
+    var out = orch.processExtraction(data).replace(/​/g, "");
+    var lines = out.split("\n").filter(function(l) { return l.trim() !== ""; });
+
+    // The stanza of the first verse holds both of its lines, one after the other
+    var i1 = lines.findIndex(function(l) { return l.indexOf("Primera linea de la primera") >= 0; });
+    var i2 = lines.findIndex(function(l) { return l.indexOf("egunda linea de la primera") >= 0; });
+    var i3 = lines.findIndex(function(l) { return l.indexOf("rimera linea de la segunda") >= 0; });
+    assert.ok(i1 >= 0 && i2 >= 0 && i3 >= 0, "every verse should be printed:\n" + out);
+    assert.ok(i2 < i3, "the tail of the first verse stays in its stanza:\n" + out);
 });

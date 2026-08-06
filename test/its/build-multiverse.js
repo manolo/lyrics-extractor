@@ -35,11 +35,14 @@ var CHORDS = {
     "Am": [17, "m"], "D": [16, ""], "G": [15, ""], "C": [14, ""], "E7": [18, "7"]
 };
 
-// Four notes per measure. Each entry: note name, verse 1 syllable, verse 2 syllable.
+// Four notes per measure. Each entry: note name and one syllable per lyric line.
 // A syllable is [text] for a whole word or [text, syllabic] when a word spans notes.
+// The third line carries a single syllable on the first note: a verse may mark just one
+// note and leave the rest instrumental, and the output has to keep the other verses
+// whole when it does.
 var MELODY = [
     // measure 3
-    [["A4", ["Hoy"], ["Es"]],
+    [["A4", ["Hoy"], ["Es"], ["\u00b7"]],
      ["B4", ["la"], ["la"]],
      ["C5", ["tu", "begin"], ["fies", "begin"]],
      ["B4", ["na", "end"], ["ta", "end"]]],
@@ -89,11 +92,11 @@ function lyrics(syl, verse) {
     return out;
 }
 
-function chord(noteName, v1, v2) {
+function chord(noteName, v1, v2, v3) {
     var n = NOTES[noteName];
     return "          <Chord>\n" +
            "            <durationType>quarter</durationType>\n" +
-           lyrics(v1, 0) + lyrics(v2, 1) +
+           lyrics(v1, 0) + lyrics(v2, 1) + lyrics(v3, 2) +
            "            <Note>\n" +
            "              <pitch>" + n[0] + "</pitch>\n" +
            "              <tpc>" + n[1] + "</tpc>\n" +
@@ -121,7 +124,7 @@ for (var m = 1; m <= 8; m++) {
     if (m >= 3 && m <= 6) {
         var notes = MELODY[m - 3];
         for (var i = 0; i < notes.length; i++) {
-            measures += chord(notes[i][0], notes[i][1], notes[i][2]);
+            measures += chord(notes[i][0], notes[i][1], notes[i][2], notes[i][3]);
         }
     } else {
         measures += measureRest();
