@@ -21,6 +21,7 @@ import "../lib/pdf-writer.js" as PdfWriter
 import "../lib/chordpro-writer.js" as ChordProWriter
 import "../lib/fretboard-renderer.js" as FretboardRenderer
 import "../score/api-extractor.js" as Extractor
+import "../score/api-patcher.js" as ApiPatcher
 // FretDiagram fallback: remove these 3 imports when MuseScore exposes FretDiagram.harmony
 import "../score/fallback-runner.js" as FretFallback
 import "../score/xml-chord-reader.js" as XmlChordReader
@@ -286,377 +287,27 @@ MuseScore {
             return;
         }
 
-        var useSelection = hasSelection;
+        var counts = ApiPatcher.applyAll({
+            useSelection: hasSelection,
+            selectionStartTick: selectionStartTick,
+            selectionEndTick: selectionEndTick
+        });
 
-        // Build lyric groups from score (each entry keeps a ref to the live lyric object)
-        var lyricGroups = {};
-        var lyricRefs = {};
-
-        var segment = curScore.firstSegment();
-        while (segment) {
-            if (useSelection) {
-                if (segment.tick < selectionStartTick) { segment = segment.next; continue; }
-                if (segment.tick >= selectionEndTick) break;
-            }
-
-            for (var staff = 0; staff < curScore.nstaves; staff++) {
-                for (var voice = 0; voice < 4; voice++) {
-                    var element = segment.elementAt(staff * 4 + voice);
-                    if (!element) continue;
-                    if (element.type !== Element.CHORD && element.type !== Element.REST) continue;
-
-                    var lyr = element.lyrics;
-                    if (!lyr) continue;
-
-                    for (var l = 0; l < lyr.length; l++) {
-                        var lyric = lyr[l];
-                        var text = TextUtils.stripHtml(lyric.text || "");
-                        if (!text) continue;
-
-                        var verse = lyric.verse || 0;
-                        var key = staff + "_" + voice + "_" + verse;
-
-                        if (!lyricGroups[key]) { lyricGroups[key] = []; lyricRefs[key] = []; }
-
-                        lyricGroups[key].push({
-                            text: text,
-                            syllabic: lyric.syllabic || 0
-                        });
-                        lyricRefs[key].push(lyric);
-                    }
-                }
-            }
-            segment = segment.next;
-        }
-
-        // Run shared fixer logic
-        var result = LyricsFixer.fixAll(lyricGroups);
-        var fixCount = result.fixCount;
-
-        // Apply patches to score
-        curScore.startCmd();
-
-        var patchKeys = Object.keys(result.patches);
-        for (var pk = 0; pk < patchKeys.length; pk++) {
-            var pKey = patchKeys[pk];
-            var patches = result.patches[pKey];
-            var refs = lyricRefs[pKey];
-            for (var pi = 0; pi < patches.length; pi++) {
-                var patch = patches[pi];
-                refs[patch.index].text = patch.newText;
-                refs[patch.index].syllabic = patch.newSyllabic;
-            }
-        }
-
-        curScore.endCmd();
-
-        // Fix chord typos (before sync, so synced chords get clean text)
-        var typoCount = fixChordTypos();
-
-        // Sync chords from principal staff to linked staves
-        var syncCount = syncChordsToLinkedStaves();
-
-        // Sync VBox text fields to project metaTags
-        var metaCount = syncVBoxToMetaTags();
-
-        if (fixCount > 0 || typoCount > 0 || syncCount > 0 || metaCount > 0) {
-            var msg = "";
-            if (fixCount > 0) msg += fixCount + (isSpanish ? " silaba(s) corregida(s)" : " syllable(s) fixed");
-            if (typoCount > 0) {
-                if (msg) msg += ", ";
-                msg += typoCount + (isSpanish ? " acorde(s) con typo corregido(s)" : " chord typo(s) fixed");
-            }
-            if (syncCount > 0) {
-                if (msg) msg += ", ";
-                msg += syncCount + (isSpanish ? " acorde(s) sincronizado(s)" : " chord(s) synced");
-            }
-            if (metaCount > 0) {
-                if (msg) msg += ", ";
-                msg += (isSpanish ? "propiedades actualizadas" : "properties updated");
-            }
-            statusText.text = msg;
-        } else {
+        if (counts.total === 0) {
             statusText.text = tr(
                 "Letras correctas, no se necesitan cambios",
                 "Lyrics are correct, no changes needed"
             );
+            return;
         }
+
+        var parts = [];
+        if (counts.lyrics > 0) parts.push(counts.lyrics + tr(" silaba(s) corregida(s)", " syllable(s) fixed"));
+        if (counts.typos > 0) parts.push(counts.typos + tr(" acorde(s) con typo corregido(s)", " chord typo(s) fixed"));
+        if (counts.synced > 0) parts.push(counts.synced + tr(" acorde(s) sincronizado(s)", " chord(s) synced"));
+        if (counts.meta > 0) parts.push(tr("propiedades actualizadas", "properties updated"));
+        statusText.text = parts.join(", ");
     }
-
-    // ========================================
-    // SYNC VBOX TO METATAGS: copy VBox text fields to project properties
-    // ========================================
-
-    function syncVBoxToMetaTags() {
-        if (!curScore) return 0;
-        // VBox subtypeName -> metaTag key
-        var mapping = [
-            { style: "title",    tag: "workTitle" },
-            { style: "subtitle", tag: "subtitle" },
-            { style: "composer", tag: "composer" },
-            { style: "lyricist", tag: "lyricist" }
-        ];
-        var count = 0;
-        try {
-            var mb = curScore.firstMeasure;
-            if (!mb) return 0;
-            while (mb.prev) mb = mb.prev;
-            var elems = mb.elements;
-            if (!elems) return 0;
-            // Collect VBox values
-            var vboxValues = {};
-            for (var i = 0; i < elems.length; i++) {
-                var el = elems[i];
-                if (!el || !el.subtypeName) continue;
-                for (var m = 0; m < mapping.length; m++) {
-                    if (el.subtypeName === mapping[m].style && el.text) {
-                        vboxValues[mapping[m].tag] = el.text;
-                    }
-                }
-            }
-            // Update metaTags where VBox has a value and metaTag differs
-            for (var m2 = 0; m2 < mapping.length; m2++) {
-                var tag = mapping[m2].tag;
-                var vboxVal = vboxValues[tag];
-                if (!vboxVal) continue;
-                var current = curScore.metaTag(tag) || "";
-                if (current !== vboxVal) {
-                    curScore.setMetaTag(tag, vboxVal);
-                    count++;
-                }
-            }
-        } catch (e) { /* VBox access failed */ }
-        return count;
-    }
-
-    // ========================================
-    // FIX CHORD TYPOS: normalize chord text in place
-    // ========================================
-
-    function fixChordTypos() {
-        if (!curScore) return 0;
-
-        // Collect all Harmony annotations with typos
-        var toFix = []; // [{ann, segment, normalizedText}]
-        var segment = curScore.firstSegment();
-        while (segment) {
-            var annotations = segment.annotations;
-            if (annotations) {
-                for (var a = 0; a < annotations.length; a++) {
-                    var ann = annotations[a];
-                    if (ann && ann.type === Element.HARMONY) {
-                        var raw = ann.text || "";
-                        var normalized = ChordUtils.normalizeChord(raw);
-                        if (normalized !== raw) {
-                            toFix.push({ ann: ann, segment: segment, staff: Math.floor(ann.track / 4), text: normalized });
-                        }
-                    }
-                }
-            }
-            segment = segment.next;
-        }
-
-        if (toFix.length === 0) return 0;
-
-        // Fix each chord: remove old, add new with normalized text
-        curScore.startCmd();
-
-        for (var i = 0; i < toFix.length; i++) {
-            var fix = toFix[i];
-            var tick = fix.segment.tick;
-            var staffIdx = fix.staff;
-
-            try { removeElement(fix.ann); } catch (e) { continue; }
-
-            var cursor = curScore.newCursor();
-            cursor.rewindToTick(tick);
-            if (!cursor.segment) continue;
-            cursor.staffIdx = staffIdx;
-            cursor.voice = 0;
-            var harmony = newElement(Element.HARMONY);
-            if (harmony) {
-                cursor.add(harmony);
-                harmony.text = fix.text;
-            }
-        }
-
-        curScore.endCmd();
-        return toFix.length;
-    }
-
-    // ========================================
-    // SYNC CHORDS: copy chords from principal staff to linked staves
-    // ========================================
-
-    function syncChordsToLinkedStaves() {
-        if (!curScore) return 0;
-
-        var staves = curScore.staves;
-        if (!staves) return 0;
-
-        // Find harmony staff (principal) and its linked staves
-        var harmonyStaves = [];
-        var segment = curScore.firstSegment();
-        while (segment) {
-            var annotations = segment.annotations;
-            if (annotations) {
-                for (var a = 0; a < annotations.length; a++) {
-                    var ann = annotations[a];
-                    if (ann && (ann.type === Element.HARMONY)) {
-                        var hStaff = Math.floor(ann.track / 4);
-                        var found = false;
-                        for (var h = 0; h < harmonyStaves.length; h++) {
-                            if (harmonyStaves[h].idx === hStaff) {
-                                harmonyStaves[h].count++;
-                                found = true;
-                                break;
-                            }
-                        }
-                        if (!found) harmonyStaves.push({ idx: hStaff, count: 1 });
-                    }
-                }
-            }
-            segment = segment.next;
-        }
-
-        if (harmonyStaves.length === 0) return 0;
-
-        // Find principal harmony staff (non-tab) and its linked tab staves
-        // A principal staff has harmonies and is NOT a tab staff.
-        // Its linked tab staff is in the same part and IS a tab staff.
-        harmonyStaves.sort(function(a, b) { return b.count - a.count; });
-        var principalStaff = -1;
-        var linkedStaves = [];
-
-        for (var hs = 0; hs < harmonyStaves.length; hs++) {
-            var idx = harmonyStaves[hs].idx;
-            if (staves[idx] && !staves[idx].isTabStaff) {
-                principalStaff = idx;
-                break;
-            }
-        }
-
-        if (principalStaff < 0) return 0;
-
-        // Find linked staves: tab staves in the same part as principalStaff
-        var principalPart = staves[principalStaff].part;
-        if (principalPart) {
-            for (var ls = 0; ls < staves.length; ls++) {
-                if (ls !== principalStaff && staves[ls].part && staves[ls].part.is(principalPart) && staves[ls].isTabStaff) {
-                    linkedStaves.push(ls);
-                }
-            }
-        }
-
-        // Also check: any OTHER staves (different parts) that have harmonies and are tab staves
-        for (var hs2 = 0; hs2 < harmonyStaves.length; hs2++) {
-            var idx2 = harmonyStaves[hs2].idx;
-            if (idx2 !== principalStaff && staves[idx2] && staves[idx2].isTabStaff) {
-                var alreadyFound = false;
-                for (var lf = 0; lf < linkedStaves.length; lf++) {
-                    if (linkedStaves[lf] === idx2) { alreadyFound = true; break; }
-                }
-                if (!alreadyFound) linkedStaves.push(idx2);
-            }
-        }
-
-        if (linkedStaves.length === 0) return 0;
-
-        // Collect chords from ALL non-tab staves (merged by tick, principal wins on conflict)
-        var chordByTick = {}; // tick -> {tick, text}
-        segment = curScore.firstSegment();
-        while (segment) {
-            var anns = segment.annotations;
-            if (anns) {
-                for (var ai = 0; ai < anns.length; ai++) {
-                    var an = anns[ai];
-                    if (an && (an.type === Element.HARMONY)) {
-                        var hStaff = Math.floor(an.track / 4);
-                        if (staves[hStaff] && !staves[hStaff].isTabStaff) {
-                            var tk = segment.tick;
-                            // Principal staff chords take priority; otherwise first seen wins
-                            if (!chordByTick[tk] || hStaff === principalStaff) {
-                                chordByTick[tk] = { tick: tk, text: an.text || "" };
-                            }
-                        }
-                    }
-                }
-            }
-            segment = segment.next;
-        }
-        var principalChords = [];
-        var tickKeys = Object.keys(chordByTick);
-        for (var tki = 0; tki < tickKeys.length; tki++) {
-            principalChords.push(chordByTick[tickKeys[tki]]);
-        }
-        principalChords.sort(function(a, b) { return a.tick - b.tick; });
-
-        // For each linked staff: check if actually out of sync, then fix
-        var totalSynced = 0;
-        for (var li = 0; li < linkedStaves.length; li++) {
-            var linkedIdx = linkedStaves[li];
-
-            // Collect existing chords on this linked staff
-            var linkedByTick = {};
-            var toRemove = [];
-            segment = curScore.firstSegment();
-            while (segment) {
-                var lanns = segment.annotations;
-                if (lanns) {
-                    for (var la = 0; la < lanns.length; la++) {
-                        var lan = lanns[la];
-                        if (lan && (lan.type === Element.HARMONY) && Math.floor(lan.track / 4) === linkedIdx) {
-                            linkedByTick[segment.tick] = lan.text || "";
-                            toRemove.push(lan);
-                        }
-                    }
-                }
-                segment = segment.next;
-            }
-
-            // Compare normalized: skip sync if already matching
-            var needsSync = false;
-            if (Object.keys(linkedByTick).length !== principalChords.length) {
-                needsSync = true;
-            } else {
-                for (var cmp = 0; cmp < principalChords.length; cmp++) {
-                    var pNorm = ChordUtils.convertChord(ChordUtils.normalizeChord(principalChords[cmp].text), false);
-                    var lText = linkedByTick[principalChords[cmp].tick];
-                    var lNorm = lText !== undefined ? ChordUtils.convertChord(ChordUtils.normalizeChord(lText), false) : undefined;
-                    if (pNorm !== lNorm) { needsSync = true; break; }
-                }
-            }
-
-            if (!needsSync) continue;
-
-            curScore.startCmd();
-
-            // Remove existing
-            for (var r = 0; r < toRemove.length; r++) {
-                try { removeElement(toRemove[r]); } catch (e) {}
-            }
-
-            // Add principal's chords
-            var cursor = curScore.newCursor();
-            for (var ci = 0; ci < principalChords.length; ci++) {
-                cursor.rewindToTick(principalChords[ci].tick);
-                if (!cursor.segment) continue;
-                cursor.staffIdx = linkedIdx;
-                cursor.voice = 0;
-                var harmony = newElement(Element.HARMONY);
-                if (harmony) {
-                    cursor.add(harmony);
-                    harmony.text = principalChords[ci].text;
-                    totalSynced++;
-                }
-            }
-
-            curScore.endCmd();
-        }
-
-        return totalSynced;
-    }
-
     // ========================================
     // EXTRACT (read-only, uses shared modules)
     // ========================================
@@ -1629,6 +1280,17 @@ MuseScore {
         checkScoresDirectory();
         needsFallbackDir = Extractor.needsFallbackDirectory();
         hasSelection = checkSelection();
+        ApiPatcher.setHost({
+            score: function() { return curScore; },
+            Element: Element,
+            // Wrapped rather than passed by reference: these are methods of the plugin
+            // object, and handing the bare function to another module loses its binding
+            newElement: function(type) { return newElement(type); },
+            removeElement: function(el) { return removeElement(el); }
+        });
+        ApiPatcher.setLyricsFixer(LyricsFixer);
+        ApiPatcher.setChordUtils(ChordUtils);
+        ApiPatcher.setTextUtils(TextUtils);
         PdfWriter.setFretboardRenderer(FretboardRenderer);
         checkScore();
     }
