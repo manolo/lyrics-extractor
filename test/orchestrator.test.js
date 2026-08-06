@@ -937,6 +937,24 @@ test("processExtraction prints orphan verses when orphanLyrics is set", function
         "its chord line comes with it:\n" + output);
 });
 
+test("the orphan verse stanza stops at its own last note", function() {
+    // Chords keep going after the verse ends, here a whole instrumental tail. They belong
+    // to the music that follows, so none of them may trail the orphan stanza.
+    var data = threeVerseDaCapoData();
+    data.orphanLyrics = true;
+    data.chords = data.chords.concat([
+        { tick: 960, chord: "Sol" }, { tick: 1440, chord: "Do" }, { tick: 1920, chord: "Si7" }
+    ]);
+    var lines = orch.processExtraction(data).replace(/​/g, "").split("\n");
+    var idx = lines.findIndex(function(l) { return l.toLowerCase().indexOf("cinco") >= 0; });
+    var chordLine = lines[idx - 1] || "";
+    assert.ok(chordLine.indexOf("Lam") >= 0, "the verse keeps its own chords: " + chordLine);
+    ["Sol", "Do", "Si7"].forEach(function(c) {
+        assert.ok(chordLine.indexOf(c) < 0,
+            c + " sounds after the verse ends, it must not trail it: " + chordLine);
+    });
+});
+
 test("processExtraction keeps a verse whole when another verse is much shorter", function() {
     // Three lyric lines of very different length: the third has a single syllable, as
     // happens while writing a score. The tail of the first verse belongs to its own
