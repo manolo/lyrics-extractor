@@ -205,11 +205,14 @@ By default, chord names use the score's own spelling setting. Use `--anglo` or `
 
 ```bash
 npm test          # same as: node --test test/*.test.js
+npm run test:package  # build the package, then run the snapshot suite against its minified CLI
 ```
 
 755 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
 
-The snapshot suites in `test/its/` compare CLI output against baseline `.txt` files. The scores they read are frozen copies in `test/its/scores/test_le_<Song>.mscz`, which are not committed, so the suites skip when the directory is empty. Baselines are reviewed by hand: never regenerate one without checking whether the score itself changed (each baseline stores the `.mscz` mtime in a trailing comment).
+The snapshot suites in `test/its/` compare CLI output against baseline `.txt` files. The scores they read are frozen copies in `test/its/scores/test_le_<Song>.mscz`, which are not committed, so the suites skip when the directory is empty. Two of them are generated instead of copied (`build-multiverse.js`, `build-malaguena-mini.js`), which is what lets CI run them. Baselines are reviewed by hand: never regenerate one without checking whether the score itself changed (each baseline stores the `.mscz` mtime in a trailing comment).
+
+`npm run test:package` is the run that matters before a release: it minifies, then drives that same snapshot suite through the **packaged** CLI over all 21 scores, so a minification that changes any output fails. On CI only the committed fixture and the two generated scores exist, so it covers 14 of those tests there, and the release workflow uses it as its gate before publishing the `.mext`.
 
 ## Building the .mext package
 

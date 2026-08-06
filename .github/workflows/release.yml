@@ -12,6 +12,18 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
+      # terser is needed here too: without it test/minify.test.js skips silently, and
+      # those are the tests that keep the release minification honest
+      - run: npm install --ignore-scripts
+
+      # Two of the snapshot scores are generated rather than frozen copies, so building
+      # them here turns their suites on: repeats, voltas, jumps, multi verse and the
+      # orphan verse. The rest of test/its/scores is not committed and stays skipped.
+      - name: Build the generated snapshot scores
+        run: |
+          node test/its/build-multiverse.js
+          node test/its/build-malaguena-mini.js
+
       - run: node --test test/*.test.js
 
   release:
@@ -33,7 +45,19 @@ jobs:
         run: npm install --ignore-scripts
 
       - name: Build .mext package
-        run: node build.js "${{ steps.version.outputs.version }}"
+        run: node build.js "${{ steps.version.outputs.version }}" --keep-build
+
+      # Run the CLI tests against the minified tree that was just packaged, not against
+      # the sources: the committed fixture plus the two generated scores. The frozen
+      # copies are not committed, so the full sweep of 21 scores against the package
+      # happens with "npm run test:package" locally.
+      - name: Build the generated snapshot scores
+        run: |
+          node test/its/build-multiverse.js
+          node test/its/build-malaguena-mini.js
+
+      - name: Test the packaged CLI
+        run: LE_CLI=.build/cli/index.js node --test test/integration.test.js
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3

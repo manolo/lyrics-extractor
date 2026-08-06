@@ -22,7 +22,10 @@ var chordUtils = require("../lib/chord-utils");
 
 var FIXTURE_PATH = path.join(__dirname, "fixture.mscz");
 var BASE = path.resolve(__dirname, "..");
-var CLI = path.join(BASE, "cli/index.js");
+// LE_CLI points the snapshot tests at another copy of the CLI, which is how
+// "npm run test:package" runs them against the minified staging tree: same scores, same
+// baselines, so a minification that changes any output fails here.
+var CLI = process.env.LE_CLI ? path.resolve(process.env.LE_CLI) : path.join(BASE, "cli/index.js");
 var ITS_DIR = path.join(__dirname, "its");
 var SCORES_DIR = path.join(ITS_DIR, "scores");
 var SCORE_PREFIX = "test_le_";

@@ -11,10 +11,12 @@
 // little: on this codebase compressing without it already takes the package from 127K
 // to 73K, and mangling on top would save 9K more. Read the repository for the sources.
 //
-// Usage: node build.js [version] [--install] [--no-minify]
-//        --install     also copies the staged package into the local MuseScore
-//                      extensions directory, for contributors who do not develop in it
-//        --no-minify   ship the sources verbatim, to bisect a packaging problem
+// Usage: node build.js [version] [--install] [--no-minify] [--keep-build]
+//        --install      also copies the staged package into the local MuseScore
+//                       extensions directory, for contributors who do not develop in it
+//        --no-minify    ship the sources verbatim, to bisect a packaging problem
+//        --keep-build   leave .build/ in place, which npm run test:package then drives
+//                       the snapshot suite against
 
 var fs = require("fs");
 var path = require("path");
@@ -24,6 +26,7 @@ var childProcess = require("child_process");
 var args = process.argv.slice(2);
 var doInstall = args.indexOf("--install") !== -1;
 var noMinify = args.indexOf("--no-minify") !== -1;
+var keepBuild = args.indexOf("--keep-build") !== -1;
 var version = args.filter(function(a) { return a.indexOf("--") !== 0; })[0] || "dev";
 
 var OUT = "lyrics-extractor-" + version + ".mext";
@@ -80,7 +83,10 @@ console.log("Built " + OUT + " (" + size + "K) with " + countFiles(BUILD) + " fi
 
 if (doInstall) install(BUILD);
 
-fs.rmSync(BUILD, { recursive: true, force: true });
+// npm run test:package runs the snapshot suite against the staged tree, so it has to
+// outlive the build there
+if (keepBuild) console.log("Kept " + BUILD + "/ for testing");
+else fs.rmSync(BUILD, { recursive: true, force: true });
 
 // --- Helpers ---
 
