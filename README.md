@@ -207,19 +207,23 @@ By default, chord names use the score's own spelling setting. Use `--anglo` or `
 npm test          # same as: node --test test/*.test.js
 ```
 
-748 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
+755 tests covering extractors, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
 
 The snapshot suites in `test/its/` compare CLI output against baseline `.txt` files. The scores they read are frozen copies in `test/its/scores/test_le_<Song>.mscz`, which are not committed, so the suites skip when the directory is empty. Baselines are reviewed by hand: never regenerate one without checking whether the score itself changed (each baseline stores the `.mscz` mtime in a trailing comment).
 
 ## Building the .mext package
 
 ```bash
-npm run build             # dev build
-node build.js 1.4.3       # versioned build
-npm run install-local     # build and copy into the local MuseScore extensions dir
+npm install --ignore-scripts   # once, for terser
+npm run build                  # dev build
+node build.js 1.4.3            # versioned build
+node build.js dev --no-minify  # sources verbatim, to bisect a packaging problem
+npm run install-local          # build and copy into the local MuseScore extensions dir
 ```
 
-Sources ship as written: same file names, same relative paths, no minification and no renaming, so the QML imports resolve inside the package exactly as they do in the working tree. Only runtime files are included (no tests or documentation).
+File names and relative paths in the package are the ones in this tree, so the QML imports resolve there exactly as they do here. Only runtime files are included (no tests or documentation).
+
+The JavaScript is minified: comments and whitespace go and expressions are compressed, which takes the package from 156K to 103K. Identifiers are **not** mangled. That is deliberate: mangling once cost two shipping bugs, it makes the stack trace in a `console.log` only environment useless, and it would save just 9K more. `test/minify.test.js` holds those options in place by checking that the minified modules keep every export and every name the dialog calls. Read this repository for the sources, not the package.
 
 The release workflow (`release.yml`) runs tests and then calls `build.js` with the version from the git tag.
 

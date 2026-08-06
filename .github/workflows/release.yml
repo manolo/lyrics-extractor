@@ -29,6 +29,9 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+      - name: Install terser, which build.js minifies with
+        run: npm install --ignore-scripts
+
       - name: Build .mext package
         run: node build.js "${{ steps.version.outputs.version }}"
 

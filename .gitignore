@@ -3,3 +3,5 @@
 test/its/scores/
 .DS_Store
 docs/demo.pdf
+node_modules/
+package-lock.json

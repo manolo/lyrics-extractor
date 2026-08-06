@@ -17,6 +17,9 @@
         "build": "node build.js",
         "install-local": "node build.js dev --install"
     },
+    "devDependencies": {
+        "terser": "5.44.0"
+    },
     "engines": {
         "node": ">=20"
     },

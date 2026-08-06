@@ -205,19 +205,23 @@ Por defecto, los nombres de acorde usan la ortografia de la partitura. Usar `--a
 npm test          # equivalente a: node --test test/*.test.js
 ```
 
-748 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
+755 tests cubriendo extractores, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
 
 Los tests de snapshot en `test/its/` comparan la salida del CLI con ficheros `.txt` de referencia. Las partituras que leen son copias congeladas en `test/its/scores/test_le_<Cancion>.mscz`, que no se versionan, asi que los tests se omiten cuando ese directorio esta vacio. Las referencias se revisan a mano: nunca regenerar una sin comprobar antes si la partitura cambio (cada referencia guarda el mtime del `.mscz` en un comentario final).
 
 ## Construir el paquete .mext
 
 ```bash
-npm run build             # build de desarrollo
-node build.js 1.4.3       # build con version
-npm run install-local     # construir y copiar al directorio local de extensiones
+npm install --ignore-scripts   # una vez, para terser
+npm run build                  # build de desarrollo
+node build.js 1.4.3            # build con version
+node build.js dev --no-minify  # fuentes tal cual, para aislar un problema de empaquetado
+npm run install-local          # construir y copiar al directorio local de extensiones
 ```
 
-Los fuentes se publican tal cual: mismos nombres, mismas rutas relativas, sin minificar ni renombrar, de modo que los imports de QML resuelven dentro del paquete igual que en el arbol de trabajo.
+Los nombres de fichero y las rutas relativas del paquete son las de este arbol, asi que los imports de QML resuelven alli igual que aqui. Solo se incluyen ficheros de runtime, ni tests ni documentacion.
+
+El JavaScript se minifica: fuera comentarios y espacios, y las expresiones se comprimen, lo que baja el paquete de 156K a 103K. Los identificadores **no** se acortan. Es a proposito: acortarlos costo dos bugs en release, deja inservible la traza de error en un entorno donde solo hay `console.log`, y ahorraria solo 9K mas. `test/minify.test.js` sostiene esas opciones comprobando que los modulos minificados conservan todos sus exports y todos los nombres que llama el dialogo. Los fuentes se leen en este repositorio, no en el paquete.
 
 ## Licencia
 
