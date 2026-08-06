@@ -122,7 +122,7 @@ test("extractChords skips FretDiagram chord on a different staff but still recor
     assert.equal(chords.length, 0, "chord on non-harmony staff filtered out");
 });
 
-test("extractChords records FretDiagram without harmonyPlainText for fallback", function() {
+test("extractChords records a FretDiagram with no harmony text as not extracted", function() {
     setScore(makeMockScore({
         0: [{ type: 63, track: 0 }]  // no harmonyPlainText -> simulates pre-4.7 API
     }));

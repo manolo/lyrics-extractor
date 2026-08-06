@@ -58,7 +58,7 @@ The **Fix** button corrects all issues automatically:
 For scores without lyrics (instrumentals), the plugin automatically shows the chord progression structured by sections, barlines, and repeat markers.
 
 ### Fretboard diagrams
-Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) and renders them graphically in the PDF header. On MuseScore 4.7+, diagrams and chord names are read directly via the native QML API. On older versions, a fallback extracts the data from the .mscz file on disk.
+Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) and renders them graphically in the PDF header, reading them through the native QML API. Requires MuseScore 4.7 or later, which is where that API landed.
 
 ### PDF output
 - Compact layout optimized for printing (A4, safe margins)

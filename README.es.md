@@ -56,7 +56,7 @@ El boton **Corregir** arregla todos los problemas automaticamente:
 Para partituras sin letras (instrumentales), el plugin muestra automaticamente la progresion de acordes estructurada por secciones, barlines y marcas de repeticion.
 
 ### Diagramas de trastes
-Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) y los renderiza graficamente en la cabecera del PDF. En MuseScore 4.7+, los diagramas y nombres de acordes se leen directamente via la API nativa de QML. En versiones anteriores, un fallback extrae los datos del archivo .mscz en disco.
+Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) y los renderiza graficamente en la cabecera del PDF, leyendolos por la API nativa de QML. Requiere MuseScore 4.7 o posterior, que es donde llego esa API.
 
 ### Salida PDF
 - Layout compacto optimizado para impresion (A4, margenes seguros)
