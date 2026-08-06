@@ -108,6 +108,26 @@ function toTicks(value) {
 // Uses _getScore().staves[i].isTabStaff and staff.part to identify
 // which staves are tablature copies (linked) of a principal staff.
 // For each Part with multiple staves, non-first staves are linked.
+// Staff indices grouped by Part, first one first: [[0], [1], [3, 4], ...]. The first
+// staff of a part is its principal and the rest are its linked copies, which is how the
+// check counts them, so the patcher groups them the same way instead of asking each staff
+// whether it is a tablature: staff.isTabStaff is not there on every MuseScore build.
+function findPartStaffGroups() {
+    var groups = [];
+    try {
+        var staves = _getScore().staves;
+        var parts = _getScore().parts;
+        for (var p = 0; p < parts.length; p++) {
+            var indices = [];
+            for (var s = 0; s < staves.length; s++) {
+                if (staves[s].part && staves[s].part.is(parts[p])) indices.push(s);
+            }
+            if (indices.length > 0) groups.push(indices);
+        }
+    } catch (e) { /* parts not reachable, caller falls back */ }
+    return groups;
+}
+
 function findLinkedStaves() {
     var linked = {};
     try {
@@ -1248,6 +1268,7 @@ if (typeof exports !== "undefined") {
     exports._dedup = _dedup;
     exports.extractAll = extractAll;
     exports.findStaves = findStaves;
+    exports.findPartStaffGroups = findPartStaffGroups;
     exports.extractChords = extractChords;
     exports.extractSystemTexts = extractSystemTexts;
     exports._extractFretDiagramsFromScore = _extractFretDiagramsFromScore;

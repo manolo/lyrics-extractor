@@ -6,7 +6,8 @@
 // that XML path. This module only applies it.
 //
 // The QML engine owns curScore, Element, newElement and removeElement, so they are
-// injected with setHost() at startup. In Node they come from a stub, which is what makes
+// injected with setHost() at startup, together with partStaffGroups(), which reports how
+// staves belong to Parts. In Node they come from a stub, which is what makes
 // the score mutating path testable at all.
 //
 // The score arrives as a function rather than a value: curScore changes when the user
@@ -245,40 +246,43 @@ function syncChordsToLinkedStaves() {
 
     if (harmonyStaves.length === 0) return 0;
 
-    // The principal staff has harmonies and is not a tab staff. Its linked tab staff is
-    // in the same part and is a tab staff.
+    // Staff roles come from the Part grouping, the same source the check counts with.
+    // Asking a staff whether it is a tablature is not equivalent: staff.isTabStaff is
+    // missing on builds where the check still counts happily, and the fix then found no
+    // destination and silently did nothing while the dialog kept reporting the chords as
+    // unsynchronized.
+    var groups = _host.partStaffGroups ? _host.partStaffGroups() : [];
+    var groupOf = {};      // staff index -> its group
+    var isLinked = {};     // true for every staff that is not the first of its part
+    for (var g = 0; g < groups.length; g++) {
+        for (var gi = 0; gi < groups[g].length; gi++) {
+            groupOf[groups[g][gi]] = groups[g];
+            if (gi > 0) isLinked[groups[g][gi]] = true;
+        }
+    }
+
     harmonyStaves.sort(function(a, b) { return b.count - a.count; });
     var principalStaff = -1;
     var linkedStaves = [];
 
+    // The principal is the harmony staff that leads its own part
     for (var hs = 0; hs < harmonyStaves.length; hs++) {
         var idx = harmonyStaves[hs].idx;
-        if (staves[idx] && !staves[idx].isTabStaff) {
-            principalStaff = idx;
-            break;
-        }
+        if (!isLinked[idx]) { principalStaff = idx; break; }
     }
 
     if (principalStaff < 0) return 0;
 
-    var principalPart = staves[principalStaff].part;
-    if (principalPart) {
-        for (var ls = 0; ls < staves.length; ls++) {
-            if (ls !== principalStaff && staves[ls].part && staves[ls].part.is(principalPart) && staves[ls].isTabStaff) {
-                linkedStaves.push(ls);
-            }
-        }
+    var principalGroup = groupOf[principalStaff] || [];
+    for (var pg = 0; pg < principalGroup.length; pg++) {
+        if (principalGroup[pg] !== principalStaff) linkedStaves.push(principalGroup[pg]);
     }
 
-    // Also any tab staff in another part that carries harmonies of its own
+    // Also any linked staff of another part that carries harmonies of its own
     for (var hs2 = 0; hs2 < harmonyStaves.length; hs2++) {
         var idx2 = harmonyStaves[hs2].idx;
-        if (idx2 !== principalStaff && staves[idx2] && staves[idx2].isTabStaff) {
-            var alreadyFound = false;
-            for (var lf = 0; lf < linkedStaves.length; lf++) {
-                if (linkedStaves[lf] === idx2) { alreadyFound = true; break; }
-            }
-            if (!alreadyFound) linkedStaves.push(idx2);
+        if (idx2 !== principalStaff && isLinked[idx2] && linkedStaves.indexOf(idx2) < 0) {
+            linkedStaves.push(idx2);
         }
     }
 
@@ -294,7 +298,7 @@ function syncChordsToLinkedStaves() {
                 var an = anns[ai];
                 if (an && (an.type === Element.HARMONY)) {
                     var hStaff2 = Math.floor(an.track / 4);
-                    if (staves[hStaff2] && !staves[hStaff2].isTabStaff) {
+                    if (!isLinked[hStaff2]) {
                         var tk = segment.tick;
                         if (!chordByTick[tk] || hStaff2 === principalStaff) {
                             chordByTick[tk] = { tick: tk, text: an.text || "" };

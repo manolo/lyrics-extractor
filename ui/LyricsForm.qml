@@ -1283,6 +1283,7 @@ MuseScore {
         ApiPatcher.setHost({
             score: function() { return curScore; },
             Element: Element,
+            partStaffGroups: function() { return Extractor.findPartStaffGroups(); },
             // Wrapped rather than passed by reference: these are methods of the plugin
             // object, and handing the bare function to another module loses its binding
             newElement: function(type) { return newElement(type); },

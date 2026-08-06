@@ -54,11 +54,12 @@ function harmonySegments(entries) {
 // The stubs mutate the segment list the way the API does: an element removed really
 // leaves it, and one added through the cursor really appears at that tick. Without that,
 // a step reading what an earlier step wrote would see stale data.
-function stubHost(score) {
+function stubHost(score, partGroups) {
     var log = { removed: [], added: [] };
     patcher.setHost({
         score: function() { return score; },
         Element: ELEMENT,
+        partStaffGroups: function() { return partGroups || []; },
         newElement: function(type) {
             var el = { type: type, text: "", track: 0 };
             log.added.push(el);
@@ -212,12 +213,12 @@ test("fixChordTypos does nothing when every chord is clean", function() {
 
 // --- syncChordsToLinkedStaves -------------------------------------------------
 
+// A part with a principal staff and one linked copy, the shape of every plucked string
+// part in these scores. isTabStaff is deliberately absent: MuseScore does not always
+// expose it, which is the whole reason the patcher goes by Part instead.
+var PART_WITH_LINKED = [[0, 1]];
 function stavesWithTab() {
-    var part = { id: 1, is: function(other) { return other === part; } };
-    return [
-        { isTabStaff: false, part: part },
-        { isTabStaff: true, part: part }
-    ];
+    return [{}, {}];
 }
 
 test("syncChordsToLinkedStaves copies the principal chords onto the tab staff", function() {
@@ -229,7 +230,7 @@ test("syncChordsToLinkedStaves copies the principal chords onto the tab staff", 
             { tick: 480, staff: 0, text: "Mi7" }
         ])
     });
-    var log = stubHost(score);
+    var log = stubHost(score, PART_WITH_LINKED);
 
     var count = patcher.syncChordsToLinkedStaves();
 
@@ -249,7 +250,7 @@ test("syncChordsToLinkedStaves leaves a tab staff that already matches", functio
             { tick: 0, staff: 1, text: "Lam" }
         ])
     });
-    var log = stubHost(score);
+    var log = stubHost(score, PART_WITH_LINKED);
 
     assert.equal(patcher.syncChordsToLinkedStaves(), 0, "nothing to do");
     assert.equal(log.removed.length, 0, "and nothing removed");
@@ -257,12 +258,11 @@ test("syncChordsToLinkedStaves leaves a tab staff that already matches", functio
 });
 
 test("syncChordsToLinkedStaves does nothing without a tab staff", function() {
-    var part = { id: 1, is: function(o) { return o === part; } };
     var score = stubScore({
-        staves: [{ isTabStaff: false, part: part }],
+        staves: [{}],
         _segments: harmonySegments([{ tick: 0, staff: 0, text: "Lam" }])
     });
-    stubHost(score);
+    stubHost(score, [[0]]);   // a single staff part has nothing linked to it
     assert.equal(patcher.syncChordsToLinkedStaves(), 0);
 });
 
@@ -290,7 +290,7 @@ test("applyAll fixes chord typos before syncing them to the tab staff", function
         staves: staves,
         _segments: harmonySegments([{ tick: 0, staff: 0, text: "La m" }])
     });
-    var log = stubHost(score);
+    var log = stubHost(score, PART_WITH_LINKED);
 
     var counts = patcher.applyAll({});
 
@@ -302,3 +302,38 @@ test("applyAll fixes chord typos before syncing them to the tab staff", function
         "the tab staff gets the normalized text, not the typo");
 });
 
+test("syncChordsToLinkedStaves works on a build that does not expose isTabStaff", function() {
+    // RondaFiruli, 4.7.2: the guitar staff carries all 83 chords and its tablature copy
+    // none. The dialog counted them as unsynchronized and the Fix button did nothing,
+    // because the fix asked each staff whether it was a tablature and got undefined.
+    // Nothing here exposes isTabStaff, so the part grouping is the only thing to go on.
+    var score = stubScore({
+        staves: [{}, {}, {}],
+        _segments: harmonySegments([
+            { tick: 0, staff: 1, text: "Lam" },
+            { tick: 480, staff: 1, text: "Mi7" }
+        ])
+    });
+    // Staff 0 is a voice on its own, staves 1 and 2 are a part with its linked copy
+    var log = stubHost(score, [[0], [1, 2]]);
+
+    var count = patcher.syncChordsToLinkedStaves();
+
+    assert.equal(count, 2, "both chords should reach the linked staff");
+    score._cursorAdds.forEach(function(a) {
+        assert.equal(a.staffIdx, 2, "written on the linked staff, not the voice");
+    });
+});
+
+test("syncChordsToLinkedStaves reports nothing when the Part grouping is unavailable", function() {
+    // Without groups there is no way to tell a principal from a copy, so the patcher
+    // leaves the score alone rather than guessing
+    var score = stubScore({
+        staves: [{}, {}],
+        _segments: harmonySegments([{ tick: 0, staff: 0, text: "Lam" }])
+    });
+    var log = stubHost(score, []);
+
+    assert.equal(patcher.syncChordsToLinkedStaves(), 0);
+    assert.equal(log.added.length, 0, "and writes nothing");
+});
