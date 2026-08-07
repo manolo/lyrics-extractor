@@ -40,7 +40,7 @@ El boton **Corregir** arregla todos los problemas automaticamente:
 - Formatea sinalefas: punto entre vocales (da.es -> da&#x203F;es)
 - Elimina guiones manuales de las silabas
 - Repara cadenas silabicas rotas (begin/middle/end)
-- Sincroniza acordes del pentagrama principal a pentagramas enlazados (tab)
+- Sincroniza acordes del pentagrama principal de una parte al resto de sus pentagramas, normalmente su copia en tablatura
 - Sincroniza campos del VBox (titulo, subtitulo, compositor, letrista) a las propiedades del proyecto
 
 ### Extraccion de letras y acordes
@@ -204,11 +204,12 @@ Por defecto, los nombres de acorde usan la ortografia de la partitura. Usar `--a
 ```
 lib/     convierte los datos extraidos en texto, PDF y ChordPro. Lo comparten el dialogo
          y el CLI, y no depende de nada mas del arbol
-score/   lee una partitura de MuseScore, y escribe en ella. musescore-api.js coge la
-         partitura abierta en MuseScore por la API de QML, xml-extractor.js y
-         xml-chord-reader.js parsean el XML, mscz-reader.js descomprime el .mscz,
-         xml-patcher.js es con lo que escribe el boton Corregir, y fallback-runner.js
-         lanza el CLI cuando la API del plugin no da los diagramas de trastes
+score/   lee una partitura de MuseScore, y escribe en ella, un modulo por direccion y
+         por origen: api-extractor.js lee la partitura abierta en MuseScore por la API de
+         QML y api-patcher.js escribe en ella, que es lo que hace el boton Corregir,
+         mientras xml-extractor.js lee el XML de un .mscz y xml-patcher.js escribe en el
+         para el CLI. mscz-reader.js descomprime el archivo, y fallback-runner.js lanza
+         el CLI cuando la API del plugin no da los diagramas de trastes
 cli/     los dos puntos de entrada: index.js para la linea de comandos, y
          extract-chords.js, que el dialogo lanza para ese fallback
 ui/      el dialogo y su texto de ayuda
@@ -232,14 +233,14 @@ npm run test:package  # construye el paquete y corre los snapshots contra su CLI
 
 Los tests de snapshot en `test/its/` comparan la salida del CLI con ficheros `.txt` de referencia. La mayoria de las partituras que leen son copias congeladas de partituras reales en `test/its/scores/`, fuera de git, asi que una cancion sin partitura simplemente se omite. Dos son sinteticas, escritas por los generadores que estan al lado, y esas dos **si** se versionan: `test_le_MultiVerso.mscz` y `test_le_MalaguenaMini.mscz`, 33K entre las dos, que es lo que permite a CI correr sus tests. La `.mscz` es la fixture oficial y el generador es como se edita, y `test/synthetic-scores.test.js` falla si las dos se separan. Las referencias se revisan a mano: nunca regenerar una sin comprobar antes si la partitura cambio (cada referencia guarda el mtime del `.mscz` en un comentario final).
 
-`npm run test:package` es el que importa antes de una release: minifica y luego pasa los mismos snapshots por el CLI empaquetado con las 21 partituras, asi que una minificacion que cambie cualquier salida falla. En CI solo estan el fixture versionado y las dos partituras generadas, asi que alli cubre 14 de esos tests, y el workflow de release lo usa como puerta.
+`npm run test:package` es el que importa antes de una release: minifica y luego pasa los mismos snapshots por el CLI empaquetado con las 21 partituras, asi que una minificacion que cambie cualquier salida falla. En CI solo estan el fixture versionado y las dos partituras sinteticas, asi que alli cubre 14 de esos tests, y el workflow de release lo usa como puerta.
 
 ## Construir el paquete .mext
 
 ```bash
 npm install --ignore-scripts   # una vez, para terser
 npm run build                  # build de desarrollo
-node build.js 1.4.3            # build con version
+node build.js 1.6.1            # build con version
 node build.js dev --no-minify  # fuentes tal cual, para aislar un problema de empaquetado
 npm run install-local          # construir y copiar al directorio local de extensiones
 ```

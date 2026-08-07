@@ -42,7 +42,7 @@ The **Fix** button corrects all issues automatically:
 - Formats synalepha dots between vowels (da.es -> da&#x203F;es)
 - Removes manual hyphens from syllables
 - Repairs broken syllabic chains (begin/middle/end)
-- Syncs chords from the principal staff to linked tab staves
+- Syncs chords from the principal staff of a part to the rest of its staves, typically its tablature copy
 - Syncs VBox text fields (title, subtitle, composer, lyricist) to project properties
 
 ### Lyrics and chords extraction
@@ -206,11 +206,12 @@ By default, chord names use the score's own spelling setting. Use `--anglo` or `
 ```
 lib/     transforms extracted data into text, PDF and ChordPro. Shared by the dialog
          and the CLI, and depends on nothing else in the tree
-score/   reads a MuseScore score, and writes back into it. musescore-api.js takes the
-         score open in MuseScore through the QML API, xml-extractor.js and
-         xml-chord-reader.js parse the XML, mscz-reader.js unzips the .mscz,
-         xml-patcher.js is what the Fix button writes with, and fallback-runner.js runs
-         the CLI when the plugin API cannot give the fret diagrams
+score/   reads a MuseScore score, and writes back into it, one module per direction
+         and per source: api-extractor.js reads the score open in MuseScore through the
+         QML API and api-patcher.js writes into it, which is what the Fix button does,
+         while xml-extractor.js reads the XML of a .mscz and xml-patcher.js writes into
+         it for the CLI. mscz-reader.js unzips the file, and fallback-runner.js runs the
+         CLI when the plugin API cannot give the fret diagrams
 cli/     the two entry points: index.js for the command line, and extract-chords.js,
          which the dialog spawns for that fallback
 ui/      the dialog itself and its help text
@@ -234,14 +235,14 @@ npm run test:package  # build the package, then run the snapshot suite against i
 
 The snapshot suites in `test/its/` compare CLI output against baseline `.txt` files. Most of the scores they read are frozen copies of real ones in `test/its/scores/`, kept out of git, so a song whose score is absent simply skips. Two are synthetic, written by the generators next to them, and those two **are** committed: `test_le_MultiVerso.mscz` and `test_le_MalaguenaMini.mscz`, 33K between them, which is what lets CI run their suites. The `.mscz` is the fixture of record and the generator is how it is edited, with `test/synthetic-scores.test.js` failing if the two drift apart. Baselines are reviewed by hand: never regenerate one without checking whether the score itself changed (each baseline stores the `.mscz` mtime in a trailing comment).
 
-`npm run test:package` is the run that matters before a release: it minifies, then drives that same snapshot suite through the **packaged** CLI over all 21 scores, so a minification that changes any output fails. On CI only the committed fixture and the two generated scores exist, so it covers 14 of those tests there, and the release workflow uses it as its gate before publishing the `.mext`.
+`npm run test:package` is the run that matters before a release: it minifies, then drives that same snapshot suite through the **packaged** CLI over all 21 scores, so a minification that changes any output fails. On CI only the committed fixture and the two synthetic scores exist, so it covers 14 of those tests there, and the release workflow uses it as its gate before publishing the `.mext`.
 
 ## Building the .mext package
 
 ```bash
 npm install --ignore-scripts   # once, for terser
 npm run build                  # dev build
-node build.js 1.4.3            # versioned build
+node build.js 1.6.1            # versioned build
 node build.js dev --no-minify  # sources verbatim, to bisect a packaging problem
 npm run install-local          # build and copy into the local MuseScore extensions dir
 ```
