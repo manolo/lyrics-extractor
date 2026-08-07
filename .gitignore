@@ -1,6 +1,6 @@
 *.mext
 .build/
-test/its/scores/
+# test/its/scores/ is handled by test/its/.gitignore, which excepts the synthetic scores
 .DS_Store
 docs/demo.pdf
 node_modules/

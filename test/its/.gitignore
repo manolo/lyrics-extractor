@@ -1,2 +1,12 @@
-# Score files are local-only (large binaries, developer environment)
-scores/
+# The frozen copies of real scores are not committed: they are somebody's music, and they
+# weigh megabytes. A song with no score simply skips its snapshot tests.
+#
+# Written as scores/* rather than scores/, so that the exceptions below can apply: git
+# cannot re-include a file whose parent directory is itself excluded.
+scores/*
+
+# The synthetic ones are ours and tiny, so they are the fixtures of record and travel with
+# the repository, which is what lets CI run their suites. test/its/synthetic.test.js keeps
+# each of them in step with the generator that produces it.
+!scores/test_le_MultiVerso.mscz
+!scores/test_le_MalaguenaMini.mscz
