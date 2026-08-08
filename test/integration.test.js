@@ -1,15 +1,13 @@
-// Integration tests: snapshot comparison + fixture.mscz tests
-// Snapshot tests compare CLI output against baseline .txt files in test/its/.
+// Integration tests: the snapshot suite over the scores that travel with the repository, plus
+// the fixture.mscz checks of the extraction pipeline.
 //
-// The scores live in test/its/scores/ as test_le_<Song>.mscz, copies of the real
-// scores that are kept out of git (see .gitignore). Working on copies keeps the
-// baselines stable while the originals under ~/Music keep being edited: to pick up
-// a change, copy the original over its test_le_ copy by hand.
+// The scores in test/its/scores/ are synthetic, written by the build-*.js generator beside each
+// one, and committed: they are the fixtures of record, and each exists to reach code the others
+// do not. test/its/snapshot.js drives them, discovering what to run from the baselines present.
 //
-// Each snapshot stores the mtime of the .mscz used to generate it as a trailing
-// comment. When a test fails and the score mtime differs, the error warns that
-// the score has changed and suggests regenerating.
-
+// A developer who keeps frozen copies of real scores puts them, with their own baselines, in
+// test/local/ together with a test file of their own. That folder is ignored by git and picked
+// up by "npm test" when it is there, so nothing about those scores appears in this repository.
 var test = require("node:test");
 var assert = require("node:assert/strict");
 var path = require("path");
@@ -27,104 +25,27 @@ var BASE = path.resolve(__dirname, "..");
 // baselines, so a minification that changes any output fails here.
 var CLI = process.env.LE_CLI ? path.resolve(process.env.LE_CLI) : path.join(BASE, "cli/index.js");
 var ITS_DIR = path.join(__dirname, "its");
-var SCORES_DIR = path.join(ITS_DIR, "scores");
-var SCORE_PREFIX = "test_le_";
 
-var songs = require("./its/songs");
-
-var MTIME_PREFIX = "// mscz-mtime: ";
-
-function getScorePath(song) {
-    return path.join(SCORES_DIR, SCORE_PREFIX + song + ".mscz");
-}
-
-function getSnapshotPath(song, mode) {
-    return path.join(ITS_DIR, SCORE_PREFIX + song + "." + mode + ".txt");
-}
-
-function getMsczMtime(scorePath) {
-    try { return fs.statSync(scorePath).mtime.toISOString(); } catch (e) { return null; }
-}
-
-function readSnapshotMtime(snapshotPath) {
-    try {
-        var content = fs.readFileSync(snapshotPath, "utf8");
-        var lines = content.split("\n");
-        var lastLine = lines[lines.length - 1] || lines[lines.length - 2] || "";
-        if (lastLine.indexOf(MTIME_PREFIX) === 0) {
-            return lastLine.substring(MTIME_PREFIX.length).trim();
-        }
-    } catch (e) {}
-    return null;
-}
-
-function runCli(scorePath, flags) {
-    return child.execSync(
-        "node " + JSON.stringify(CLI) + " " + JSON.stringify(scorePath) + " " + flags,
-        { encoding: "utf8", timeout: 30000 }
-    );
-}
+var synthetic = require("./its/synthetic");
+var snapshot = require("./its/snapshot");
 
 // ============================================================
 // Snapshot tests: compare CLI output against baseline .txt files
 // ============================================================
 
-var songNames = songs.SONGS;
-var scoresExist = songNames.some(function(s) { return fs.existsSync(getScorePath(s)); });
-
-for (var i = 0; i < songNames.length; i++) {
-    (function(song) {
-        var scorePath = getScorePath(song);
-
-        songs.modesFor(song).forEach(function(m) {
-            var flag = m.flag;
-            var snapshotPath = getSnapshotPath(song, m.mode);
-            var label = "IT: " + song + "." + m.mode;
-
-            // LE_ONLY_SYNTHETIC hides the songs whose score is not committed, which is what a
-            // contributor and CI see. test/its/coverage-gap.js runs the suite both ways to
-            // measure how much of the code only the uncommitted scores reach.
-            var hidden = process.env.LE_ONLY_SYNTHETIC && !songs.SYNTHETIC[song];
-
-            test(label, { skip: hidden || !scoresExist || !fs.existsSync(scorePath) || !fs.existsSync(snapshotPath) }, function() {
-                var rawExpected = fs.readFileSync(snapshotPath, "utf8");
-                // Strip mtime comment from expected output for comparison
-                var expected = rawExpected.replace(/\n\/\/ mscz-mtime: .+\n?$/, "\n");
-
-                var actual = runCli(scorePath, flag);
-
-                if (actual !== expected) {
-                    var snapshotMtime = readSnapshotMtime(snapshotPath);
-                    var currentMtime = getMsczMtime(scorePath);
-                    var scoreChanged = snapshotMtime && currentMtime && snapshotMtime !== currentMtime;
-
-                    var msg = song + " " + flag + " output changed";
-                    if (songs.SYNTHETIC[song]) {
-                        // Committed score, so its mtime is whenever the checkout happened
-                        // and comparing it against the marker would mean nothing
-                        msg += "\n\n  NOTE: this score is generated by test/its/"
-                            + songs.SYNTHETIC[song] + " and committed with the repository."
-                            + "\n  Either the output changed for a real reason, or the score"
-                            + " and its generator have drifted:"
-                            + "\n    node --test test/synthetic-scores.test.js";
-                    } else if (scoreChanged) {
-                        msg += "\n\n  WARNING: Score file has changed since snapshot was generated."
-                            + "\n  Snapshot mtime: " + snapshotMtime
-                            + "\n  Current mtime:  " + currentMtime
-                            + "\n\n  To update, run:"
-                            + "\n    node cli/index.js " + JSON.stringify(scorePath) + " " + flag
-                            + " > " + JSON.stringify(snapshotPath)
-                            + "\n  Then re-run: node test/its/update-mtime.js " + song;
-                    } else if (!snapshotMtime) {
-                        msg += "\n\n  NOTE: Snapshot has no mtime marker. Run:"
-                            + "\n    node test/its/update-mtime.js " + song;
-                    }
-                    assert.equal(actual, expected, msg);
-                }
-            });
-        });
-    })(songNames[i]);
-}
+snapshot.define({
+    baselinesDir: ITS_DIR,
+    cli: CLI,
+    note: function(song) {
+        var generator = synthetic.SYNTHETIC[song];
+        if (!generator) return null;
+        // Committed score, so its mtime is whenever the checkout happened and comparing it
+        // against the marker would mean nothing
+        return "NOTE: this score is generated by test/its/" + generator +
+            " and committed with the repository.\n  Either the output changed for a real reason," +
+            " or the score and its generator have drifted:\n    node --test test/synthetic-scores.test.js";
+    }
+});
 
 // ============================================================
 // fixture.mscz tests: data extraction and pipeline validation

@@ -213,7 +213,8 @@ score/   lee una partitura de MuseScore, y escribe en ella, un modulo por direcc
 cli/     los dos puntos de entrada: index.js para la linea de comandos, y
          extract-chords.js, que el dialogo lanza para ese fallback
 ui/      el dialogo y su texto de ayuda
-test/    suites unitarias, y test/its/ para las de snapshot
+test/    suites unitarias, y test/its/ para las de snapshot con las partituras
+           sinteticas. test/local/, si existe, lleva la suite local de cada uno
 ```
 
 Las dependencias van en una sola direccion: `score/` y `cli/` tiran de `lib/`, nunca al
@@ -225,23 +226,28 @@ necesita a otro lo recibe por `require` en Node y por referencia inyectada en QM
 ## Tests
 
 ```bash
-npm test          # equivalente a: node --test test/*.test.js
-npm run test:package  # construye el paquete y corre los snapshots contra su CLI minificado
+npm test              # equivalente a: node --test 'test/**/*.test.js'
+npm run test:package  # construye el paquete y corre la misma suite contra su CLI minificado
 ```
 
-804 tests cubriendo lectores de partitura, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
+820 tests cubriendo lectores de partitura, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
 
-Los tests de snapshot en `test/its/` comparan la salida del CLI con ficheros `.txt` de referencia. Las partituras que leen son de dos clases.
+Los tests de snapshot en `test/its/` comparan la salida del CLI con ficheros `.txt` de referencia. Todas las partituras que leen son sinteticas y se versionan, una por cada generador `build-*.js` que esta al lado, y cada una existe para alcanzar codigo que las demas no tocan: sin letra ninguna, repeticiones sin letra, frases que hay que partir, cifrados de acorde, etiquetas de seccion, intros e interludios instrumentales, diagramas de acorde en la part de guitarra. La `.mscz` es la fixture oficial y el generador es como se edita, y `test/synthetic-scores.test.js` falla si las dos se separan.
 
-Las copias congeladas de partituras reales viven en `test/its/scores/` y **no** se versionan, asi que una cancion sin partitura simplemente se omite. Son una red extra para quien las tenga.
+`test/its/snapshot.js` es quien las corre, y no sabe ningun nombre: una cancion entra porque existe una referencia suya, y un modo se ejecuta porque existe la referencia de ese modo. Asi que quien quiera probar contra partituras reales pone copias congeladas en `test/local/scores/`, genera las referencias al lado, y añade un fichero suyo:
 
-Las sinteticas **si** se versionan, una por cada generador `build-*.js` que esta al lado, y cada una existe para alcanzar codigo que las demas no tocan: sin letra ninguna, repeticiones sin letra, frases que hay que partir, cifrados de acorde, etiquetas de seccion. La `.mscz` es la fixture oficial y el generador es como se edita, y `test/synthetic-scores.test.js` falla si las dos se separan.
+```js
+// test/local/its.test.js
+require("../its/snapshot").define({ label: "local", baselinesDir: __dirname });
+```
 
-`node test/its/coverage-gap.js` mide cuanto de `lib/` y `score/` alcanzan solo las partituras no versionadas, corriendo la suite dos veces bajo cobertura. Es la medida que una sintetica nueva tiene que mover: añadirlas llevo la cobertura de ramas desde un checkout versionado del 72,97% al 79,21%, y los tests de snapshot que un colaborador puede correr de 14 a 24.
+El `.gitignore` de la raiz excluye `test/local/` entero, asi que ningun titulo, nombre de fichero ni letra de esa musica llega al repositorio, y `npm test` la corre cuando esta sin echarla de menos cuando no.
+
+`node test/its/coverage-gap.js` mide cuanto de `lib/` y `score/` alcanza solo una suite local, corriendo los snapshots dos veces bajo cobertura. Es la medida que una sintetica nueva tiene que mover: escribirlas llevo los tests de snapshot que un colaborador puede correr de 14 a 28, y la suite entera desde un checkout limpio cubre ahora el 90,9% de lineas y el 89,1% de ramas, frente al 91,1% y el 90,0% con una suite local de diecinueve partituras reales.
 
 Las referencias se revisan a mano: nunca regenerar una sin comprobar antes si la partitura cambio (cada referencia guarda el mtime del `.mscz` en un comentario final).
 
-`npm run test:package` es el que importa antes de una release: minifica y luego pasa los mismos snapshots por el CLI empaquetado con las 21 partituras, asi que una minificacion que cambie cualquier salida falla. En CI solo estan el fixture versionado y las partituras sinteticas, asi que alli cubre 24 de esos tests, y el workflow de release lo usa como puerta.
+`npm run test:package` es el que importa antes de una release: minifica y luego pasa la suite por el CLI empaquetado, asi que una minificacion que cambie cualquier salida falla. El workflow de release lo usa como puerta.
 
 ## Construir el paquete .mext
 

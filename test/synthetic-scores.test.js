@@ -22,10 +22,10 @@ var reader = require("../score/mscz-reader");
 var ITS = path.join(__dirname, "its");
 var SCORES = path.join(ITS, "scores");
 
-var songs = require("./its/songs");
+var synthetic = require("./its/synthetic");
 
-var SYNTHETIC = Object.keys(songs.SYNTHETIC).map(function(name) {
-    return { score: "test_le_" + name + ".mscz", generator: songs.SYNTHETIC[name] };
+var SYNTHETIC = Object.keys(synthetic.SYNTHETIC).map(function(name) {
+    return { score: "test_le_" + name + ".mscz", generator: synthetic.SYNTHETIC[name] };
 });
 
 SYNTHETIC.forEach(function(entry) {

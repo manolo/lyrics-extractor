@@ -215,7 +215,8 @@ score/   reads a MuseScore score, and writes back into it, one module per direct
 cli/     the two entry points: index.js for the command line, and extract-chords.js,
          which the dialog spawns for that fallback
 ui/      the dialog itself and its help text
-test/    unit suites, plus test/its/ for the snapshot ones
+test/    unit suites, plus test/its/ for the snapshot ones over the synthetic
+         scores. test/local/, when present, holds a developer's own suite
 ```
 
 Dependencies run one way: `score/` and `cli/` reach into `lib/`, never the reverse. Every
@@ -227,23 +228,28 @@ through `require` in Node and through an injected reference in QML (`setTextUtil
 ## Running tests
 
 ```bash
-npm test          # same as: node --test test/*.test.js
-npm run test:package  # build the package, then run the snapshot suite against its minified CLI
+npm test              # same as: node --test 'test/**/*.test.js'
+npm run test:package  # build the package, then run that same suite against its minified CLI
 ```
 
-804 tests covering score readers, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
+820 tests covering score readers, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
 
-The snapshot suites in `test/its/` compare CLI output against baseline `.txt` files. The scores they read are of two kinds.
+The snapshot suite in `test/its/` compares CLI output against baseline `.txt` files. Every score it reads is synthetic and committed, one per `build-*.js` generator beside it, and each exists to reach code the others do not: no lyrics at all, repeats that carry no lyrics, phrases that have to be split, chord spellings, section labels, instrumental intros and interludes, chord diagrams in the guitar part. The `.mscz` is the fixture of record and the generator is how it is edited, with `test/synthetic-scores.test.js` failing if the two drift apart.
 
-Frozen copies of real scores live in `test/its/scores/` and are **not** committed, so a song whose score is absent simply skips. They are an extra net for whoever has them.
+`test/its/snapshot.js` drives them, and it is told nothing: a song is snapshotted because a baseline exists for it, and a mode runs because that mode's baseline exists. So a developer who wants to test against real scores puts frozen copies in `test/local/scores/`, generates baselines beside them, and adds a file of their own:
 
-Synthetic scores **are** committed, one per `build-*.js` generator beside them, and each one exists to reach code the others do not: no lyrics at all, repeats that carry no lyrics, phrases that have to be split, chord spellings, section labels. The `.mscz` is the fixture of record and the generator is how it is edited, with `test/synthetic-scores.test.js` failing if the two drift apart.
+```js
+// test/local/its.test.js
+require("../its/snapshot").define({ label: "local", baselinesDir: __dirname });
+```
 
-`node test/its/coverage-gap.js` reports how much of `lib/` and `score/` only the uncommitted scores reach, running the suite twice under coverage. It is the measure a new synthetic score has to move: adding them took branch coverage from a committed checkout from 72.97% to 79.21%, and the snapshot tests a contributor can run from 14 to 24.
+The root `.gitignore` excludes `test/local/` whole, so no title, filename or lyric of that music reaches the repository, and `npm test` runs it when it is there without missing it when it is not.
+
+`node test/its/coverage-gap.js` reports how much of `lib/` and `score/` only a local suite reaches, running the snapshots twice under coverage. It is the measure a new synthetic score has to move: writing them took the snapshot tests a contributor can run from 14 to 28, and the whole suite from a fresh checkout now covers 90.9% of lines and 89.1% of branches, against 91.1% and 90.0% with a local suite of nineteen real scores added.
 
 Baselines are reviewed by hand: never regenerate one without checking whether the score itself changed (each baseline stores the `.mscz` mtime in a trailing comment).
 
-`npm run test:package` is the run that matters before a release: it minifies, then drives that same snapshot suite through the **packaged** CLI over all 21 scores, so a minification that changes any output fails. On CI only the committed fixture and the synthetic scores exist, so it covers 24 of those tests there, and the release workflow uses it as its gate before publishing the `.mext`.
+`npm run test:package` is the run that matters before a release: it minifies, then drives the suite through the **packaged** CLI, so a minification that changes any output fails. The release workflow uses it as its gate before publishing the `.mext`.
 
 ## Building the .mext package
 

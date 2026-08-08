@@ -1,12 +1,14 @@
 #!/usr/bin/env node
-// How much of the code only the uncommitted scores reach.
+// How much of the code only a local suite reaches.
 //
-// The snapshot suite reads its scores from test/its/scores/, and git tracks only the
-// synthetic ones. So a contributor, and CI, exercise a subset of the code. This runs the
-// suite twice under coverage, once with every score present and once with only the
-// synthetic ones (LE_ONLY_SYNTHETIC), and reports the branch gap per file.
+// The snapshot suite that travels with the repository reads the synthetic scores in
+// test/its/scores/. A developer may also keep frozen copies of real scores in test/local/, which
+// git ignores. So a contributor, and CI, exercise a subset of the code. This runs the snapshots
+// twice under coverage, once with the repository suite alone and once with the local one added,
+// and reports the branch gap per file.
 //
-// The gap is the target: a synthetic score earns its place by closing part of it.
+// The gap is the target: a synthetic score earns its place by closing part of it. With no local
+// suite present both columns are the same, and the report says so.
 //
 //   node test/its/coverage-gap.js
 //
@@ -14,19 +16,23 @@
 
 var child = require("child_process");
 var path = require("path");
+var fs = require("fs");
 
 var BASE = path.resolve(__dirname, "..", "..");
+var LOCAL_SUITE = path.join(BASE, "test", "local", "its.test.js");
+var hasLocal = fs.existsSync(LOCAL_SUITE);
 
-function coverage(onlySynthetic) {
-    var env = Object.assign({}, process.env);
-    if (onlySynthetic) env.LE_ONLY_SYNTHETIC = "1";
-    else delete env.LE_ONLY_SYNTHETIC;
+// The files each column drives: the repository suite alone, or with the local one added
+function suites(withLocal) {
+    return "test/integration.test.js" + (withLocal && hasLocal ? " test/local/its.test.js" : "");
+}
 
+function coverage(withLocal) {
     var out = child.execSync(
         "node --test --experimental-test-coverage" +
-        " --test-coverage-include='lib/**' --test-coverage-include='score/**'" +
-        " test/integration.test.js",
-        { cwd: BASE, env: env, encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] }
+        " --test-coverage-include='lib/**' --test-coverage-include='score/**' " +
+        suites(withLocal),
+        { cwd: BASE, encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"] }
     );
 
     // Rows look like: "ℹ  formatter.js | 98.33 | 95.91 | 41.67 | 21 24 ..."
@@ -45,28 +51,29 @@ function coverage(onlySynthetic) {
     return { files: files, total: total };
 }
 
-function ran(onlySynthetic) {
-    var env = Object.assign({}, process.env);
-    if (onlySynthetic) env.LE_ONLY_SYNTHETIC = "1";
-    var out = child.execSync("node --test test/integration.test.js", {
-        cwd: BASE, env: env, encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"]
+function ran(withLocal) {
+    var out = child.execSync("node --test " + suites(withLocal), {
+        cwd: BASE, encoding: "utf8", maxBuffer: 1 << 28, stdio: ["ignore", "pipe", "ignore"]
     });
     var pass = (out.match(/^ℹ pass (\d+)/m) || [])[1];
     var skip = (out.match(/^ℹ skipped (\d+)/m) || [])[1];
     return { pass: +pass || 0, skipped: +skip || 0 };
 }
 
-console.log("Measuring, two runs of the snapshot suite under coverage...\n");
+if (!hasLocal) {
+    console.log("No local suite in test/local/, so both columns are the repository suite.\n");
+}
+console.log("Measuring, two runs of the snapshots under coverage...\n");
 
-var all = coverage(false);
-var syn = coverage(true);
-var allRan = ran(false);
-var synRan = ran(true);
+var all = coverage(true);
+var syn = coverage(false);
+var allRan = ran(true);
+var synRan = ran(false);
 
 var names = Object.keys(all.files).sort();
 var pad = Math.max.apply(null, names.map(function(n) { return n.length; }));
 
-console.log("file".padEnd(pad) + "   synthetic   all scores   branch gap");
+console.log("file".padEnd(pad) + "  repository   with local   branch gap");
 console.log("-".repeat(pad + 36));
 names.forEach(function(n) {
     var a = all.files[n];
@@ -94,6 +101,6 @@ console.log(
     "   +" + (all.total.lines - syn.total.lines).toFixed(2)
 );
 console.log(
-    "\nsnapshot tests run: " + synRan.pass + " with the synthetic scores, " +
-    allRan.pass + " with every score present"
+    "\nsnapshot tests run: " + synRan.pass + " from the repository, " +
+    allRan.pass + " with the local suite added"
 );

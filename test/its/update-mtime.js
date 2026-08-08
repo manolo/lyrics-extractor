@@ -1,54 +1,60 @@
 #!/usr/bin/env node
-// Update mtime markers in snapshot .txt files.
-// Scores are the test_le_ copies in test/its/scores/ (kept out of git).
-// Usage:
-//   node test/its/update-mtime.js              # update all snapshots
-//   node test/its/update-mtime.js SongName     # update one song
+// Refresh the mtime marker at the end of each snapshot baseline: the mtime of the .mscz the
+// baseline was taken from, which is what lets a failing test say whether the score changed.
+//
+// It works on whatever baselines are in a directory, so it serves both the suite that travels
+// with the repository and a local one.
+//
+//   node test/its/update-mtime.js                     # the baselines in test/its/
+//   node test/its/update-mtime.js Etiquetas           # just one song
+//   node test/its/update-mtime.js --dir test/local     # a local suite's baselines
 
 var fs = require("fs");
 var path = require("path");
+var snapshot = require("./snapshot");
 
-var SNAPSHOTS_DIR = __dirname;
-var SCORES_DIR = path.join(__dirname, "scores");
-var SCORE_PREFIX = "test_le_";
-var MTIME_PREFIX = "// mscz-mtime: ";
+var args = process.argv.slice(2);
+var dir = __dirname;
+var filter = null;
 
-var SONGS = require("./songs").SONGS;
+for (var a = 0; a < args.length; a++) {
+    if (args[a] === "--dir") { dir = path.resolve(args[++a]); continue; }
+    filter = args[a];
+}
 
-var filter = process.argv[2] || null;
-var songNames = filter ? [filter] : SONGS;
+var scoresDir = path.join(dir, "scores");
+var baselines = snapshot.findBaselines(dir);
+var songs = Object.keys(baselines).sort();
+
+if (songs.length === 0) {
+    console.log("No baselines in " + dir);
+    process.exit(0);
+}
+if (filter && songs.indexOf(filter) < 0) {
+    console.error("No baseline for " + filter + " in " + dir);
+    process.exit(1);
+}
+
 var updated = 0;
+songs.forEach(function(song) {
+    if (filter && song !== filter) return;
 
-songNames.forEach(function(song) {
-    if (SONGS.indexOf(song) < 0) {
-        console.error("Unknown song: " + song);
-        process.exit(1);
-    }
-    var scorePath = path.join(SCORES_DIR, SCORE_PREFIX + song + ".mscz");
+    var scorePath = path.join(scoresDir, snapshot.SCORE_PREFIX + song + ".mscz");
     if (!fs.existsSync(scorePath)) {
         console.log("  SKIP " + song + " (score not found)");
         return;
     }
     var mtime = fs.statSync(scorePath).mtime.toISOString();
 
-    // "orphan" only exists for the songs that have a verse no pass sings, so a missing
-    // file there is the normal case rather than something to report
-    ["compact", "full", "orphan"].forEach(function(mode) {
-        var snapshotPath = path.join(SNAPSHOTS_DIR, SCORE_PREFIX + song + "." + mode + ".txt");
-        if (!fs.existsSync(snapshotPath)) {
-            if (mode !== "orphan") console.log("  SKIP " + song + "." + mode + ".txt (not found)");
-            return;
-        }
-        var content = fs.readFileSync(snapshotPath, "utf8");
-        // Remove existing mtime line if present
-        content = content.replace(/\n\/\/ mscz-mtime: .+\n?$/, "\n");
-        // Ensure trailing newline then append mtime
+    Object.keys(baselines[song]).forEach(function(mode) {
+        var file = baselines[song][mode];
+        var content = fs.readFileSync(file, "utf8")
+            .replace(/\n\/\/ mscz-mtime: .+\n?$/, "\n");
         if (!content.endsWith("\n")) content += "\n";
-        content += MTIME_PREFIX + mtime + "\n";
-        fs.writeFileSync(snapshotPath, content);
+        fs.writeFileSync(file, content + snapshot.MTIME_PREFIX + mtime + "\n");
         updated++;
     });
     console.log("  OK " + song + " -> " + mtime);
 });
 
-console.log("\nUpdated " + updated + " snapshot(s).");
+console.log("\nUpdated " + updated + " baseline(s) in " + dir);

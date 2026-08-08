@@ -5,3 +5,8 @@
 docs/demo.pdf
 node_modules/
 package-lock.json
+
+# The local snapshot suite: frozen copies of real scores, their baselines and the test file that
+# drives them. It is somebody's music, it weighs megabytes, and none of it belongs in a public
+# repository. "npm test" picks it up when it is there and does not miss it when it is not.
+test/local/
