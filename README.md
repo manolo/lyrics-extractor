@@ -231,11 +231,19 @@ npm test          # same as: node --test test/*.test.js
 npm run test:package  # build the package, then run the snapshot suite against its minified CLI
 ```
 
-789 tests covering score readers, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
+804 tests covering score readers, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
 
-The snapshot suites in `test/its/` compare CLI output against baseline `.txt` files. Most of the scores they read are frozen copies of real ones in `test/its/scores/`, kept out of git, so a song whose score is absent simply skips. Two are synthetic, written by the generators next to them, and those two **are** committed: `test_le_MultiVerso.mscz` and `test_le_MalaguenaMini.mscz`, 33K between them, which is what lets CI run their suites. The `.mscz` is the fixture of record and the generator is how it is edited, with `test/synthetic-scores.test.js` failing if the two drift apart. Baselines are reviewed by hand: never regenerate one without checking whether the score itself changed (each baseline stores the `.mscz` mtime in a trailing comment).
+The snapshot suites in `test/its/` compare CLI output against baseline `.txt` files. The scores they read are of two kinds.
 
-`npm run test:package` is the run that matters before a release: it minifies, then drives that same snapshot suite through the **packaged** CLI over all 21 scores, so a minification that changes any output fails. On CI only the committed fixture and the two synthetic scores exist, so it covers 14 of those tests there, and the release workflow uses it as its gate before publishing the `.mext`.
+Frozen copies of real scores live in `test/its/scores/` and are **not** committed, so a song whose score is absent simply skips. They are an extra net for whoever has them.
+
+Synthetic scores **are** committed, one per `build-*.js` generator beside them, and each one exists to reach code the others do not: no lyrics at all, repeats that carry no lyrics, phrases that have to be split, chord spellings, section labels. The `.mscz` is the fixture of record and the generator is how it is edited, with `test/synthetic-scores.test.js` failing if the two drift apart.
+
+`node test/its/coverage-gap.js` reports how much of `lib/` and `score/` only the uncommitted scores reach, running the suite twice under coverage. It is the measure a new synthetic score has to move: adding them took branch coverage from a committed checkout from 72.97% to 79.21%, and the snapshot tests a contributor can run from 14 to 24.
+
+Baselines are reviewed by hand: never regenerate one without checking whether the score itself changed (each baseline stores the `.mscz` mtime in a trailing comment).
+
+`npm run test:package` is the run that matters before a release: it minifies, then drives that same snapshot suite through the **packaged** CLI over all 21 scores, so a minification that changes any output fails. On CI only the committed fixture and the synthetic scores exist, so it covers 24 of those tests there, and the release workflow uses it as its gate before publishing the `.mext`.
 
 ## Building the .mext package
 

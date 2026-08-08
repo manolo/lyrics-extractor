@@ -229,11 +229,19 @@ npm test          # equivalente a: node --test test/*.test.js
 npm run test:package  # construye el paquete y corre los snapshots contra su CLI minificado
 ```
 
-789 tests cubriendo lectores de partitura, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
+804 tests cubriendo lectores de partitura, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
 
-Los tests de snapshot en `test/its/` comparan la salida del CLI con ficheros `.txt` de referencia. La mayoria de las partituras que leen son copias congeladas de partituras reales en `test/its/scores/`, fuera de git, asi que una cancion sin partitura simplemente se omite. Dos son sinteticas, escritas por los generadores que estan al lado, y esas dos **si** se versionan: `test_le_MultiVerso.mscz` y `test_le_MalaguenaMini.mscz`, 33K entre las dos, que es lo que permite a CI correr sus tests. La `.mscz` es la fixture oficial y el generador es como se edita, y `test/synthetic-scores.test.js` falla si las dos se separan. Las referencias se revisan a mano: nunca regenerar una sin comprobar antes si la partitura cambio (cada referencia guarda el mtime del `.mscz` en un comentario final).
+Los tests de snapshot en `test/its/` comparan la salida del CLI con ficheros `.txt` de referencia. Las partituras que leen son de dos clases.
 
-`npm run test:package` es el que importa antes de una release: minifica y luego pasa los mismos snapshots por el CLI empaquetado con las 21 partituras, asi que una minificacion que cambie cualquier salida falla. En CI solo estan el fixture versionado y las dos partituras sinteticas, asi que alli cubre 14 de esos tests, y el workflow de release lo usa como puerta.
+Las copias congeladas de partituras reales viven en `test/its/scores/` y **no** se versionan, asi que una cancion sin partitura simplemente se omite. Son una red extra para quien las tenga.
+
+Las sinteticas **si** se versionan, una por cada generador `build-*.js` que esta al lado, y cada una existe para alcanzar codigo que las demas no tocan: sin letra ninguna, repeticiones sin letra, frases que hay que partir, cifrados de acorde, etiquetas de seccion. La `.mscz` es la fixture oficial y el generador es como se edita, y `test/synthetic-scores.test.js` falla si las dos se separan.
+
+`node test/its/coverage-gap.js` mide cuanto de `lib/` y `score/` alcanzan solo las partituras no versionadas, corriendo la suite dos veces bajo cobertura. Es la medida que una sintetica nueva tiene que mover: añadirlas llevo la cobertura de ramas desde un checkout versionado del 72,97% al 79,21%, y los tests de snapshot que un colaborador puede correr de 14 a 24.
+
+Las referencias se revisan a mano: nunca regenerar una sin comprobar antes si la partitura cambio (cada referencia guarda el mtime del `.mscz` en un comentario final).
+
+`npm run test:package` es el que importa antes de una release: minifica y luego pasa los mismos snapshots por el CLI empaquetado con las 21 partituras, asi que una minificacion que cambie cualquier salida falla. En CI solo estan el fixture versionado y las partituras sinteticas, asi que alli cubre 24 de esos tests, y el workflow de release lo usa como puerta.
 
 ## Construir el paquete .mext
 
