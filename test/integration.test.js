@@ -81,7 +81,12 @@ for (var i = 0; i < songNames.length; i++) {
             var snapshotPath = getSnapshotPath(song, m.mode);
             var label = "IT: " + song + "." + m.mode;
 
-            test(label, { skip: !scoresExist || !fs.existsSync(scorePath) || !fs.existsSync(snapshotPath) }, function() {
+            // LE_ONLY_SYNTHETIC hides the songs whose score is not committed, which is what a
+            // contributor and CI see. test/its/coverage-gap.js runs the suite both ways to
+            // measure how much of the code only the uncommitted scores reach.
+            var hidden = process.env.LE_ONLY_SYNTHETIC && !songs.SYNTHETIC[song];
+
+            test(label, { skip: hidden || !scoresExist || !fs.existsSync(scorePath) || !fs.existsSync(snapshotPath) }, function() {
                 var rawExpected = fs.readFileSync(snapshotPath, "utf8");
                 // Strip mtime comment from expected output for comparison
                 var expected = rawExpected.replace(/\n\/\/ mscz-mtime: .+\n?$/, "\n");
