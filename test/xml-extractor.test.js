@@ -1308,3 +1308,52 @@ test("extractAll can leave text annotations out of the chord line", function() {
     assert.ok(names2.indexOf("Muy-lento") < 0, "annotations should be dropped: " + names2);
     assert.ok(names2.indexOf("C") >= 0, "chords must stay: " + names2);
 });
+
+// ============================================================
+// Repeat counts written as labels
+// ============================================================
+
+// A SystemText carrying only a repeat count, in a bar that also closes a repeat, which is
+// how the score that prompted this writes it
+function repeatCountScore(text) {
+    return [
+        '<?xml version="1.0"?>',
+        '<museScore version="4.60"><Score><Division>480</Division>',
+        '<Staff id="1">',
+        '<Measure><voice>',
+        '<SystemText><text>Estribillo</text></SystemText>',
+        '<Chord><durationType>whole</durationType>',
+        '<Lyrics><text>uno</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>60</pitch></Note></Chord>',
+        '</voice></Measure>',
+        '<Measure><voice>',
+        '<SystemText><text>' + text + '</text></SystemText>',
+        '<Chord><durationType>whole</durationType>',
+        '<Lyrics><text>dos</text><syllabic>single</syllabic></Lyrics>',
+        '<Note><pitch>62</pitch></Note></Chord>',
+        '<endRepeat>2</endRepeat>',
+        '</voice></Measure>',
+        '</Staff></Score></museScore>'
+    ].join("\n");
+}
+
+["3x", "3X", "x3", "X3", "3 x", "x 3", "12x"].forEach(function(text) {
+    test("extractAll skips the label " + JSON.stringify(text) + ", a repeat count", function() {
+        // MuseScore carries the number of passes as the play count of the repeat barline,
+        // and here it says 2 while the text says 3: printing it would state the wrong
+        // number under a section that does not exist
+        var labels = labelsOf(repeatCountScore(text));
+        assert.deepEqual(labels, ["Estribillo"],
+            JSON.stringify(text) + " should not become a section title: " + labels);
+    });
+});
+
+["Estrofa 3x", "3xY", "Solo x2 veces", "x", "3", "Mix"].forEach(function(text) {
+    test("extractAll keeps the label " + JSON.stringify(text), function() {
+        // The filter is anchored to the whole text, so a name that merely contains a count
+        // stays a title. "3" alone is left to the measure-number rule, and here measure 2
+        // does not match it
+        var labels = labelsOf(repeatCountScore(text));
+        assert.deepEqual(labels, ["Estribillo", text], "should stay a title: " + labels);
+    });
+});

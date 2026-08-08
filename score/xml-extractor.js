@@ -193,6 +193,19 @@ function isMeasureNumberMark(tag, text, measureNumber) {
     return parseInt(trimmed, 10) === measureNumber;
 }
 
+// A label that is only a repeat count, "3x" or "x3", says how many times to play a
+// section rather than naming one. MuseScore already carries that as the play count of the
+// repeat barline, and the two can disagree: the score this came from says "3x" on a bar
+// whose endRepeat is 2, and the expansion follows the play count. Printing it as a heading
+// would both invent a section and state the wrong number.
+//
+// Anchored to the whole text, so "Estrofa 3x" is left alone, and not conditioned on the
+// bar carrying a repeat: the count is just as often written on the first bar of the
+// repeated section as on its last, and either way it is not a section name.
+function isRepeatCountLabel(text) {
+    return /^(\d+\s*[xX]|[xX]\s*\d+)$/.test(text.trim());
+}
+
 // Slash-chord bass note TPC, or -99 when the chord has none.
 // MuseScore 4 writes <bass>, MuseScore 3 wrote <base>.
 function bassTpc(hInfo) {
@@ -735,7 +748,8 @@ function extractAll(xmlString, excerptXmls, spelling, options) {
             // System text / Rehearsal mark (staff 0 only) -> section labels
             if ((elem.tag === "SystemText" || elem.tag === "RehearsalMark") && staffId === 0) {
                 var sysText = childText(elem, "text");
-                if (sysText && !isMeasureNumberMark(elem.tag, sysText, mi + 1)) {
+                if (sysText && !isMeasureNumberMark(elem.tag, sysText, mi + 1) &&
+                    !isRepeatCountLabel(sysText)) {
                     systemTexts.push({ tick: voiceTick, text: sysText });
                 }
             }

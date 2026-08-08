@@ -50,7 +50,7 @@ The **Fix** button corrects all issues automatically:
 - Handles repeats, voltas, D.S., D.C., Coda, Fine
 - Expands multi-verse sections (verse 0, verse 1, etc.)
 - Abbreviates repeated sections with "..." or section labels
-- Detects system text labels (INTRO, SOLISTA, ESTRIBILLO) and rehearsal marks as section markers (auto-deduplicates when present on multiple staves). A rehearsal mark whose text is the number of its own measure is skipped: MuseScore names marks that way for rehearsal references, so they mark bars rather than sections
+- Detects system text labels (INTRO, SOLISTA, ESTRIBILLO) and rehearsal marks as section markers (auto-deduplicates when present on multiple staves). Two kinds of text are not section names and are skipped: a rehearsal mark whose text is the number of its own measure, which is how MuseScore names rehearsal references, and a label that is only a repeat count such as `3x` or `x3`, which the repeat barline already carries as its play count
 - Chord names follow the score's spelling setting (solfeo or anglo), no manual conversion needed
 - Works from any tab, including excerpt/part views (uses masterScore automatically)
 
@@ -231,7 +231,7 @@ npm test          # same as: node --test test/*.test.js
 npm run test:package  # build the package, then run the snapshot suite against its minified CLI
 ```
 
-775 tests covering score readers, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
+789 tests covering score readers, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
 
 The snapshot suites in `test/its/` compare CLI output against baseline `.txt` files. Most of the scores they read are frozen copies of real ones in `test/its/scores/`, kept out of git, so a song whose score is absent simply skips. Two are synthetic, written by the generators next to them, and those two **are** committed: `test_le_MultiVerso.mscz` and `test_le_MalaguenaMini.mscz`, 33K between them, which is what lets CI run their suites. The `.mscz` is the fixture of record and the generator is how it is edited, with `test/synthetic-scores.test.js` failing if the two drift apart. Baselines are reviewed by hand: never regenerate one without checking whether the score itself changed (each baseline stores the `.mscz` mtime in a trailing comment).
 

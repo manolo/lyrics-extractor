@@ -417,3 +417,18 @@ test("_extractFretDiagramsFromScore takes first barre only", function() {
     assert.equal(result[0].barre.start, 0);
     assert.equal(result[0].barre.end, 5);
 });
+
+// ============================================================
+// Repeat counts written as labels, QML path
+// ============================================================
+
+test("_isRepeatCountLabel matches a bare repeat count and nothing else", function() {
+    // Kept in step with isRepeatCountLabel in xml-extractor.js: the dialog and the CLI
+    // have to agree on what counts as a section title
+    ["3x", "3X", "x3", "X3", "3 x", "x 3", "12x", " 4x "].forEach(function(t) {
+        assert.equal(msExtractor._isRepeatCountLabel(t), true, JSON.stringify(t) + " is a count");
+    });
+    ["Estrofa 3x", "3xY", "Solo x2 veces", "x", "3", "Mix", "", "Estribillo"].forEach(function(t) {
+        assert.equal(msExtractor._isRepeatCountLabel(t), false, JSON.stringify(t) + " is a title");
+    });
+});

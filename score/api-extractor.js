@@ -725,6 +725,13 @@ function _measureNumberAt(starts, tick) {
 // measure comes from MuseScore's measure numbering sequence and is a rehearsal
 // reference, not a section title. When the measure list cannot be read, every mark
 // stays a title, which is the documented behaviour.
+// See isRepeatCountLabel in xml-extractor.js: a label that is only a repeat count says
+// how many times to play a section, not what it is called, and MuseScore already carries
+// that as the play count of the repeat barline.
+function _isRepeatCountLabel(text) {
+    return /^(\d+\s*[xX]|[xX]\s*\d+)$/.test((text || "").trim());
+}
+
 function _isMeasureNumberMark(text, measureNumber) {
     var trimmed = (text || "").trim();
     if (!/^\d+$/.test(trimmed)) return false;
@@ -751,6 +758,7 @@ function extractSystemTexts() {
                         _isMeasureNumberMark(txt, _measureNumberAt(measureStarts, segment.tick))) {
                         txt = "";
                     }
+                    if (_isRepeatCountLabel(txt)) txt = "";
                     if (txt) {
                         // Deduplicate: same tick+text can appear on multiple staves
                         var dup = false;
@@ -1269,6 +1277,7 @@ if (typeof exports !== "undefined") {
     exports.extractAll = extractAll;
     exports.findStaves = findStaves;
     exports.findPartStaffGroups = findPartStaffGroups;
+    exports._isRepeatCountLabel = _isRepeatCountLabel;
     exports.extractChords = extractChords;
     exports.extractSystemTexts = extractSystemTexts;
     exports._extractFretDiagramsFromScore = _extractFretDiagramsFromScore;

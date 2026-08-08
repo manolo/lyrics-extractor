@@ -48,7 +48,7 @@ El boton **Corregir** arregla todos los problemas automaticamente:
 - Maneja repeticiones, voltas, D.S., D.C., Coda, Fine
 - Expande secciones multi-verso (verso 0, verso 1, etc.)
 - Abrevia secciones repetidas con "..." o etiquetas de seccion
-- Detecta textos de sistema (INTRO, SOLISTA, ESTRIBILLO) y guias de ensayo como marcadores de seccion (deduplica automaticamente cuando aparecen en multiples pentagramas). Una guia de ensayo cuyo texto es el numero de su propio compas se ignora: MuseScore numera asi las referencias de ensayo, que marcan compases y no secciones
+- Detecta textos de sistema (INTRO, SOLISTA, ESTRIBILLO) y guias de ensayo como marcadores de seccion (deduplica automaticamente cuando aparecen en multiples pentagramas). Dos tipos de texto no son nombres de seccion y se ignoran: una guia de ensayo cuyo texto es el numero de su propio compas, que es como MuseScore numera las referencias de ensayo, y una etiqueta que solo es una cuenta de pasadas como `3x` o `x3`, que la barra de repeticion ya lleva como numero de pasadas
 - Los nombres de acordes siguen la ortografia de la partitura (solfeo o anglo), sin conversion manual
 - Funciona desde cualquier pestana, incluyendo vistas de excerpt/particella (usa masterScore automaticamente)
 
@@ -229,7 +229,7 @@ npm test          # equivalente a: node --test test/*.test.js
 npm run test:package  # construye el paquete y corre los snapshots contra su CLI minificado
 ```
 
-775 tests cubriendo lectores de partitura, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
+789 tests cubriendo lectores de partitura, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
 
 Los tests de snapshot en `test/its/` comparan la salida del CLI con ficheros `.txt` de referencia. La mayoria de las partituras que leen son copias congeladas de partituras reales en `test/its/scores/`, fuera de git, asi que una cancion sin partitura simplemente se omite. Dos son sinteticas, escritas por los generadores que estan al lado, y esas dos **si** se versionan: `test_le_MultiVerso.mscz` y `test_le_MalaguenaMini.mscz`, 33K entre las dos, que es lo que permite a CI correr sus tests. La `.mscz` es la fixture oficial y el generador es como se edita, y `test/synthetic-scores.test.js` falla si las dos se separan. Las referencias se revisan a mano: nunca regenerar una sin comprobar antes si la partitura cambio (cada referencia guarda el mtime del `.mscz` en un comentario final).
 
