@@ -9,7 +9,7 @@ scores/*
 # the repository, which is what lets CI run their suites. test/its/synthetic.test.js keeps
 # each of them in step with the generator that produces it.
 !scores/test_le_MultiVerso.mscz
-!scores/test_le_MalaguenaMini.mscz
+!scores/test_le_Navegacion.mscz
 !scores/test_le_SoloAcordes.mscz
 !scores/test_le_VoltasInstrumentales.mscz
 !scores/test_le_LineasLargas.mscz
