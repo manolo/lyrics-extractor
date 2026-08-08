@@ -1,0 +1,18 @@
+==== INTRO SALIDA ====
+
+- INTRO -
+Lam  Re  Sol  Do
+
+- MUSICA -
+Mi7  Lam  Re  Sol  Do  Fa  Sol  Do
+
+- ESTROFA -
+Lam         Sol         Do Mi7
+Ya viene la ronda aqui,
+Lam          Re          Sol Do Fa Mi7
+cantando con mucho amor.
+
+- ESTRIBILLO -
+Lam Rem Do             Sol           Fa Do Sol Lam
+Vuelve,         vuelve mi bien a mi.
+// mscz-mtime: 2026-08-08T21:04:54.749Z
