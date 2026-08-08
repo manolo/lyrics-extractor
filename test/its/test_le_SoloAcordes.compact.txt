@@ -1,0 +1,18 @@
+==== SOLO ACORDES ====
+
+
+- INTRO -
+Lam  Re  Sol  Do
+
+
+- TEMA -
+Lam  Mi7  Rem  Sol7  Do  Fa
+
+
+- SOLO -
+Sim  La7
+
+
+- SOLO BIS -
+Mim  Si7  Lam  Re  Sol  Do  Lam  Mi7
+// mscz-mtime: 2026-08-08T16:42:28.144Z
