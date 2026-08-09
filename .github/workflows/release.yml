@@ -12,10 +12,10 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-      # terser is needed here too: without it test/minify.test.js skips silently, and
+      # terser is needed here too: without it test/unit/minify.test.js skips silently, and
       # those are the tests that keep the release minification honest
       - run: npm install --ignore-scripts
-      - run: node --test test/*.test.js
+      - run: npm test
 
   release:
     needs: test
@@ -38,12 +38,12 @@ jobs:
       - name: Build .mext package
         run: node build.js "${{ steps.version.outputs.version }}" --keep-build
 
-      # Run the CLI tests against the minified tree that was just packaged, not against
-      # the sources: the committed fixture plus the two synthetic scores. The frozen
-      # copies are not committed, so the full sweep of 21 scores against the package
-      # happens with "npm run test:package" locally.
+      # Drive the snapshots through the minified tree that was just packaged rather than
+      # through the sources, so a minification that changes any output fails here. Not
+      # "npm run test:package", which would rebuild the tree as a dev version over the one
+      # this job just made with the release version.
       - name: Test the packaged CLI
-        run: LE_CLI=.build/cli/index.js node --test test/integration.test.js
+        run: LE_CLI=.build/cli/index.js npm test
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3

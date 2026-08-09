@@ -16,8 +16,8 @@ global.Element = {
     FRET_DIAGRAM: 64, BAR_LINE: 10, MARKER: 30, JUMP: 31, VOLTA: 32
 };
 
-var api = require("../score/api-extractor");
-var textUtils = require("../lib/text-utils");
+var api = require("../../score/api-extractor");
+var textUtils = require("../../lib/text-utils");
 api.setTextUtils(textUtils);
 
 // --- stub builders ------------------------------------------------------------

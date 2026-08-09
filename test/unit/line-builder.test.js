@@ -1,6 +1,6 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var lb = require("../lib/line-builder");
+var lb = require("../../lib/line-builder");
 
 test("buildLinesFromWords groups words into lines by phraseBreak", function() {
     var words = [

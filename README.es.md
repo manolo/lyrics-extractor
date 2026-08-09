@@ -213,8 +213,8 @@ score/   lee una partitura de MuseScore, y escribe en ella, un modulo por direcc
 cli/     los dos puntos de entrada: index.js para la linea de comandos, y
          extract-chords.js, que el dialogo lanza para ese fallback
 ui/      el dialogo y su texto de ayuda
-test/    suites unitarias, y test/its/ para el corpus de snapshot y sus referencias.
-           test/local/, si existe, lleva la suite local de cada uno
+test/    unit/ para las suites unitarias, its/ para el corpus de snapshot y sus
+           referencias, y local/, si existe, para la suite propia de cada uno
 ```
 
 Las dependencias van en una sola direccion: `score/` y `cli/` tiran de `lib/`, nunca al
@@ -232,7 +232,7 @@ npm run test:package  # construye el paquete y corre la misma suite contra su CL
 
 820 tests cubriendo lectores de partitura, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
 
-Los tests de snapshot comparan la salida del CLI con ficheros `.txt` de referencia:
+Las suites unitarias estan en `test/unit/`, una por modulo. Al lado, los tests de snapshot comparan la salida del CLI con ficheros `.txt` de referencia:
 
 ```
 test/its/scores/       el corpus, .mscz pequeños, versionados

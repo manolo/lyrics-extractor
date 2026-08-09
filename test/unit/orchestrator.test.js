@@ -1,6 +1,6 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var orch = require("../lib/orchestrator");
+var orch = require("../../lib/orchestrator");
 
 test("processExtraction returns null for empty syllables", function() {
     var result = orch.processExtraction({ syllables: [], chords: [], repeats: [], voltas: [] });

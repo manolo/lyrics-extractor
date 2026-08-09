@@ -1,6 +1,6 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var tu = require("../lib/text-utils");
+var tu = require("../../lib/text-utils");
 
 test("stripHtml removes HTML tags", function() {
     assert.equal(tu.stripHtml('<font size="11"/><font face="Arial"/>los'), "los");

@@ -10,10 +10,10 @@ var test = require("node:test");
 var assert = require("node:assert/strict");
 var path = require("path");
 
-var reader = require("../score/mscz-reader");
-var extractor = require("../score/xml-extractor");
+var reader = require("../../score/mscz-reader");
+var extractor = require("../../score/xml-extractor");
 
-var SCORE = path.join(__dirname, "its", "scores", "test_le_Diagramas.mscz");
+var SCORE = path.join(__dirname, "..", "its", "scores", "test_le_Diagramas.mscz");
 
 function diagrams() {
     var excerpts = reader.readGuitarExcerpts(SCORE).map(function(e) { return e.xml; });

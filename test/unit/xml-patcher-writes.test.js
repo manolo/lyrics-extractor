@@ -11,7 +11,7 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
 
-var patcher = require("../score/xml-patcher");
+var patcher = require("../../score/xml-patcher");
 
 // A score of one pitched staff and its tablature copy, which is the shape the chord sync is
 // about: bars is one entry per bar, each { principal: xml, tab: xml }

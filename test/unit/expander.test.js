@@ -1,6 +1,6 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var exp = require("../lib/expander");
+var exp = require("../../lib/expander");
 
 // ========================================
 // Utility functions (from performance-stream tests)
@@ -410,7 +410,7 @@ test("materialize produces syllables from segments", function() {
 // _titleFromFileName (musescore-api)
 // ========================================
 
-var extractor = require("../score/api-extractor");
+var extractor = require("../../score/api-extractor");
 
 test("titleFromFileName splits camelCase", function() {
     assert.equal(extractor._titleFromFileName("OjosDeEspaña"), "Ojos de España");

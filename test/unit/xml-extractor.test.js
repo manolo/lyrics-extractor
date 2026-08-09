@@ -1,6 +1,6 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var xmlExt = require("../score/xml-extractor");
+var xmlExt = require("../../score/xml-extractor");
 
 var SIMPLE_SCORE = [
     '<?xml version="1.0" encoding="UTF-8"?>',

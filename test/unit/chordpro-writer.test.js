@@ -1,6 +1,6 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var cp = require("../lib/chordpro-writer");
+var cp = require("../../lib/chordpro-writer");
 var M = "\u200B"; // chord line marker
 
 // --- Title ---

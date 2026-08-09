@@ -1,6 +1,6 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var wb = require("../lib/word-builder");
+var wb = require("../../lib/word-builder");
 
 test("buildWords joins syllables into words", function() {
     var syls = [

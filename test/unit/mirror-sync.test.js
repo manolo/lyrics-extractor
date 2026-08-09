@@ -5,9 +5,9 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
 
-var textUtils = require("../lib/text-utils");
-var lineBuilder = require("../lib/line-builder");
-var formatter = require("../lib/formatter");
+var textUtils = require("../../lib/text-utils");
+var lineBuilder = require("../../lib/line-builder");
+var formatter = require("../../lib/formatter");
 
 // --- isLetter: line-builder delegates to text-utils ---
 
@@ -73,8 +73,8 @@ test("injection: findPosForTick (formatter delegates to line-builder)", function
 // --- findChordAtTick: expander keeps a private copy of the chord-utils logic ---
 
 test("mirror: findChordAtTick (expander copy matches chord-utils)", function() {
-    var chordUtils = require("../lib/chord-utils");
-    var expander = require("../lib/expander");
+    var chordUtils = require("../../lib/chord-utils");
+    var expander = require("../../lib/expander");
     var sets = [
         [],
         [{ tick: 0, chord: "Do" }, { tick: 480, chord: "Sol" }],

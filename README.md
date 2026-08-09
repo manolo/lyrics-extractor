@@ -215,8 +215,8 @@ score/   reads a MuseScore score, and writes back into it, one module per direct
 cli/     the two entry points: index.js for the command line, and extract-chords.js,
          which the dialog spawns for that fallback
 ui/      the dialog itself and its help text
-test/    unit suites, plus test/its/ for the snapshot corpus and its baselines.
-         test/local/, when present, holds a developer's own suite
+test/    unit/ for the unit suites, its/ for the snapshot corpus and its
+         baselines, and local/, when present, for a developer's own suite
 ```
 
 Dependencies run one way: `score/` and `cli/` reach into `lib/`, never the reverse. Every
@@ -234,7 +234,7 @@ npm run test:package  # build the package, then run that same suite against its 
 
 820 tests covering score readers, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
 
-The snapshot suite compares CLI output against baseline `.txt` files:
+The unit suites are in `test/unit/`, one per module. Beside them, the snapshot suite compares CLI output against baseline `.txt` files:
 
 ```
 test/its/scores/       the corpus, small .mscz files, committed

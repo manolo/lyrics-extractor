@@ -14,7 +14,7 @@ var fs = require("fs");
 var path = require("path");
 var vm = require("vm");
 
-var BASE = path.resolve(__dirname, "..");
+var BASE = path.resolve(__dirname, "..", "..");
 var RUNTIME_DIRS = ["lib", "score", "cli"];
 
 var terser = null;
@@ -117,12 +117,12 @@ test("minified modules keep the names the QML dialog calls", { skip: !terser }, 
 
 test("minified output produces the same text as the sources", { skip: !terser }, function() {
     // End to end on the committed fixture: same data through both, byte for byte
-    var msczReader = require("../score/mscz-reader");
-    var xmlExtractor = require("../score/xml-extractor");
-    var fixture = path.join(__dirname, "fixture.mscz");
+    var msczReader = require("../../score/mscz-reader");
+    var xmlExtractor = require("../../score/xml-extractor");
+    var fixture = path.join(__dirname, "..", "fixture.mscz");
     var data = xmlExtractor.extractAll(msczReader.readScore(fixture));
 
-    var plain = require("../lib/orchestrator").processExtraction(JSON.parse(JSON.stringify(data)));
+    var plain = require("../../lib/orchestrator").processExtraction(JSON.parse(JSON.stringify(data)));
     var small = loadFrom(
         minify(fs.readFileSync(path.join(BASE, "lib/orchestrator.js"), "utf8"), "lib/orchestrator.js"),
         "lib/orchestrator.js"

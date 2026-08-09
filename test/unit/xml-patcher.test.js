@@ -2,10 +2,10 @@ var test = require("node:test");
 var assert = require("node:assert/strict");
 var path = require("path");
 var fs = require("fs");
-var msczReader = require("../score/mscz-reader");
-var xmlExtractor = require("../score/xml-extractor");
-var xmlPatcher = require("../score/xml-patcher");
-var lyricsFixer = require("../lib/lyrics-fixer");
+var msczReader = require("../../score/mscz-reader");
+var xmlExtractor = require("../../score/xml-extractor");
+var xmlPatcher = require("../../score/xml-patcher");
+var lyricsFixer = require("../../lib/lyrics-fixer");
 
 // ============================================================
 // extractForFixer
@@ -122,7 +122,7 @@ test("extractForFixer extracts chords with harmonyInfo format", function() {
 // writeMscz round-trip
 // ============================================================
 
-var FIXTURE_PATH = path.join(__dirname, "fixture.mscz");
+var FIXTURE_PATH = path.join(__dirname, "..", "fixture.mscz");
 
 test("writeMscz preserves content in round-trip", function() {
     var original = msczReader.readScore(FIXTURE_PATH);

@@ -1,6 +1,6 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var cu = require("../lib/chord-utils");
+var cu = require("../../lib/chord-utils");
 
 var chords = [
     { tick: 0, chord: "Lam" },
@@ -649,7 +649,7 @@ test("detectSolfeo skips empty chords", function() {
 // ========================================
 // tpcToChordName (direct extraction in target language)
 // ========================================
-var Constants = require("../lib/constants");
+var Constants = require("../../lib/constants");
 
 // ========================================
 // chordToTpc: parse chord name to root TPC + quality

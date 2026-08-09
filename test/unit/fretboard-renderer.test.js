@@ -9,7 +9,7 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
 
-var fr = require("../lib/fretboard-renderer");
+var fr = require("../../lib/fretboard-renderer");
 
 function esc(s) { return s.replace(/([()\\])/g, "\\$1"); }
 

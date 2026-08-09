@@ -8,7 +8,7 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
 
-var patcher = require("../score/api-patcher");
+var patcher = require("../../score/api-patcher");
 
 var ELEMENT = { CHORD: 93, REST: 25, HARMONY: 11 };
 

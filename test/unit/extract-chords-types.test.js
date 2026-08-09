@@ -21,7 +21,7 @@ global.Element = {
     VOLTA: 80
 };
 
-var msExtractor = require("../score/api-extractor");
+var msExtractor = require("../../score/api-extractor");
 
 // Build a single-segment score with the given annotations.
 // Each annotation may have: type, text, track, harmonyPlainText.

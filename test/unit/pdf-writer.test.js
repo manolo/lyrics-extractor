@@ -1,7 +1,7 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var pdf = require("../lib/pdf-writer");
-var fmt = require("../lib/formatter");
+var pdf = require("../../lib/pdf-writer");
+var fmt = require("../../lib/formatter");
 
 // Chord lines are identified by a zero-width space marker prefix (added by formatter)
 var M = fmt.CHORD_LINE_MARKER;

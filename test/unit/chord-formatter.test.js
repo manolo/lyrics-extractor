@@ -1,6 +1,6 @@
 var test = require("node:test");
 var assert = require("node:assert/strict");
-var cf = require("../lib/chord-formatter");
+var cf = require("../../lib/chord-formatter");
 
 test("formatChordOnly returns null when no chords", function() {
     assert.equal(cf.formatChordOnly({ chords: [], division: 480 }), null);
