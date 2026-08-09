@@ -76,8 +76,11 @@ if (version !== "dev") {
 }
 fs.writeFileSync(BUILD + "/ui/LyricsForm.qml", qmlSrc);
 
-// Static files
+// Static files. The license travels with the package: "you should have received a copy of the
+// GNU General Public License along with this program" is a condition of shipping it, and the
+// .mext is the only thing most users ever receive.
 fs.copyFileSync("logo.png", BUILD + "/logo.png");
+fs.copyFileSync("LICENSE", BUILD + "/LICENSE");
 
 var manifest = fs.readFileSync("manifest.json", "utf8");
 if (version !== "dev") {
