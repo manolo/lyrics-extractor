@@ -42,10 +42,15 @@ function languages() {
 
 // Fill {placeholders} from params. An unknown one is left as it stands rather than printed as
 // "undefined": a translator who invents a placeholder sees their own text, not a defect.
+//
+// The value is read straight off the object rather than through hasOwnProperty, which the QML
+// engine does not offer on every object it hands over: the first version of this used it and
+// the dialog printed "Debug exportado: {path}".
 function _fill(text, params) {
     if (!params) return text;
     return text.replace(/\{([a-zA-Z0-9_]+)\}/g, function(whole, name) {
-        return params.hasOwnProperty(name) ? String(params[name]) : whole;
+        var value = params[name];
+        return (value === undefined || value === null) ? whole : String(value);
     });
 }
 

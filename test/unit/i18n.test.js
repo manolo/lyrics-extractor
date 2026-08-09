@@ -71,6 +71,25 @@ test("placeholders are filled, and an unknown one is left alone", function() {
         "a translator who invents a placeholder sees their own text, not undefined");
 });
 
+test("a placeholder with nothing to put in it is left as it stands", function() {
+    // The value is read straight off the object: the first version asked hasOwnProperty, which
+    // the QML engine does not offer on every object it hands over, and the dialog printed
+    // "Debug exportado: {path}" with the path missing
+    i18n._reset();
+    i18n.register("en", { "p": "saved to {path}" });
+
+    assert.equal(i18n.t("p", { path: "/tmp/a.txt" }), "saved to /tmp/a.txt");
+    assert.equal(i18n.t("p", {}), "saved to {path}", "nothing to fill it with");
+    assert.equal(i18n.t("p", { path: undefined }), "saved to {path}", "nor an empty value");
+    assert.equal(i18n.t("p"), "saved to {path}", "nor no params at all");
+    assert.equal(i18n.t("p", { path: 0 }), "saved to 0", "but zero is a value");
+
+    var bare = Object.create(null);   // an object with no prototype, so no hasOwnProperty
+    bare.path = "/tmp/b.txt";
+    assert.equal(i18n.t("p", bare), "saved to /tmp/b.txt",
+        "whatever the caller hands over, the value is read off it directly");
+});
+
 test("a translation may order the placeholders as its language needs", function() {
     i18n._reset();
     i18n.register("en", { "p": "{count} chords in {file}" });

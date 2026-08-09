@@ -13,3 +13,6 @@ test/local/
 
 # editor leftovers
 *.swp
+
+# MuseScore leaves these beside whatever score it has open
+*.autosave
