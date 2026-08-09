@@ -1,3 +1,10 @@
+// Lyrics Extractor for MuseScore
+// Copyright (C) 2026 Manolo Carrasco (do2tis)
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Licensed under the GNU General Public License version 3 or later, with an
+// additional attribution requirement under section 7(b): see LICENSE.
+
 import QtQuick 2.9
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
@@ -1187,7 +1194,10 @@ MuseScore {
                 height: 40
 
                 Text {
-                    text: "\u00A9 2026 Manolo Carrasco (do2tis) - v" + version
+                    // The Appropriate Legal Notice the license asks an interactive program to
+                    // display, and the attribution its section 7(b) term requires be kept here.
+                    // Not translated: a name and a license identifier read the same everywhere.
+                    text: "\u00A9 2026 Manolo Carrasco (do2tis) - v" + version + " - GPL-3.0-or-later"
                     font.pixelSize: 11
                     color: systemPalette.windowText
                     anchors.left: parent.left

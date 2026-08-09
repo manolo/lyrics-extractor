@@ -1,3 +1,10 @@
+// Lyrics Extractor for MuseScore
+// Copyright (C) 2026 Manolo Carrasco (do2tis)
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Licensed under the GNU General Public License version 3 or later, with an
+// additional attribution requirement under section 7(b): see LICENSE.
+
 // Patch lyrics in .mscx XML using lyrics-fixer results.
 // Uses extractForFixer for analysis (correct grouping), then patches XML directly.
 

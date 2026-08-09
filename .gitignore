@@ -16,3 +16,8 @@ test/local/
 
 # MuseScore leaves these beside whatever score it has open
 *.autosave
+
+# output the CLI leaves beside a score it was pointed at
+*-lyrics.txt
+*-lyrics.cho
+*-lyrics.pdf

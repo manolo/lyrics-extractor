@@ -1,3 +1,10 @@
+// Lyrics Extractor for MuseScore
+// Copyright (C) 2026 Manolo Carrasco (do2tis)
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Licensed under the GNU General Public License version 3 or later, with an
+// additional attribution requirement under section 7(b): see LICENSE.
+
 // score/xml-patcher.js is the only code in the project that writes into the user's score, and
 // it was the worst covered file of the project at 60.80% of branches: the Fix button is driven
 // by hand in MuseScore, and the snapshot suite only ever reads.

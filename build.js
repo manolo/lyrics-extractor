@@ -1,4 +1,11 @@
 #!/usr/bin/env node
+// Lyrics Extractor for MuseScore
+// Copyright (C) 2026 Manolo Carrasco (do2tis)
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Licensed under the GNU General Public License version 3 or later, with an
+// additional attribution requirement under section 7(b): see LICENSE.
+
 // Build lyrics-extractor-<version>.mext: package the extension for MuseScore 4.
 //
 // File names and relative paths are the ones in the working tree, so the QML imports
@@ -110,7 +117,13 @@ function writeJs(src, dest) {
     var result = terser.minify_sync(code, {
         compress: true,
         mangle: false,
-        format: { comments: false }
+        // Every comment goes except the license header: a package that dropped it would be
+        // distributing the work without the notice the license requires it to carry
+        format: {
+            comments: function(node, comment) {
+                return /SPDX-License-Identifier|Copyright \(C\)/.test(comment.value);
+            }
+        }
     });
     if (result.error) throw new Error(src + ": " + result.error);
     fs.writeFileSync(dest, result.code + "\n");

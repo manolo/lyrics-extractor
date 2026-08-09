@@ -332,4 +332,17 @@ The release workflow (`release.yml`) runs tests and then calls `build.js` with t
 
 ## License
 
-GNU General Public License, version 3 or later, see [LICENSE](LICENSE). Copyright (C) 2026 Manolo Carrasco (do2tis)
+GNU General Public License, version 3 or later, the same license as MuseScore Studio itself. See
+[LICENSE](LICENSE). Copyright (C) 2026 Manolo Carrasco (do2tis).
+
+You may use, study, share and modify this, and you must pass those same freedoms on: a modified
+version has to be free software too, with its source available.
+
+One additional requirement, under section 7(b) of the license, and it is about credit only:
+
+> You must preserve the author attribution in the dialog of the plugin, where it is displayed
+> today, and in the credit line printed on every page of the documents the program generates.
+> If you modify the program you may add your own attribution beside it, but you may not remove
+> or obscure the original one.
+
+Adding to the credit is welcome. Replacing it is the one thing this license does not allow.

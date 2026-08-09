@@ -1,3 +1,10 @@
+// Lyrics Extractor for MuseScore
+// Copyright (C) 2026 Manolo Carrasco (do2tis)
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Licensed under the GNU General Public License version 3 or later, with an
+// additional attribution requirement under section 7(b): see LICENSE.
+
 // English, the reference dictionary. Every other language is a JSON file beside this one and
 // needs to carry only what it translates: whatever it leaves out is read from here.
 //

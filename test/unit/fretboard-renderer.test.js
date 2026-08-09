@@ -1,3 +1,10 @@
+// Lyrics Extractor for MuseScore
+// Copyright (C) 2026 Manolo Carrasco (do2tis)
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Licensed under the GNU General Public License version 3 or later, with an
+// additional attribution requirement under section 7(b): see LICENSE.
+
 // lib/fretboard-renderer.js draws the chord diagrams into the PDF, and it was the least
 // covered file in the project at 17% of lines: the snapshot suite compares text, so nothing
 // it draws is ever looked at. These are pure functions returning PDF content stream

@@ -1,3 +1,10 @@
+// Lyrics Extractor for MuseScore
+// Copyright (C) 2026 Manolo Carrasco (do2tis)
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Licensed under the GNU General Public License version 3 or later, with an
+// additional attribution requirement under section 7(b): see LICENSE.
+
 // Chord diagrams are read from the guitar part of the score and drawn in the PDF, so the text
 // snapshots cannot see them: test_le_FretDiagrams.mscz would raise the coverage of
 // score/xml-extractor.js without checking a single value. This reads that score back and

@@ -1,7 +1,30 @@
+// Lyrics Extractor for MuseScore
+// Copyright (C) 2026 Manolo Carrasco (do2tis)
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Licensed under the GNU General Public License version 3 or later, with an
+// additional attribution requirement under section 7(b): see LICENSE.
+
 var test = require("node:test");
 var assert = require("node:assert/strict");
 var cp = require("../../lib/chordpro-writer");
 var M = "\u200B"; // chord line marker
+
+// Every file opens with the credit as source comment lines. What the tests below are about is
+// what comes after it.
+function body(out) { return out.replace(/^(#[^\n]*\n)+/, ""); }
+
+// --- The credit ---
+
+test("the file opens with the credit, as lines no renderer prints", function() {
+    var out = cp.convert("hello\n");
+    var lines = out.split("\n");
+
+    assert.equal(lines[0].charAt(0), "#", "a source comment, not a {comment:} directive: " + lines[0]);
+    assert.ok(out.indexOf("Manolo Carrasco (do2tis)") >= 0, "the author is named");
+    assert.ok(out.indexOf("{c") < 0 || out.indexOf("{comment") > out.indexOf("Carrasco"),
+        "nothing about the credit is rendered onto the sheet");
+});
 
 // --- Title ---
 
@@ -119,13 +142,12 @@ test("handles prettified chords with flat symbol", function() {
 
 test("passes through empty lines", function() {
     var input = "line1\n\nline2\n";
-    var out = cp.convert(input);
-    assert.equal(out, input);
+    assert.equal(body(cp.convert(input)), input);
 });
 
 test("passes through plain text (abbreviated stanzas)", function() {
     var input = "hello world...\n";
-    var out = cp.convert(input);
+    var out = body(cp.convert(input));
     assert.equal(out, input);
 });
 

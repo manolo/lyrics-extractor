@@ -1,3 +1,10 @@
+// Lyrics Extractor for MuseScore
+// Copyright (C) 2026 Manolo Carrasco (do2tis)
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Licensed under the GNU General Public License version 3 or later, with an
+// additional attribution requirement under section 7(b): see LICENSE.
+
 // The dialog speaks whatever languages are in ui/i18n/, and nobody can run the dialog from a
 // test: the QML needs MuseScore. What can be checked here is everything except the drawing,
 // and that is where translations actually break.

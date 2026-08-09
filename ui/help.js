@@ -1,3 +1,10 @@
+// Lyrics Extractor for MuseScore
+// Copyright (C) 2026 Manolo Carrasco (do2tis)
+// SPDX-License-Identifier: GPL-3.0-or-later
+//
+// Licensed under the GNU General Public License version 3 or later, with an
+// additional attribution requirement under section 7(b): see LICENSE.
+
 // The help page: its shape here, its words in ui/i18n/. What a translator opens is a list of
 // sentences, not a table, and a translation that stops halfway loses those rows to English
 // rather than the whole page.
