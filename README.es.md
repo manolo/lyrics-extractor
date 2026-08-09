@@ -213,8 +213,8 @@ score/   lee una partitura de MuseScore, y escribe en ella, un modulo por direcc
 cli/     los dos puntos de entrada: index.js para la linea de comandos, y
          extract-chords.js, que el dialogo lanza para ese fallback
 ui/      el dialogo y su texto de ayuda
-test/    suites unitarias, y test/its/ para las de snapshot con las partituras
-           sinteticas. test/local/, si existe, lleva la suite local de cada uno
+test/    suites unitarias, y test/its/ para el corpus de snapshot y sus referencias.
+           test/local/, si existe, lleva la suite local de cada uno
 ```
 
 Las dependencias van en una sola direccion: `score/` y `cli/` tiran de `lib/`, nunca al
@@ -232,16 +232,27 @@ npm run test:package  # construye el paquete y corre la misma suite contra su CL
 
 820 tests cubriendo lectores de partitura, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
 
-Los tests de snapshot en `test/its/` comparan la salida del CLI con ficheros `.txt` de referencia. Todas las partituras que leen son sinteticas y se versionan, una por cada generador `build-*.js` que esta al lado, y cada una existe para alcanzar codigo que las demas no tocan: sin letra ninguna, repeticiones sin letra, frases que hay que partir, cifrados de acorde, etiquetas de seccion, intros e interludios instrumentales, diagramas de acorde en la part de guitarra. La `.mscz` es la fixture oficial y el generador es como se edita, y `test/synthetic-scores.test.js` falla si las dos se separan.
+Los tests de snapshot comparan la salida del CLI con ficheros `.txt` de referencia:
 
-`test/its/snapshot.js` es quien las corre, y no sabe ningun nombre: una cancion entra porque existe una referencia suya, y un modo se ejecuta porque existe la referencia de ese modo. Asi que quien quiera probar contra partituras reales pone copias congeladas en `test/local/scores/`, genera las referencias al lado, y añade un fichero suyo:
-
-```js
-// test/local/its.test.js
-require("../its/snapshot").define({ label: "local", baselinesDir: __dirname });
+```
+test/its/scores/       el corpus, .mscz pequeños, versionados
+test/its/baselines/    lo que el CLI tiene que imprimir para cada uno
 ```
 
-El `.gitignore` de la raiz excluye `test/local/` entero, asi que ningun titulo, nombre de fichero ni letra de esa musica llega al repositorio, y `npm test` la corre cuando esta sin echarla de menos cuando no.
+Cada partitura del corpus existe para alcanzar codigo que las demas no tocan: sin letra ninguna, repeticiones sin letra, frases que hay que partir, cifrados de acorde, etiquetas de seccion, intros e interludios instrumentales, diagramas de acorde en la part de guitarra. De donde salieron no es asunto del repositorio: son las fixtures oficiales, y bien puede ser que el mantenedor dibujara alguna a mano en MuseScore.
+
+`test/its/snapshot.js` es quien las corre, y no sabe ningun nombre: una cancion entra porque existe una referencia suya, y un modo se ejecuta porque existe la referencia de ese modo. Asi que añadir una partitura es copiarla y generar sus referencias, sin ninguna lista que editar.
+
+Eso es tambien lo que permite mantener una suite propia al lado, en una carpeta que git ignora entera:
+
+```
+test/local/scores/      copias congeladas de partituras reales
+test/local/baselines/   sus referencias
+test/local/generators/  los scripts que escriben el corpus de test/its/scores
+test/local/local.test.js
+```
+
+`npm test` es un glob recursivo, asi que esa suite corre cuando esta y no se echa de menos cuando no: nada en `package.json` la nombra. Ninguna letra de esa musica llega al repositorio, y los generadores se quedan alli tambien, de modo que el corpus vale por lo que cubre y no por como se escribio.
 
 `node test/its/coverage-gap.js` mide cuanto de `lib/` y `score/` alcanza solo una suite local, corriendo los snapshots dos veces bajo cobertura. Es la medida que una sintetica nueva tiene que mover: escribirlas llevo los tests de snapshot que un colaborador puede correr de 14 a 28, y la suite entera desde un checkout limpio cubre ahora el 90,9% de lineas y el 89,1% de ramas, frente al 91,1% y el 90,0% con una suite local de diecinueve partituras reales.
 

@@ -1,18 +1,3 @@
-# Only the synthetic scores belong here, and they are all committed: this directory holds the
-# fixtures that travel with the repository. Frozen copies of real scores go in test/local/,
-# which the root .gitignore excludes whole.
-#
-# Written as scores/* rather than scores/, so the exceptions below can apply: git cannot
-# re-include a file whose parent directory is itself excluded. The list is the belt;
-# test/synthetic-scores.test.js is the braces, failing if this directory ever holds anything
-# else in git.
-scores/*
-!scores/test_le_Cifrados.mscz
-!scores/test_le_Diagramas.mscz
-!scores/test_le_Etiquetas.mscz
-!scores/test_le_IntroSalida.mscz
-!scores/test_le_LineasLargas.mscz
-!scores/test_le_MultiVerso.mscz
-!scores/test_le_Navegacion.mscz
-!scores/test_le_SoloAcordes.mscz
-!scores/test_le_VoltasInstrumentales.mscz
+# MuseScore writes its backups next to whatever score it opens, which is how a copy of a corpus
+# score, mid edit, ends up here
+scores/.mscbackup/

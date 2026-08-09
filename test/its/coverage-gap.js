@@ -19,12 +19,12 @@ var path = require("path");
 var fs = require("fs");
 
 var BASE = path.resolve(__dirname, "..", "..");
-var LOCAL_SUITE = path.join(BASE, "test", "local", "its.test.js");
+var LOCAL_SUITE = path.join(BASE, "test", "local", "local.test.js");
 var hasLocal = fs.existsSync(LOCAL_SUITE);
 
 // The files each column drives: the repository suite alone, or with the local one added
 function suites(withLocal) {
-    return "test/integration.test.js" + (withLocal && hasLocal ? " test/local/its.test.js" : "");
+    return "test/integration.test.js" + (withLocal && hasLocal ? " test/local/local.test.js" : "");
 }
 
 function coverage(withLocal) {

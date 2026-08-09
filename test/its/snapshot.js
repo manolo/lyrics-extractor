@@ -57,13 +57,13 @@ function baselineMtime(baselinePath) {
 
 // opts:
 //   baselinesDir  where the .txt files are
-//   scoresDir     where the .mscz files are, defaults to <baselinesDir>/scores
+//   scoresDir     where the .mscz files are, defaults to <baselinesDir>/../scores
 //   cli           path to the CLI to drive, defaults to the one in this checkout
 //   label         prefix for the test names, defaults to "IT"
 //   note          optional function(song) returning extra text for a failure message
 function define(opts) {
     var baselinesDir = opts.baselinesDir;
-    var scoresDir = opts.scoresDir || path.join(baselinesDir, "scores");
+    var scoresDir = opts.scoresDir || path.join(baselinesDir, "..", "scores");
     var cli = opts.cli || path.join(__dirname, "..", "..", "cli", "index.js");
     var label = opts.label || "IT";
 

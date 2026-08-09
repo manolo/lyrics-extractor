@@ -215,8 +215,8 @@ score/   reads a MuseScore score, and writes back into it, one module per direct
 cli/     the two entry points: index.js for the command line, and extract-chords.js,
          which the dialog spawns for that fallback
 ui/      the dialog itself and its help text
-test/    unit suites, plus test/its/ for the snapshot ones over the synthetic
-         scores. test/local/, when present, holds a developer's own suite
+test/    unit suites, plus test/its/ for the snapshot corpus and its baselines.
+         test/local/, when present, holds a developer's own suite
 ```
 
 Dependencies run one way: `score/` and `cli/` reach into `lib/`, never the reverse. Every
@@ -234,16 +234,27 @@ npm run test:package  # build the package, then run that same suite against its 
 
 820 tests covering score readers, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
 
-The snapshot suite in `test/its/` compares CLI output against baseline `.txt` files. Every score it reads is synthetic and committed, one per `build-*.js` generator beside it, and each exists to reach code the others do not: no lyrics at all, repeats that carry no lyrics, phrases that have to be split, chord spellings, section labels, instrumental intros and interludes, chord diagrams in the guitar part. The `.mscz` is the fixture of record and the generator is how it is edited, with `test/synthetic-scores.test.js` failing if the two drift apart.
+The snapshot suite compares CLI output against baseline `.txt` files:
 
-`test/its/snapshot.js` drives them, and it is told nothing: a song is snapshotted because a baseline exists for it, and a mode runs because that mode's baseline exists. So a developer who wants to test against real scores puts frozen copies in `test/local/scores/`, generates baselines beside them, and adds a file of their own:
-
-```js
-// test/local/its.test.js
-require("../its/snapshot").define({ label: "local", baselinesDir: __dirname });
+```
+test/its/scores/       the corpus, small .mscz files, committed
+test/its/baselines/    what the CLI must print for each of them
 ```
 
-The root `.gitignore` excludes `test/local/` whole, so no title, filename or lyric of that music reaches the repository, and `npm test` runs it when it is there without missing it when it is not.
+Each score in the corpus exists to reach code the others do not: no lyrics at all, repeats that carry no lyrics, phrases that have to be split, chord spellings, section labels, instrumental intros and interludes, chord diagrams in the guitar part. How they were made is not the repository's business: they are the fixtures of record, and a maintainer may well have drawn one by hand in MuseScore.
+
+`test/its/snapshot.js` drives them, and it is told nothing: a song is snapshotted because a baseline exists for it, and a mode runs because that mode's baseline exists. So adding a score is copying it in and generating its baselines, with no list to edit.
+
+That is also what lets a developer keep a suite of their own beside it, in a folder git ignores whole:
+
+```
+test/local/scores/      frozen copies of real scores
+test/local/baselines/   their baselines
+test/local/generators/  scripts that write the corpus in test/its/scores
+test/local/local.test.js
+```
+
+`npm test` is a recursive glob, so that suite runs when it is there and is not missed when it is not: nothing in `package.json` refers to it. Nothing about that music reaches the repository, and the generators stay there too, so what the corpus is worth is judged by what it covers rather than by how it was written.
 
 `node test/its/coverage-gap.js` reports how much of `lib/` and `score/` only a local suite reaches, running the snapshots twice under coverage. It is the measure a new synthetic score has to move: writing them took the snapshot tests a contributor can run from 14 to 28, and the whole suite from a fresh checkout now covers 90.9% of lines and 89.1% of branches, against 91.1% and 90.0% with a local suite of nineteen real scores added.
 

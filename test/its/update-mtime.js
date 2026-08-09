@@ -5,16 +5,18 @@
 // It works on whatever baselines are in a directory, so it serves both the suite that travels
 // with the repository and a local one.
 //
-//   node test/its/update-mtime.js                     # the baselines in test/its/
-//   node test/its/update-mtime.js Etiquetas           # just one song
-//   node test/its/update-mtime.js --dir test/local     # a local suite's baselines
+//   node test/its/update-mtime.js                              # test/its/baselines
+//   node test/its/update-mtime.js Etiquetas                    # just one song
+//   node test/its/update-mtime.js --dir test/local/baselines    # a local suite's baselines
+//
+// The scores are looked for in ../scores of whatever baselines directory it is given.
 
 var fs = require("fs");
 var path = require("path");
 var snapshot = require("./snapshot");
 
 var args = process.argv.slice(2);
-var dir = __dirname;
+var dir = path.join(__dirname, "baselines");
 var filter = null;
 
 for (var a = 0; a < args.length; a++) {
@@ -22,7 +24,7 @@ for (var a = 0; a < args.length; a++) {
     filter = args[a];
 }
 
-var scoresDir = path.join(dir, "scores");
+var scoresDir = path.join(dir, "..", "scores");
 var baselines = snapshot.findBaselines(dir);
 var songs = Object.keys(baselines).sort();
 
