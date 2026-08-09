@@ -45,8 +45,16 @@ jobs:
       - name: Test the packaged CLI
         run: LE_CLI=.build/cli/index.js npm test
 
+      # A copy under a name with no version in it, so that
+      # releases/latest/download/lyrics-extractor.mext is a link that never has to be edited
+      # again: it is what the plugin page on musescore.org points at.
+      - name: Copy the package to a version-less name
+        run: cp lyrics-extractor-${{ steps.version.outputs.version }}.mext lyrics-extractor.mext
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          files: lyrics-extractor-${{ steps.version.outputs.version }}.mext
+          files: |
+            lyrics-extractor-${{ steps.version.outputs.version }}.mext
+            lyrics-extractor.mext
           generate_release_notes: true
