@@ -169,8 +169,8 @@ node cli/index.js cancion.mscz --chords-only                # solo progresion de
 
 | Flag | Descripcion |
 |------|-------------|
-| `--save` | Guardar como `<partitura>-letra.txt` junto al .mscz |
-| `--pdf` | Generar PDF como `<partitura>-letra.pdf` |
+| `--save` | Guardar como `<partitura>-lyrics.txt` junto al .mscz |
+| `--pdf` | Generar PDF como `<partitura>-lyrics.pdf` |
 | `--single` | Ajustar a una pagina (reduce espaciado y luego fuente) |
 | `--header <nombre>` | Texto alineado a la derecha en cada pagina |
 | `--footer <nombre>` | Texto centrado al pie de cada pagina |

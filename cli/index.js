@@ -41,8 +41,8 @@ function main() {
         console.log("By default, output goes to stdout.");
         console.log("");
         console.log("Flags:");
-        console.log("  --save              Save to <score>-letra.txt alongside the score");
-        console.log("  --pdf               Generate PDF to <score>-letra.pdf");
+        console.log("  --save              Save to <score>-lyrics.txt alongside the score");
+        console.log("  --pdf               Generate PDF to <score>-lyrics.pdf");
         console.log("  --header <name>     Right-aligned header on every PDF page");
         console.log("  --footer <name>     Centered footer on every PDF page");
         console.log("  --numbers           Add line numbers in PDF output");
@@ -70,8 +70,8 @@ function main() {
         console.log("");
         console.log("Examples:");
         console.log("  cli/index.js song.mscz                          # stdout");
-        console.log("  cli/index.js song.mscz --save                   # writes song-letra.txt");
-        console.log("  cli/index.js --pdf song.mscz                    # writes song-letra.pdf");
+        console.log("  cli/index.js song.mscz --save                   # writes song-lyrics.txt");
+        console.log("  cli/index.js --pdf song.mscz                    # writes song-lyrics.pdf");
         console.log("  cli/index.js --pdf --header \"My Band\" song.mscz # PDF with header");
         console.log("  cli/index.js --pdf --footer \"My Band\" song.mscz # PDF with footer");
         console.log("  cli/index.js --compact song.mscz                # abbreviate repeats");
@@ -111,7 +111,7 @@ function main() {
     var outputPath = null;
     if (flags.indexOf("--save") >= 0) {
         var ext = path.extname(inputPath);
-        outputPath = inputPath.replace(ext, "-letra.txt");
+        outputPath = inputPath.replace(ext, "-lyrics.txt");
     }
     if (positional.length > 1 && positional[1].match(/\.txt$/i)) {
         outputPath = path.resolve(positional[1]);
@@ -354,7 +354,7 @@ function main() {
     // PDF output
     if (pdfMode) {
         var pdfExt = path.extname(inputPath);
-        var pdfPath = inputPath.replace(pdfExt, "-letra.pdf");
+        var pdfPath = inputPath.replace(pdfExt, "-lyrics.pdf");
         var pdfOptions = {
             header: headerName,
             footer: footerName,
@@ -371,7 +371,7 @@ function main() {
     // ChordPro output (convert before stripping markers, since markers identify chord lines)
     if (chordproMode) {
         var cpExt = path.extname(inputPath);
-        var cpPath = inputPath.replace(cpExt, "-letra.cho");
+        var cpPath = inputPath.replace(cpExt, "-lyrics.cho");
         var cpOutput = chordproWriter.convert(output, { key: data.key });
         fs.writeFileSync(cpPath, cpOutput, "utf8");
         console.error("ChordPro written to: " + cpPath);

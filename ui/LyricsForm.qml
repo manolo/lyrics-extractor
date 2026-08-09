@@ -567,7 +567,7 @@ MuseScore {
     function saveLyricsToFile(content) {
         if (!content) return;
 
-        var savedPath = tryWriteFile(content, buildSaveCandidates("-letra.txt"));
+        var savedPath = tryWriteFile(content, buildSaveCandidates("-lyrics.txt"));
         if (!savedPath) {
             statusText.isError = true;
             statusText.text = tr("Error guardando texto", "Error saving text");
@@ -583,7 +583,7 @@ MuseScore {
         if (!content) return;
 
         var cpOutput = ChordProWriter.convert(content, { key: extractedKey });
-        var savedPath = tryWriteFile(cpOutput, buildSaveCandidates("-letra.cho"));
+        var savedPath = tryWriteFile(cpOutput, buildSaveCandidates("-lyrics.cho"));
         if (!savedPath) {
             statusText.isError = true;
             statusText.text = tr("Error guardando ChordPro", "Error saving ChordPro");
@@ -607,7 +607,7 @@ MuseScore {
         };
         var pdfContent = PdfWriter.generatePdf(content, pdfOptions);
 
-        var savedPath = tryWriteFile(pdfContent, buildSaveCandidates("-letra.pdf"));
+        var savedPath = tryWriteFile(pdfContent, buildSaveCandidates("-lyrics.pdf"));
         if (!savedPath) {
             statusText.isError = true;
             statusText.text = tr("Error guardando PDF", "Error saving PDF");

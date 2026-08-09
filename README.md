@@ -171,8 +171,8 @@ node cli/index.js song.mscz --chords-only             # chord progression only
 
 | Flag | Description |
 |------|-------------|
-| `--save` | Save to `<score>-letra.txt` alongside the score |
-| `--pdf` | Generate PDF to `<score>-letra.pdf` |
+| `--save` | Save to `<score>-lyrics.txt` alongside the score |
+| `--pdf` | Generate PDF to `<score>-lyrics.pdf` |
 | `--single` | Shrink PDF to fit on one page |
 | `--header <name>` | Right-aligned header on every PDF page |
 | `--footer <name>` | Centered footer on last PDF page |
