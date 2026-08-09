@@ -58,7 +58,7 @@ The **Fix** button corrects all issues automatically:
 For scores without lyrics (instrumentals), the plugin automatically shows the chord progression structured by sections, barlines, and repeat markers.
 
 ### Fretboard diagrams
-Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) and renders them graphically in the PDF header. Where the QML API exposes `FretDiagram`, diagrams and chord names are read straight from the score in memory. No 4.7.x release exposes it (the class reaches `api/v1/elements.h` after the 4.7 branch point), so on those builds a fallback reads the data from the `.mscz` file on disk and the plugin asks for the directory it lives in. The CLI always reads the file directly and needs neither.
+Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) and renders them graphically in the PDF header. Where the QML API exposes `FretDiagram`, diagrams and chord names are read straight from the score in memory. That is [MuseScore PR 32996](https://github.com/musescore/MuseScore/pull/32996), merged in April 2026, after the 4.7 branch had already been cut: no 4.7.x release carries it. Until a release does, the plugin falls back to reading the `.mscz` from disk, which is why it asks for the directory your scores live in. The CLI always reads the file directly and needs neither.
 
 ### PDF output
 - Compact layout optimized for printing (A4, safe margins)
@@ -94,6 +94,29 @@ Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) a
 | Line numbers | Sequential numbers on lyric lines |
 | No chord diagrams | Omit fretboard diagrams from the header |
 | **Save** (PDF) | Save PDF alongside the score and open it |
+
+## Where the plugin reads and writes
+
+Two MuseScore decisions shape this, and it is worth knowing which is which.
+
+**Writing is restricted to folders MuseScore knows about.** Since [PR 31066](https://github.com/musescore/MuseScore/pull/31066), `FileIO` refuses any path outside them: the user data folder (`Documents/MuseScore4`, which holds Scores, Plugins, SoundFonts, Styles and Templates), the system temp folder, and each folder set in *Preferences → Folders*. MuseScore's own application data is deliberately excluded, since it holds credentials, shortcuts and logs. A plugin cannot write next to an arbitrary file on your disk, and this one is no exception: **Save txt**, **Save pdf** and **Save ChordPro** write to
+
+```
+~/Documents/MuseScore4/Scores/<title>-lyrics.pdf
+~/Documents/MuseScore4/<title>-lyrics.pdf      (if the first is not writable)
+```
+
+whatever folder the score itself came from, because the API tells a plugin neither the path of the open score nor the Scores folder you configured. The CLI has no such limit: it writes beside the score it was given.
+
+**Reading the `.mscz` is what the chord diagram fallback needs**, for the reason above. The **Directory** field in the dialog is where it looks, in this order:
+
+```
+<Directory>/<score name>/<score name>.mscz     a folder per song
+<Directory>/<score name>.mscz                  all of them together
+<Directory>/**/<score name>.mscz               anywhere below, searched recursively
+```
+
+**So point both at the same place.** Keep your scores under `Documents/MuseScore4/Scores`, set *Preferences → Folders → Scores* to that folder, and set the plugin's **Directory** to it as well. Then the fallback finds the score that is open, and what the plugin saves lands where you go looking for it. If your scores live somewhere else, the fallback still works as long as **Directory** points there, but saved files will still appear under `Documents/MuseScore4/`.
 
 ## Writing lyrics for best results
 

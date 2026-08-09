@@ -56,7 +56,7 @@ El boton **Corregir** arregla todos los problemas automaticamente:
 Para partituras sin letras (instrumentales), el plugin muestra automaticamente la progresion de acordes estructurada por secciones, barlines y marcas de repeticion.
 
 ### Diagramas de trastes
-Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) y los renderiza graficamente en la cabecera del PDF. Cuando la API de QML expone `FretDiagram`, los diagramas y nombres de acordes se leen de la partitura en memoria. Ninguna release 4.7.x la expone (la clase llega a `api/v1/elements.h` despues del corte de la rama 4.7), asi que en esos builds un fallback lee los datos del archivo .mscz en disco y el plugin pide el directorio donde esta. El CLI lee siempre el archivo directamente y no necesita ninguna de las dos cosas.
+Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) y los renderiza graficamente en la cabecera del PDF. Cuando la API de QML expone `FretDiagram`, los diagramas y nombres de acordes se leen de la partitura en memoria. Eso es [el PR 32996 de MuseScore](https://github.com/musescore/MuseScore/pull/32996), integrado en abril de 2026, cuando la rama 4.7 ya estaba cortada: ninguna release 4.7.x lo lleva. Hasta que salga una que si, el plugin recurre a leer el .mscz del disco, y por eso pide el directorio donde tienes tus partituras. El CLI lee siempre el archivo directamente y no necesita ninguna de las dos cosas.
 
 ### Salida PDF
 - Layout compacto optimizado para impresion (A4, margenes seguros)
@@ -92,6 +92,29 @@ Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) 
 | Num. linea | Numeros secuenciales en lineas de letra |
 | Sin diagramas de acordes | Omitir diagramas de trastes de la cabecera |
 | **Guardar** (PDF) | Guardar PDF junto a la partitura y abrirlo |
+
+## Donde lee y escribe el plugin
+
+Hay dos decisiones de MuseScore detras de esto, y conviene saber cual es cual.
+
+**Escribir esta restringido a las carpetas que MuseScore conoce.** Desde [el PR 31066](https://github.com/musescore/MuseScore/pull/31066), `FileIO` rechaza cualquier ruta fuera de ellas: la carpeta de datos del usuario (`Documents/MuseScore4`, que contiene Scores, Plugins, SoundFonts, Styles y Templates), la carpeta temporal del sistema, y cada carpeta configurada en *Preferencias → Carpetas*. Los datos de aplicacion de MuseScore quedan fuera a proposito, porque ahi viven credenciales, atajos y logs. Un plugin no puede escribir junto a un archivo cualquiera de tu disco, y este no es una excepcion: **Guardar txt**, **Guardar pdf** y **Guardar ChordPro** escriben en
+
+```
+~/Documents/MuseScore4/Scores/<titulo>-lyrics.pdf
+~/Documents/MuseScore4/<titulo>-lyrics.pdf      (si la primera no se puede escribir)
+```
+
+venga la partitura de donde venga, porque la API no le dice a un plugin ni la ruta de la partitura abierta ni la carpeta de partituras que tengas configurada. El CLI no tiene ese limite: escribe al lado de la partitura que le pases.
+
+**Leer el .mscz es lo que necesita el fallback de los diagramas**, por el motivo de arriba. El campo **Directorio** del dialogo es donde busca, en este orden:
+
+```
+<Directorio>/<nombre>/<nombre>.mscz     una carpeta por cancion
+<Directorio>/<nombre>.mscz              todas juntas
+<Directorio>/**/<nombre>.mscz           en cualquier sitio por debajo, recursivamente
+```
+
+**Asi que apunta los dos al mismo sitio.** Ten tus partituras bajo `Documents/MuseScore4/Scores`, pon *Preferencias → Carpetas → Partituras* en esa carpeta, y pon tambien ahi el **Directorio** del plugin. Entonces el fallback encuentra la partitura que tienes abierta, y lo que el plugin guarda aparece donde vas a buscarlo. Si tus partituras viven en otro sitio, el fallback sigue funcionando mientras **Directorio** apunte alli, pero lo guardado seguira apareciendo bajo `Documents/MuseScore4/`.
 
 ## Escribir letras para mejores resultados
 
