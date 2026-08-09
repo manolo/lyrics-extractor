@@ -53,7 +53,15 @@ RUNTIME_DIRS.forEach(function(dir) {
 
 // Copy QML side, stamping the version into the plugin header. The .qml itself is never
 // touched beyond the version: it is Qt markup, not JavaScript that terser can read.
-writeJs("ui/help-text.js", BUILD + "/ui/help-text.js");
+writeJs("ui/help.js", BUILD + "/ui/help.js");
+
+// The languages: en.js is code and gets minified like any module, the .json translations are
+// copied as they are. Whatever is in ui/i18n/ travels, so adding a language is adding a file.
+fs.mkdirSync(BUILD + "/ui/i18n", { recursive: true });
+fs.readdirSync("ui/i18n").forEach(function(f) {
+    if (/\.js$/.test(f)) writeJs("ui/i18n/" + f, BUILD + "/ui/i18n/" + f);
+    else if (/\.json$/.test(f)) fs.copyFileSync("ui/i18n/" + f, BUILD + "/ui/i18n/" + f);
+});
 
 var qmlSrc = fs.readFileSync("ui/LyricsForm.qml", "utf8");
 if (version !== "dev") {

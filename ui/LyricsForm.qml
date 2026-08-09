@@ -27,7 +27,9 @@ import "../score/fallback-runner.js" as FretFallback
 import "../score/xml-chord-reader.js" as XmlChordReader
 import "../lib/constants.js" as Constants
 import "../lib/lyrics-fixer.js" as LyricsFixer
-import "help-text.js" as HelpText
+import "help.js" as Help
+import "i18n/i18n.js" as I18n
+import "i18n/en.js" as English
 
 MuseScore {
     id: plugin
@@ -40,7 +42,6 @@ MuseScore {
     width: 800
     height: 840
 
-    property bool isSpanish: Qt.locale().name.indexOf("es") === 0
     property bool hasSelection: false
     property string savedFilePath: ""
     property int selectionStartTick: 0
@@ -79,8 +80,68 @@ MuseScore {
         property int settingsVersion: 0
     }
 
-    function tr(es, en) {
-        return isSpanish ? es : en;
+    // Bumped once the dictionaries are in. A control is built, and its text binding runs, before
+    // Component.onCompleted gets to load anything, so every binding that calls t() has to be
+    // told to run again afterwards: reading this property inside t() is what makes them.
+    property int languageRevision: 0
+
+    // What the dialog says, in the language MuseScore is running in. English comes from the
+    // import above and is always there; every other language is a JSON file in ui/i18n/ that
+    // this reads at startup, so adding one is dropping a file in. Anything a translation does
+    // not carry falls back to English.
+    function t(key, params) {
+        var dependsOnTheLanguageBeingReady = languageRevision;
+        // Whoever asks first brings English in, so a control built before anything ran still
+        // shows words rather than the name of its key
+        if (I18n.languages().length === 0) I18n.register("en", English.strings);
+        return I18n.t(key, params);
+    }
+
+    // Read ui/i18n/<code>.json from beside this file. XMLHttpRequest against a resolved URL is
+    // how QML reads a file it ships with; FileIO is the second try, and needs the URL turned
+    // back into a path, percent escapes included, since the extension lives under a directory
+    // with a space in its name on macOS.
+    function loadLanguage(code) {
+        var url = Qt.resolvedUrl("i18n/" + code + ".json");
+        var text = "";
+        var how = "";
+
+        try {
+            var request = new XMLHttpRequest();
+            request.open("GET", url, false);
+            request.send(null);
+            if (request.responseText) { text = request.responseText; how = "request"; }
+        } catch (e) { /* fall through to FileIO */ }
+
+        if (!text) {
+            try {
+                fileIO.source = decodeURIComponent(url.toString().replace(/^file:\/\//, ""));
+                if (fileIO.exists()) { text = fileIO.read(); how = "file"; }
+            } catch (e2) { /* no such language, which is not an error */ }
+        }
+
+        if (!text) return false;
+        try {
+            I18n.register(code, JSON.parse(text));
+            console.log("[i18n] " + code + " read by " + how);
+            return true;
+        } catch (e3) {
+            console.log("[i18n] " + code + ".json is not valid JSON: " + e3);
+            return false;
+        }
+    }
+
+    function setupLanguage() {
+        I18n.register("en", English.strings);
+
+        // "es_ES" first, then "es": a translation for the exact region wins over the language
+        var name = Qt.locale().name;
+        var language = name.split("_")[0].split("-")[0];
+        if (name !== language) loadLanguage(name.toLowerCase());
+        if (language.toLowerCase() !== "en") loadLanguage(language.toLowerCase());
+
+        I18n.setLocale(name);
+        languageRevision++;   // the controls already built now read their text again
     }
 
     function setStatus(msg, error) {
@@ -283,7 +344,7 @@ MuseScore {
 
     function fixLyrics() {
         if (!curScore) {
-            statusText.text = tr("Error: No hay partitura abierta", "Error: No score open");
+            statusText.text = t("error.noScore");
             return;
         }
 
@@ -294,18 +355,15 @@ MuseScore {
         });
 
         if (counts.total === 0) {
-            statusText.text = tr(
-                "Letras correctas, no se necesitan cambios",
-                "Lyrics are correct, no changes needed"
-            );
+            statusText.text = t("fix.noChanges");
             return;
         }
 
         var parts = [];
-        if (counts.lyrics > 0) parts.push(counts.lyrics + tr(" silaba(s) corregida(s)", " syllable(s) fixed"));
-        if (counts.typos > 0) parts.push(counts.typos + tr(" acorde(s) con typo corregido(s)", " chord typo(s) fixed"));
-        if (counts.synced > 0) parts.push(counts.synced + tr(" acorde(s) sincronizado(s)", " chord(s) synced"));
-        if (counts.meta > 0) parts.push(tr("propiedades actualizadas", "properties updated"));
+        if (counts.lyrics > 0) parts.push(t("fix.syllables", { count: counts.lyrics }));
+        if (counts.typos > 0) parts.push(t("fix.typos", { count: counts.typos }));
+        if (counts.synced > 0) parts.push(t("fix.synced", { count: counts.synced }));
+        if (counts.meta > 0) parts.push(t("fix.meta"));
         statusText.text = parts.join(", ");
     }
     // ========================================
@@ -356,15 +414,14 @@ MuseScore {
 
     function extractLyricsWithChords() {
         if (!curScore) {
-            statusText.text = tr("Error: No hay partitura abierta", "Error: No score open");
+            statusText.text = t("error.noScore");
             return;
         }
 
         var extractOpts = selectedVoiceStaff >= 0 ? { lyricStaff: selectedVoiceStaff } : {};
         var data = Extractor.extractAll(extractOpts);
         if (!data) {
-            statusText.text = tr("No se encontraron letras en la partitura",
-                                "No lyrics found in the score");
+            statusText.text = t("extract.noLyrics");
             return;
         }
 
@@ -424,7 +481,7 @@ MuseScore {
         var output = Orchestrator.processExtraction(data, mods);
 
         if (!output) {
-            statusText.text = tr("No se encontraron letras ni acordes", "No lyrics or chords found");
+            statusText.text = t("extract.noLyricsOrChords");
             return;
         }
 
@@ -457,49 +514,35 @@ MuseScore {
             // The score carries a diagram box, so name the file the fallback looked
             // for and the directory it searched: that is what the user has to fix.
             var wantedName = (curScore.masterScore ? curScore.masterScore.scoreName : curScore.scoreName) || "";
-            var wantedFile = wantedName ? wantedName + ".mscz" : tr("el archivo .mscz", "the .mscz file");
+            var wantedFile = wantedName ? wantedName + ".mscz" : t("diagrams.theFile");
             if (data.scorePath) {
-                setStatus(tr(
-                    "Diagramas detectados pero no extraidos de " + data.scorePath + ". Exporta debug para diagnostico.",
-                    "Diagrams detected but not extracted from " + data.scorePath + ". Run debug export to diagnose."), true);
+                setStatus(t("diagrams.notExtracted", { path: data.scorePath }), true);
             } else if (!scoresDirectoryExists) {
-                setStatus(tr(
-                    "El directorio de partituras " + scoresDirectory + " no existe. Ajustalo a la carpeta que contiene " + wantedFile,
-                    "The scores directory " + scoresDirectory + " does not exist. Set it to the folder holding " + wantedFile), true);
+                setStatus(t("diagrams.dirMissing", { dir: scoresDirectory, file: wantedFile }), true);
             } else {
-                setStatus(tr(
-                    wantedFile + " no esta en ningun sitio dentro de " + scoresDirectory + ". Ajusta el directorio de partituras",
-                    wantedFile + " is nowhere under " + scoresDirectory + ". Set the scores directory"), true);
+                setStatus(t("diagrams.fileNotFound", { file: wantedFile, dir: scoresDirectory }), true);
             }
         } else if (chordTypos.length > 0) {
             var typoList = chordTypos.map(function(t) { return t.original + " -> " + t.normalized; }).join(", ");
-            setStatus(tr(
-                sylCount + " silabas, " + chordCount + " acordes. Typos corregidos: " + typoList,
-                sylCount + " syllables, " + chordCount + " chords. Typos fixed: " + typoList), true);
+            setStatus(t("extract.summaryTypos", { syllables: sylCount, chords: chordCount, typos: typoList }), true);
         } else if (orphanVerseList.length > 0 && !settings.orphanLyrics) {
             var orphanNums = orphanVerseList.map(function(v) { return v + 1; }).join(", ");
-            setStatus(tr(
-                sylCount + " silabas, " + chordCount + " acordes. La estructura no canta la letra " +
-                    orphanNums + ": marca Letras huerfanas para incluirla",
-                sylCount + " syllables, " + chordCount + " chords. No pass sings verse " +
-                    orphanNums + ": tick Orphan lyrics to include it"), true);
+            setStatus(t("extract.summaryOrphan", { syllables: sylCount, chords: chordCount, verses: orphanNums }), true);
         } else {
-            setStatus(tr(
-                sylCount + " silabas, " + chordCount + " acordes extraidos",
-                sylCount + " syllables, " + chordCount + " chords extracted"), false);
+            setStatus(t("extract.summary", { syllables: sylCount, chords: chordCount }), false);
         }
     }
 
     // Export raw extracted data as JSON for debugging (compare plugin vs CLI)
     function exportDebugData() {
         if (!curScore) {
-            statusText.text = tr("Error: No hay partitura abierta", "Error: No score open");
+            statusText.text = t("error.noScore");
             return;
         }
 
         var data = Extractor.extractAll();
         if (!data) {
-            statusText.text = tr("No se encontraron datos", "No data found");
+            statusText.text = t("debug.noData");
             return;
         }
 
@@ -511,12 +554,12 @@ MuseScore {
         var savedPath = tryWriteFile(json, buildSaveCandidates("-debug.json"));
         if (!savedPath) {
             statusText.isError = true;
-            statusText.text = tr("Error guardando debug", "Error saving debug");
+            statusText.text = t("debug.error");
             return;
         }
         savedFilePath = savedPath;
         statusText.isError = false;
-        statusText.text = tr("Debug exportado: " + savedPath, "Debug exported: " + savedPath);
+        statusText.text = t("debug.done", { path: savedPath });
     }
 
     // ========================================
@@ -570,12 +613,12 @@ MuseScore {
         var savedPath = tryWriteFile(content, buildSaveCandidates("-lyrics.txt"));
         if (!savedPath) {
             statusText.isError = true;
-            statusText.text = tr("Error guardando texto", "Error saving text");
+            statusText.text = t("save.txtError");
             return;
         }
         savedFilePath = savedPath;
         statusText.isError = false;
-        statusText.text = tr("Guardado en: " + savedPath, "Saved to: " + savedPath);
+        statusText.text = t("save.txtDone", { path: savedPath });
         openFile(savedPath);
     }
 
@@ -586,12 +629,12 @@ MuseScore {
         var savedPath = tryWriteFile(cpOutput, buildSaveCandidates("-lyrics.cho"));
         if (!savedPath) {
             statusText.isError = true;
-            statusText.text = tr("Error guardando ChordPro", "Error saving ChordPro");
+            statusText.text = t("save.choError");
             return;
         }
         savedFilePath = savedPath;
         statusText.isError = false;
-        statusText.text = tr("ChordPro guardado en: " + savedPath, "ChordPro saved to: " + savedPath);
+        statusText.text = t("save.choDone", { path: savedPath });
         openFile(savedPath);
     }
 
@@ -610,12 +653,12 @@ MuseScore {
         var savedPath = tryWriteFile(pdfContent, buildSaveCandidates("-lyrics.pdf"));
         if (!savedPath) {
             statusText.isError = true;
-            statusText.text = tr("Error guardando PDF", "Error saving PDF");
+            statusText.text = t("save.pdfError");
             return;
         }
         savedFilePath = savedPath;
         statusText.isError = false;
-        statusText.text = tr("PDF guardado en: " + savedPath, "PDF saved to: " + savedPath);
+        statusText.text = t("save.pdfDone", { path: savedPath });
         openFile(savedPath);
     }
 
@@ -636,7 +679,7 @@ MuseScore {
                 Layout.fillWidth: true
 
                 Text {
-                    text: tr("Extractor de Letras y Acordes", "Lyrics and Chords Extractor")
+                    text: t("app.title")
                     font.bold: true
                     font.pixelSize: 18
                     color: systemPalette.windowText
@@ -699,10 +742,10 @@ MuseScore {
                         Text {
                             Layout.fillWidth: true
                             text: issueCount < 0
-                                ? tr("Analizando...", "Checking...")
+                                ? t("check.checking")
                                 : (issueCount === 0
-                                    ? tr("Partitura correcta", "Score is correct")
-                                    : tr(issueCount + " problemas detectados", issueCount + " issues detected"))
+                                    ? t("check.correct")
+                                    : t("check.issues", { count: issueCount }))
                             color: systemPalette.windowText
                             font.pixelSize: 12
                             font.bold: issueCount > 0
@@ -715,23 +758,17 @@ MuseScore {
                         text: {
                             var lines = [];
                             if (issueSynalepha > 0) lines.push(
-                                tr(issueSynalepha + " sinalefas: s\u00edmbolo entre letras \u2192 \u203F",
-                                   issueSynalepha + " synalepha: symbol between letters \u2192 \u203F"));
+                                t("check.synalepha", { count: issueSynalepha }));
                             if (issueHyphens > 0) lines.push(
-                                tr(issueHyphens + " guiones manuales en silabas",
-                                   issueHyphens + " manual hyphens in syllables"));
+                                t("check.hyphens", { count: issueHyphens }));
                             if (issueSyllabic > 0) lines.push(
-                                tr(issueSyllabic + " cadenas sil\u00e1bicas rotas: " + issueSyllabicDetail,
-                                   issueSyllabic + " broken syllabic chains: " + issueSyllabicDetail));
+                                t("check.syllabic", { count: issueSyllabic, detail: issueSyllabicDetail }));
                             if (issuePunctuation > 0) lines.push(
-                                tr(issuePunctuation + " puntuacion pendiente (" + issuePunctuationDetail + ")",
-                                   issuePunctuation + " pending punctuation (" + issuePunctuationDetail + ")"));
+                                t("check.punctuation", { count: issuePunctuation, detail: issuePunctuationDetail }));
                             if (issueChordSync > 0) lines.push(
-                                tr(issueChordSync + " acordes sin sincronizar (tab)",
-                                   issueChordSync + " unsynchronized chords (tab)"));
+                                t("check.chordSync", { count: issueChordSync }));
                             if (issueChordTypos > 0) lines.push(
-                                tr(issueChordTypos + " acordes con typos: " + issueChordTypoDetail,
-                                   issueChordTypos + " chord typos: " + issueChordTypoDetail));
+                                t("check.chordTypos", { count: issueChordTypos, detail: issueChordTypoDetail }));
                             return lines.map(function(l) { return "\u2022 " + l; }).join("\n");
                         }
                         color: "#E65100"
@@ -746,8 +783,8 @@ MuseScore {
 
                         Text {
                             text: hasSelection ?
-                                tr("Seleccion", "Selection") :
-                                tr("Partitura completa", "Entire score")
+                                t("check.scopeSelection") :
+                                t("check.scopeScore")
                             color: systemPalette.windowText
                             font.italic: true
                             font.pixelSize: 11
@@ -756,7 +793,7 @@ MuseScore {
                         Item { Layout.fillWidth: true }
 
                         Button {
-                            text: tr("Corregir", "Fix")
+                            text: t("button.fix")
                             onClicked: {
                                 fixLyrics();
                                 checkScore(); // Re-check after fix
@@ -815,11 +852,11 @@ MuseScore {
 
                         Button {
                             id: extractButton
-                            text: tr("Extraer", "Extract")
+                            text: t("button.extract")
                             onClicked: {
                                 extractButton.enabled = false;
                                 lyricsPreview.text = "";
-                                statusText.text = tr("Extrayendo...", "Extracting...");
+                                statusText.text = t("extract.working");
                                 statusText.isError = false;
                                 extractTimer.start();
                             }
@@ -847,28 +884,28 @@ MuseScore {
 
                         CheckBox {
                             id: solfeoCheck
-                            text: tr("Solfeo (Do, Re, Mi)", "Solfeo (Do, Re, Mi)")
+                            text: t("option.solfeo")
                             checked: settings.useSolfeo
                             onCheckedChanged: settings.useSolfeo = checked
                         }
 
                         CheckBox {
                             id: fullRepeatCheck
-                            text: tr("Repetir todo", "Full repeat")
+                            text: t("option.fullRepeat")
                             checked: settings.fullRepeat
                             onCheckedChanged: settings.fullRepeat = checked
                         }
 
                         CheckBox {
                             id: lyricsOnlyCheck
-                            text: tr("Solo letra", "Lyrics only")
+                            text: t("option.lyricsOnly")
                             checked: settings.lyricsOnly
                             onCheckedChanged: settings.lyricsOnly = checked
                         }
 
                         CheckBox {
                             id: orphanLyricsCheck
-                            text: tr("Letras huerfanas", "Orphan lyrics")
+                            text: t("option.orphanLyrics")
                             checked: settings.orphanLyrics
                             onCheckedChanged: settings.orphanLyrics = checked
                         }
@@ -880,7 +917,7 @@ MuseScore {
                         visible: needsFallbackDir
 
                         Text {
-                            text: tr("Directorio:", "Directory:")
+                            text: t("option.directory")
                             color: systemPalette.windowText
                             font.pixelSize: 11
                         }
@@ -915,7 +952,7 @@ MuseScore {
                         visible: lastScorePath.length > 0
 
                         Text {
-                            text: tr("Usando archivo:", "Using file:")
+                            text: t("option.usingFile")
                             color: systemPalette.windowText
                             font.pixelSize: 11
                         }
@@ -986,9 +1023,7 @@ MuseScore {
                                     textHelper.text = savedFilePath;
                                     textHelper.selectAll();
                                     textHelper.copy();
-                                    setStatus(tr(
-                                        "Ruta copiada: " + savedFilePath,
-                                        "Path copied: " + savedFilePath), false);
+                                    setStatus(t("save.pathCopied", { path: savedFilePath }), false);
                                 }
                             }
                         }
@@ -1026,18 +1061,18 @@ MuseScore {
                             z: 1
 
                             Button {
-                                text: tr("Copiar", "Copy")
+                                text: t("button.copy")
                                 opacity: 0.85
                                 onClicked: {
                                     lyricsPreview.selectAll();
                                     lyricsPreview.copy();
                                     lyricsPreview.deselect();
-                                    statusText.text = tr("Copiado al portapapeles", "Copied to clipboard");
+                                    statusText.text = t("save.copied");
                                 }
                             }
 
                             Button {
-                                text: tr("Guardar txt", "Save txt")
+                                text: t("button.saveTxt")
                                 opacity: 0.85
                                 onClicked: saveLyricsToFile(Formatter.stripChordMarkers(lyricsPreview.text))
                             }
@@ -1078,7 +1113,7 @@ MuseScore {
                         spacing: 6
 
                         Text {
-                            text: tr("Cabecera:", "Header:")
+                            text: t("pdf.header")
                             color: systemPalette.windowText
                             font.pixelSize: 11
                         }
@@ -1086,13 +1121,13 @@ MuseScore {
                         TextField {
                             id: headerField
                             Layout.fillWidth: true
-                            placeholderText: tr("Nombre del grupo", "Group name")
+                            placeholderText: t("pdf.groupName")
                             font.pixelSize: 11
                             onTextChanged: settings.pdfHeader = text
                         }
 
                         Text {
-                            text: tr("Pie:", "Footer:")
+                            text: t("pdf.footer")
                             color: systemPalette.windowText
                             font.pixelSize: 11
                         }
@@ -1100,7 +1135,7 @@ MuseScore {
                         TextField {
                             id: footerField
                             Layout.fillWidth: true
-                            placeholderText: tr("Nombre del grupo", "Group name")
+                            placeholderText: t("pdf.groupName")
                             font.pixelSize: 11
                             onTextChanged: settings.pdfFooter = text
                         }
@@ -1112,21 +1147,21 @@ MuseScore {
 
                         CheckBox {
                             id: onePageCheck
-                            text: tr("Condensar en 1 pagina", "Fit in 1 page")
+                            text: t("pdf.onePage")
                             checked: settings.onePage
                             onCheckedChanged: settings.onePage = checked
                         }
 
                         CheckBox {
                             id: lineNumbersCheck
-                            text: tr("Num. linea", "Line num.")
+                            text: t("pdf.lineNumbers")
                             checked: settings.lineNumbers
                             onCheckedChanged: settings.lineNumbers = checked
                         }
 
                         CheckBox {
                             id: noDiagramsCheck
-                            text: tr("Sin diagramas de acordes", "No chord diagrams")
+                            text: t("pdf.noDiagrams")
                             checked: settings.noDiagrams
                             onCheckedChanged: settings.noDiagrams = checked
                         }
@@ -1135,7 +1170,7 @@ MuseScore {
 
                         Button {
                             id: pdfButton
-                            text: tr("Guardar pdf", "Save pdf")
+                            text: t("button.savePdf")
                             onClicked: savePdfFile(extractedOutput || lyricsPreview.text)
                         }
                     }
@@ -1170,7 +1205,7 @@ MuseScore {
                     }
 
                     Button {
-                        text: tr("Cerrar", "Close")
+                        text: t("button.close")
                         onClicked: quit()
                     }
                 }
@@ -1199,7 +1234,7 @@ MuseScore {
             spacing: 0
 
             Text {
-                text: tr("Ayuda", "Help")
+                text: t("button.help")
                 font.bold: true
                 font.pixelSize: 14
                 color: systemPalette.windowText
@@ -1236,10 +1271,7 @@ MuseScore {
                 textFormat: Text.RichText
                 color: systemPalette.windowText
                 font.pixelSize: 12
-                text: (isSpanish ? HelpText.es : HelpText.en).replace(
-                    "<!--SCORES_DIR-->",
-                    needsFallbackDir ? (isSpanish ? HelpText.scoresDirEs : HelpText.scoresDirEn) : ""
-                )
+                text: Help.build(t, needsFallbackDir)
             }
         }
 
@@ -1261,6 +1293,7 @@ MuseScore {
     }
 
     Component.onCompleted: {
+        setupLanguage();
         // Migrate settings when defaults change across versions
         if (settings.settingsVersion < 1) {
             settings.fullRepeat = true;

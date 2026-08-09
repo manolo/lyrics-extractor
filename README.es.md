@@ -191,6 +191,34 @@ node cli/index.js cancion.mscz --chords-only                # solo progresion de
 
 Por defecto, los nombres de acorde usan la ortografia de la partitura. Usar `--anglo` o `--solfeo` para forzar.
 
+## Traducir el dialogo
+
+El dialogo toma el idioma de MuseScore. El ingles vive en `ui/i18n/en.js` y es la referencia;
+cualquier otro idioma es un JSON al lado, que se lee al arrancar el plugin:
+
+```
+ui/i18n/en.js     ingles, importado por el dialogo, asi que siempre esta
+ui/i18n/es.json   español
+ui/i18n/<codigo>.json   el tuyo
+```
+
+Para añadir uno, copia las claves de `en.js` a `ui/i18n/<codigo>.json` como objeto JSON, traduce
+los valores y suelta el fichero en la extension instalada. No hay nada mas que tocar: el plugin
+busca primero `<idioma>_<REGION>.json` y luego `<idioma>.json`, segun lo que diga MuseScore.
+
+Una traduccion puede estar a medias. Lo que no lleve se lee del ingles, asi que un fichero con
+diez claves es una contribucion perfectamente valida, y una clave que falte en todos los idiomas
+se muestra con su propio nombre, `save.txtDone`, que dice donde mirar.
+
+Los `{marcadores}` se rellenan en tiempo de ejecucion y se pueden reordenar como pida el idioma:
+
+```json
+"extract.summary": "{syllables} silabas, {chords} acordes extraidos"
+```
+
+`node --test test/unit/i18n.test.js` comprueba que toda clave que pide el dialogo existe en
+ingles, que una traduccion no inventa claves ni marcadores, e imprime cuanto lleva cada idioma.
+
 ## Instalacion manual
 
 | SO | Ruta |
@@ -212,7 +240,7 @@ score/   lee una partitura de MuseScore, y escribe en ella, un modulo por direcc
          el CLI cuando la API del plugin no da los diagramas de trastes
 cli/     los dos puntos de entrada: index.js para la linea de comandos, y
          extract-chords.js, que el dialogo lanza para ese fallback
-ui/      el dialogo y su texto de ayuda
+ui/      el dialogo, su pagina de ayuda, y un fichero por idioma en ui/i18n/
 test/    unit/ para las suites unitarias, its/ para el corpus de snapshot y sus
            referencias, y local/, si existe, para la suite propia de cada uno
 ```

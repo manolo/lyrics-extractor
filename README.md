@@ -193,6 +193,35 @@ node cli/index.js song.mscz --chords-only             # chord progression only
 
 By default, chord names use the score's own spelling setting. Use `--anglo` or `--solfeo` to override.
 
+## Translating the dialog
+
+The dialog reads its language from MuseScore. English lives in `ui/i18n/en.js` and is the
+reference; every other language is a JSON file beside it, read when the plugin starts:
+
+```
+ui/i18n/en.js     English, imported by the dialog, so it is always there
+ui/i18n/es.json   Spanish
+ui/i18n/<code>.json   yours
+```
+
+To add one, copy the keys of `en.js` into `ui/i18n/<code>.json` as a JSON object, translate the
+values, and drop the file into the installed extension. Nothing else to edit: the plugin looks
+for `<language>_<REGION>.json` first, then `<language>.json`, matching what MuseScore reports.
+
+A translation may be partial. Anything it does not carry is read from English, so a file with
+ten keys in it is a perfectly good contribution, and a key that is missing everywhere shows as
+its own name, `save.txtDone`, which says where to look.
+
+`{placeholders}` are filled in at runtime and may be reordered as the language needs:
+
+```json
+"extract.summary": "{syllables} syllables, {chords} chords extracted"
+```
+
+`node --test test/unit/i18n.test.js` checks that every key the dialog asks for exists in
+English, that a translation invents no keys and no placeholders, and prints how complete each
+language is.
+
 ## Manual installation
 
 | OS | Path |
@@ -214,7 +243,7 @@ score/   reads a MuseScore score, and writes back into it, one module per direct
          CLI when the plugin API cannot give the fret diagrams
 cli/     the two entry points: index.js for the command line, and extract-chords.js,
          which the dialog spawns for that fallback
-ui/      the dialog itself and its help text
+ui/      the dialog, its help page, and one file per language in ui/i18n/
 test/    unit/ for the unit suites, its/ for the snapshot corpus and its
          baselines, and local/, when present, for a developer's own suite
 ```

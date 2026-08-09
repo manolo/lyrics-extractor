@@ -1,0 +1,213 @@
+// English, the reference dictionary. Every other language is a JSON file beside this one and
+// needs to carry only what it translates: whatever it leaves out is read from here.
+//
+// This one is code rather than data because the dialog imports it directly, so it is there
+// before anything is read from disk and the plugin can never come up with no strings at all.
+//
+// {placeholders} are filled by i18n.js. A translation may put them in any order, but it may
+// not invent new ones: test/unit/i18n.test.js checks that.
+//
+// To translate: copy the keys into ui/i18n/<code>.json as a plain JSON object, translate the
+// values, and drop the file in. Nothing else to edit.
+
+var strings = {
+    // --- the window itself ---
+    "app.title": "Lyrics and Chords Extractor",
+    "button.help": "Help",
+    "button.close": "Close",
+
+    // --- what the score check reports ---
+    "check.checking": "Checking...",
+    "check.correct": "Score is correct",
+    "check.issues": "{count} issues detected",
+    "check.synalepha": "{count} synalepha: symbol between letters → ‿",
+    "check.hyphens": "{count} manual hyphens in syllables",
+    "check.syllabic": "{count} broken syllabic chains: {detail}",
+    "check.punctuation": "{count} pending punctuation ({detail})",
+    "check.chordSync": "{count} unsynchronized chords (tab)",
+    "check.chordTypos": "{count} chord typos: {detail}",
+    "check.scopeSelection": "Selection",
+    "check.scopeScore": "Entire score",
+
+    // --- the Fix button ---
+    "button.fix": "Fix",
+    "fix.noChanges": "Lyrics are correct, no changes needed",
+    "fix.syllables": "{count} syllable(s) fixed",
+    "fix.typos": "{count} chord typo(s) fixed",
+    "fix.synced": "{count} chord(s) synced",
+    "fix.meta": "properties updated",
+
+    // --- the Extract button ---
+    "button.extract": "Extract",
+    "extract.working": "Extracting...",
+    "extract.noLyrics": "No lyrics found in the score",
+    "extract.noLyricsOrChords": "No lyrics or chords found",
+    "extract.summary": "{syllables} syllables, {chords} chords extracted",
+    "extract.summaryTypos": "{syllables} syllables, {chords} chords. Typos fixed: {typos}",
+    "extract.summaryOrphan": "{syllables} syllables, {chords} chords. No pass sings verse {verses}: tick Orphan lyrics to include it",
+
+    // --- chord diagrams that had to be read from disk ---
+    "diagrams.theFile": "the .mscz file",
+    "diagrams.notExtracted": "Diagrams detected but not extracted from {path}. Run debug export to diagnose.",
+    "diagrams.dirMissing": "The scores directory {dir} does not exist. Set it to the folder holding {file}",
+    "diagrams.fileNotFound": "{file} is nowhere under {dir}. Set the scores directory",
+
+    // --- extraction options ---
+    "option.solfeo": "Solfeo (Do, Re, Mi)",
+    "option.fullRepeat": "Full repeat",
+    "option.lyricsOnly": "Lyrics only",
+    "option.orphanLyrics": "Orphan lyrics",
+    "option.directory": "Directory:",
+    "option.usingFile": "Using file:",
+
+    // --- saving ---
+    "button.copy": "Copy",
+    "button.saveTxt": "Save txt",
+    "button.savePdf": "Save pdf",
+    "save.copied": "Copied to clipboard",
+    "save.pathCopied": "Path copied: {path}",
+    "save.txtError": "Error saving text",
+    "save.txtDone": "Saved to: {path}",
+    "save.choError": "Error saving ChordPro",
+    "save.choDone": "ChordPro saved to: {path}",
+    "save.pdfError": "Error saving PDF",
+    "save.pdfDone": "PDF saved to: {path}",
+
+    // --- PDF options ---
+    "pdf.header": "Header:",
+    "pdf.footer": "Footer:",
+    "pdf.groupName": "Group name",
+    "pdf.onePage": "Fit in 1 page",
+    "pdf.lineNumbers": "Line num.",
+    "pdf.noDiagrams": "No chord diagrams",
+
+    // --- debug export ---
+    "debug.noData": "No data found",
+    "debug.error": "Error saving debug",
+    "debug.done": "Debug exported: {path}",
+
+    // --- errors ---
+    "error.noScore": "Error: No score open",
+
+    // --- help: headings ---
+    "help.heading.howTo": "How to use the plugin",
+    "help.heading.general": "Preparing the score: General",
+    "help.heading.guitar": "Preparing the Guitar part",
+    "help.heading.vocal": "Preparing the Vocal part",
+    "help.heading.extraction": "Extraction options",
+    "help.heading.pdf": "PDF options",
+    "help.heading.buttons": "Other buttons",
+
+    // --- help: the opening steps, a list, so the markup is part of the text ---
+    "help.howTo.steps":
+        "<li>Open a score with lyrics and chords in MuseScore.</li>" +
+        "<li>Click <b>Extract</b> to extract lyrics with aligned chords.</li>" +
+        "<li>Review the result in the preview area.</li>" +
+        "<li>Click <b>Save txt</b> for plain text, or <b>Save pdf</b> to generate a formatted PDF.</li>",
+
+    // --- help: preparing the score ---
+    "help.title.label": "Title",
+    "help.title.body": "The plugin looks for the title in: 1) Project Properties, 2) VBox text (top frame), " +
+        "3) File name. The <b>Fix</b> button syncs VBox fields (title, subtitle, composer, lyricist) to " +
+        "project properties.",
+    "help.systemText.label": "System text",
+    "help.systemText.body": "<code>Ctrl+Shift+T</code>. Mark sections (Intro, Verse, Chorus, Music). " +
+        "They appear as <code>- LABEL -</code> in the output. Use <code>#</code> for auto-numbering: " +
+        "<code>Chorus #</code> produces Chorus 1, Chorus 2, etc. Use <code>:</code> or <code>-</code> for " +
+        "explicit sequences: <code>Solo ann:bob</code> produces Solo Ann, Solo Bob, then Solo.",
+    "help.rehearsalMark.label": "Rehearsal mark",
+    "help.rehearsalMark.body": "<code>Ctrl+M</code>. Treated the same as system text (they generate section " +
+        "labels). Exception: a mark whose text is the number of its own measure is one of the rehearsal " +
+        "references MuseScore numbers by itself, not a title, and is ignored. A hand numbered mark that does " +
+        "not match its measure (<code>1</code>, <code>2</code>, <code>3</code> as sections) does generate a label.",
+    "help.repeats.label": "Repeats",
+    "help.repeats.body": "Repeat barlines, volta brackets, Da Capo, Da Segno and jumps are respected. " +
+        "The plugin expands repeats in performance order.",
+    "help.stanzas.label": "Separate stanzas",
+    "help.stanzas.body": "These elements create a paragraph break (blank line) in the output: system texts, " +
+        "rehearsal marks (except those numbered by measure), final barlines, double barlines and heavy barlines.",
+
+    // --- help: the guitar part ---
+    "help.chords.label": "Chords",
+    "help.chords.body": "<code>Ctrl+K</code>. Add chord symbols on the exact note where the harmony changes. " +
+        "Use solfeo or anglo-saxon style according to your preferences. They are automatically extracted from " +
+        "the accompaniment staff.",
+    "help.diagrams.label": "Chord collection",
+    "help.diagrams.body": "Insert a chord diagram legend by selecting the first element of the full score or " +
+        "any guitar part: <i>Add > Frames > Chord diagram legend</i>. They are drawn in the PDF header. " +
+        "Diagrams placed on notes are also extracted as chords.",
+    "help.staffText.label": "Score text",
+    "help.staffText.body": "<code>Ctrl+T</code>. Texts on the accompaniment staff appear on the chord line as " +
+        "if they were a chord (e.g. <code>Bass</code>, <code>A cappella</code>).",
+    "help.expression.label": "Expression",
+    "help.expression.body": "<code>Ctrl+E</code>. Expression texts on the accompaniment staff also appear on " +
+        "the chord line.",
+
+    // --- help: the vocal part ---
+    "help.textEntry.label": "Text entry",
+    "help.textEntry.body": "<code>Ctrl+L</code>. Enter text in the score syllable by syllable and use certain " +
+        "characters described below for separations.",
+    "help.syllables.label": "Syllables (hyphen)",
+    "help.syllables.body": "Use hyphen to separate syllables of the same word (<code>beau-ti-ful</code>).",
+    "help.words.label": "Words (space)",
+    "help.words.body": "Use space to jump to the next note and start a new word.",
+    "help.melisma.label": "Extension (underscore)",
+    "help.melisma.body": "Use underscore for notes that continue the previous syllable (melisma). Shown as a " +
+        "continuous line in the output.",
+    "help.synalepha.label": "Synalepha",
+    "help.synalepha.body": "Use a dot or other punctuation character between two letters to mark synalepha: " +
+        "<code>da.es</code> or <code>da¬es</code> will output <code>da es</code> separated in the " +
+        "extraction. Any symbol between two letters (except hyphen and underscore) is interpreted as synalepha.",
+    "help.splitting.label": "Automatic splitting",
+    "help.splitting.body": "The plugin splits lines automatically by punctuation, musical rests, double " +
+        "barlines, and line length. For best results: use <code>;</code> to force breaks, add <b>double " +
+        "barlines</b> between sections, and add <b>System Text</b> with section names. Without these markers, " +
+        "the plugin relies on heuristics which may produce suboptimal results on long phrases without pauses.",
+    "help.forceBreak.label": "Force line break",
+    "help.forceBreak.body": "Use <code>;</code> (semicolon) in the syllable to force a line break. The " +
+        "<b>Fix</b> button converts it to a visible special comma in the score, and it renders as " +
+        "<code>,</code> in the output.",
+    "help.preventBreak.label": "Prevent line break",
+    "help.preventBreak.body": "Sometimes punctuation or a rest splits a phrase into two lines. To prevent it, " +
+        "double the character in the syllable: <code>..</code> shows a period, <code>,,</code> shows a comma, " +
+        "<code>...</code> shows an ellipsis. All of them prevent the plugin from breaking the line there.",
+    "help.verses.label": "Multiple verses",
+    "help.verses.body": "MuseScore supports multiple lyrics for the same passage (verse 1, 2, 3...). The " +
+        "plugin extracts them in score order.",
+
+    // --- help: the options, which mirror the checkboxes ---
+    "help.solfeo.label": "Solfeo",
+    "help.solfeo.body": "Use names Do, Re, Mi instead of C, D, E.",
+    "help.fullRepeat.label": "Full repeat",
+    "help.fullRepeat.body": "Write all repetitions even if the text is identical (no abbreviated choruses).",
+    "help.lyricsOnly.label": "Lyrics only",
+    "help.lyricsOnly.body": "Omit chord lines, keeping only lyrics text and section labels.",
+    "help.scoresDir.label": "Scores directory",
+    "help.scoresDir.body": "While the QML API does not expose chord diagrams, which no 4.7.x release does, " +
+        "the plugin needs to read the .mscz file from disk to extract them. Set the root folder where you " +
+        "store your scores (e.g. HOME/Music).",
+
+    // --- help: the PDF ---
+    "help.pdfHeader.label": "Header",
+    "help.pdfHeader.body": "Right-aligned text at the top of every page (e.g. group name).",
+    "help.pdfFooter.label": "Footer",
+    "help.pdfFooter.body": "Centered text at the bottom of every page (e.g. band name).",
+    "help.onePage.label": "Fit in 1 page",
+    "help.onePage.body": "Reduce spacing and font size to fit on one page. Prioritizes keeping the font " +
+        "readable by reducing gaps first.",
+    "help.lineNumbers.label": "Line num.",
+    "help.lineNumbers.body": "Show line numbers to the left of each verse line.",
+    "help.noDiagrams.label": "No chord diagrams",
+    "help.noDiagrams.body": "Omit chord diagrams from the PDF header.",
+
+    // --- help: the remaining buttons ---
+    "help.fix.label": "Fix",
+    "help.fix.body": "Re-adapts lyric input by converting synalepha to ‿ (undertie), and no-break " +
+        "markers (<code>..</code> <code>,,</code> <code>...</code>) to their internal symbols.",
+    "help.debug.label": "Debug",
+    "help.debug.body": "Export internal data as JSON for diagnostics."
+};
+
+if (typeof exports !== "undefined") {
+    exports.strings = strings;
+}
