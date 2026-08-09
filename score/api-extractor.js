@@ -693,7 +693,7 @@ function extractNavigation() {
     return { markers: markers, jumps: jumps, _annTypes: _annTypes };
 }
 
-// Extract system texts (section labels like "Solista", "Estribillo", etc.)
+// Extract system texts (section labels like "Soloist", "Chorus", etc.)
 // Start tick of every measure, in order, so a tick maps to its measure number.
 // Read through firstMeasure/nextMeasure and the first segment of each measure,
 // which are long-standing plugin API properties.

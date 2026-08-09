@@ -1,12 +1,12 @@
-==== VOLTAS INSTRUMENTALES ====
+==== INSTRUMENTAL VOLTAS ====
 
-- MUSICA -
+- MUSIC -
 Lam  Re  Sol  Re  Do  Mi7
 
-- ESTROFA -
+- VERSE -
                 Rem
 Canta la ronda, que pasa.
 
                    Sol            Fa
 Vuelve la cancion, que ya se fue.
-// mscz-mtime: 2026-08-08T17:13:25.729Z
+// mscz-mtime: 2026-08-09T05:24:12.451Z

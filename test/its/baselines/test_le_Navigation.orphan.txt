@@ -1,46 +1,50 @@
-==== NAVEGACION ====
+==== NAVIGATION ====
 
-- MÚSICA -
+- MUSIC -
 Mim  Si7  Mim  Lam
 
-- ESTROFA 1 -
+- VERSE 1 -
                         Re
 Esta primera linea abre el camino marcado.
 
                      Re
 Otra vuelta canta la segunda sin cambiar.
 
-- ESTRIBILLO -
+- CHORUS -
 Sol
 Es… te estribillo suena otra vez.
 
 Mim  Si7  Mim  Lam
 
-- ESTROFA 2 -
+- VERSE 2 -
                      Re
 Cada pasada trae una linea que no estaba.
 
                    Re
 La cuarta vez dice algo que ya sonaba.
 
-- ESTRIBILLO -
+- CHORUS -
 Sol
 Es… te estribillo suena otra vez.
 
-- MÚSICA -
+- MUSIC -
 Mim  Si7  Mim  Lam
 
-- ESTROFA 3 -
+- VERSE 3 -
                   Re
 Ya queda una sola linea por cantar.
 
                  Re
 Esta sexta es la ultima que se puede.
 
-- ESTRIBILLO -
+- CHORUS -
 Sol                               Do Si7
 Es… te estribillo suena otra vez.
 
 Mim
 Fi… nal de la cancion.
-// mscz-mtime: 2026-08-08T21:52:18.260Z
+
+- - - - - - - - - - - - - - - - - - - - - - - -
+Lam              Re
+Esta letra no la canta ninguna pasada.
+// mscz-mtime: 2026-08-09T05:24:12.706Z

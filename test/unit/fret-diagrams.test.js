@@ -1,5 +1,5 @@
 // Chord diagrams are read from the guitar part of the score and drawn in the PDF, so the text
-// snapshots cannot see them: test_le_Diagramas.mscz would raise the coverage of
+// snapshots cannot see them: test_le_FretDiagrams.mscz would raise the coverage of
 // score/xml-extractor.js without checking a single value. This reads that score back and
 // checks what came out, which is what makes the fixture worth having.
 //
@@ -13,7 +13,7 @@ var path = require("path");
 var reader = require("../../score/mscz-reader");
 var extractor = require("../../score/xml-extractor");
 
-var SCORE = path.join(__dirname, "..", "its", "scores", "test_le_Diagramas.mscz");
+var SCORE = path.join(__dirname, "..", "its", "scores", "test_le_FretDiagrams.mscz");
 
 function diagrams() {
     var excerpts = reader.readGuitarExcerpts(SCORE).map(function(e) { return e.xml; });

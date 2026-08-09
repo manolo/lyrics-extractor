@@ -6,7 +6,7 @@
 // with the repository and a local one.
 //
 //   node test/its/update-mtime.js                              # test/its/baselines
-//   node test/its/update-mtime.js Etiquetas                    # just one song
+//   node test/its/update-mtime.js SectionLabels                # just one song
 //   node test/its/update-mtime.js --dir test/local/baselines    # a local suite's baselines
 //
 // The scores are looked for in ../scores of whatever baselines directory it is given.

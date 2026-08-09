@@ -1,18 +1,18 @@
-==== INTRO SALIDA ====
+==== INTRO AND OUTRO ====
 
 - INTRO -
 Lam  Re  Sol  Do
 
-- MUSICA -
+- MUSIC -
 Mi7  Lam  Re  Sol  Do  Fa  Sol  Do
 
-- ESTROFA -
+- VERSE -
 Lam         Sol         Do Mi7
 Ya viene la ronda aqui,
 Lam          Re          Sol Do Fa Mi7
 cantando con mucho amor.
 
-- ESTRIBILLO -
+- CHORUS -
 Lam Rem Do             Sol           Fa Do Sol Lam
 Vuelve,         vuelve mi bien a mi.
-// mscz-mtime: 2026-08-08T21:04:54.749Z
+// mscz-mtime: 2026-08-09T05:24:12.502Z

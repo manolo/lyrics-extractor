@@ -1,7 +1,7 @@
-==== DIAGRAMAS ====
+==== FRET DIAGRAMS ====
 
 
-- ESTROFA -
+- VERSE -
 Lam        Re         Sol        Do
 Toca la guitarra y canta con nosotros.
-// mscz-mtime: 2026-08-08T21:30:21.678Z
+// mscz-mtime: 2026-08-09T05:24:12.401Z

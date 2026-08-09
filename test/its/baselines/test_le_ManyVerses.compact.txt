@@ -1,29 +1,29 @@
-==== MULTI VERSO ====
+==== MANY VERSES ====
 
 - INTRO 1 -
 Am  D
 
 
-- ESTROFA -
+- VERSE -
 Am          D            G
 Hoy la tuna va por la ciudad.
 
-- ESTRIBILLO -
+- CHORUS -
           C
 canta sin parar al fin.
 Am  E7
 
 
-- ESTROFA -
+- VERSE -
 Am           D
 Es la fiesta de mi ciudad.
 
-- ESTRIBILLO -
+- CHORUS -
 G          C
 y cantamos sin cesar hoy.
 
 
-- ESTROFA -
+- VERSE -
 Am          D            G
 ·
-// mscz-mtime: 2026-08-06T18:15:58.443Z
+// mscz-mtime: 2026-08-09T05:24:12.654Z

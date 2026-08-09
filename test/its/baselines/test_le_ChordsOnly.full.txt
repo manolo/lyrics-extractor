@@ -1,11 +1,11 @@
-==== SOLO ACORDES ====
+==== CHORDS ONLY ====
 
 
 - INTRO -
 Lam  Re  Sol  Do
 
 
-- TEMA -
+- THEME -
 Lam  Mi7  Rem  Sol7  Do  Fa
 
 
@@ -15,4 +15,4 @@ Sim  La7
 
 - SOLO BIS -
 Mim  Si7  Lam  Re  Sol  Do  Lam  Mi7
-// mscz-mtime: 2026-08-08T16:42:28.144Z
+// mscz-mtime: 2026-08-09T05:24:12.350Z

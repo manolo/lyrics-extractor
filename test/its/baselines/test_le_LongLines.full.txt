@@ -1,7 +1,7 @@
-==== LINEAS LARGAS ====
+==== LONG LINES ====
 
 
-- ESTROFA -
+- VERSE -
 Lam         Re         Sol          Do         Mi7
 Cuando la madrugada clara despierta los campanarios,
           Lam       Re          Sol
@@ -20,4 +20,4 @@ Y entonces llego la noche. Muy tarde.
 Baja -la- voz el,
 Sol
 a mor mi, o.
-// mscz-mtime: 2026-08-08T19:46:15.314Z
+// mscz-mtime: 2026-08-09T05:24:12.604Z

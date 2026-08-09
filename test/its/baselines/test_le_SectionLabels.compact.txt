@@ -1,18 +1,18 @@
-==== ETIQUETAS ====
+==== SECTION LABELS ====
 
 - INTRO -
-- MUSICA -
+- MUSIC -
 Lam  Re
 
 
-- ESTROFA 1 -
+- VERSE 1 -
 Sol         Do
 Canta la ronda, que va por,
 
-- INTERLUDIO -
+- INTERLUDE -
 Mi7  Lam
 
-- SOLISTA UNO -
+- SOLOIST ONE -
 Re        Sol        Do
 y la luna mira como,
 
@@ -21,4 +21,4 @@ Rem          dolce pizz. Fa          Do
 vuelve la ronda,             que va,
 Lam         Re
 canta la ronda y se va.
-// mscz-mtime: 2026-08-08T19:53:39.484Z
+// mscz-mtime: 2026-08-09T05:24:12.553Z

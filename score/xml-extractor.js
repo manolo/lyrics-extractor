@@ -199,7 +199,7 @@ function isMeasureNumberMark(tag, text, measureNumber) {
 // whose endRepeat is 2, and the expansion follows the play count. Printing it as a heading
 // would both invent a section and state the wrong number.
 //
-// Anchored to the whole text, so "Estrofa 3x" is left alone, and not conditioned on the
+// Anchored to the whole text, so "Verse 3x" is left alone, and not conditioned on the
 // bar carrying a repeat: the count is just as often written on the first bar of the
 // repeated section as on its last, and either way it is not a section name.
 function isRepeatCountLabel(text) {
