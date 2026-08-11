@@ -4,7 +4,7 @@
 Lam  Re  Sol  Do
 
 - MUSIC -
-Mi7  Lam  Re  Sol  Do  Fa  Sol  Do
+Mi7  Lam  Re  Sol  Do  Fa  Do  Sol  Do  Sol  Do
 
 - VERSE -
 Lam         Sol         Do Mi7

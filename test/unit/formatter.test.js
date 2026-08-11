@@ -83,6 +83,45 @@ test("formatPerfLines splits the intro at a label without repeating it", functio
         "and the second takes the ones after it, not the whole intro again");
 });
 
+test("formatPerfLines splits the intro in the order it is played", function() {
+    // The written order says that after the last bar of a repeat comes the bar after it. What is
+    // played next is the first bar of the repeat again, and that is what the block has to say:
+    // the entries carry the tick each played chord was written at, so a label can cut them.
+    var lines = [{
+        text: "the singing starts here",
+        sylMap: [{ tick: 9600, pos: 0, chord: "Lam" }],
+        startTick: 9600, endTick: 10080, sectionEnd: false
+    }];
+    // Written: m1 Lam, m2 Mi7, then |: m3 Do | m4 Fa :| , so m3 and m4 are played twice
+    var chords = [
+        { tick: 0, chord: "Lam" }, { tick: 1920, chord: "Mi7" },
+        { tick: 3840, chord: "Do" }, { tick: 5760, chord: "Fa" },
+        { tick: 9600, chord: "Lam" }
+    ];
+    var entries = [
+        { tick: 0, chord: "Lam" }, { tick: 1920, chord: "Mi7" },
+        { tick: 3840, chord: "Do" }, { tick: 5760, chord: "Fa" },
+        { tick: 3840, chord: "Do" }, { tick: 5760, chord: "Fa" }   // the second pass
+    ];
+    var systemTexts = [
+        { tick: 0, text: "Intro" }, { tick: 3840, text: "Music" }, { tick: 9600, text: "Verse" }
+    ];
+
+    var withEntries = fmt.formatPerfLines(lines, entries.map(function(e) { return e.chord; }),
+        null, "", chords, null, systemTexts, false, 3840, [], entries).text;
+    var blocks = withEntries.split("\n").filter(function(l) { return /^\u200B?(Lam|Mi7|Do|Fa)/.test(l); });
+
+    assert.equal(blocks[1].replace(/\u200B/, ""), "Do  Fa  Do  Fa",
+        "the repeated bars are printed as played: " + JSON.stringify(blocks));
+
+    // Without the entries there is nothing to cut but the written order, and each bar appears once
+    var written = fmt.formatPerfLines(lines, ["Lam", "Mi7", "Do", "Fa"], null, "", chords, null,
+        systemTexts, false, 3840, []).text;
+    var writtenBlocks = written.split("\n").filter(function(l) { return /^\u200B?(Lam|Mi7|Do|Fa)/.test(l); });
+    assert.equal(writtenBlocks[1].replace(/\u200B/, ""), "Do  Fa",
+        "and a caller that gives none still gets the written order rather than nothing");
+});
+
 test("formatPerfLines does not suppress homeChord when late in line", function() {
     // homeChord = "Lam", line has only Lam at pos 40 (end of line)
     // Should NOT be suppressed because it's not at the start
