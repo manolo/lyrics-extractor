@@ -14,6 +14,33 @@ var M = "\u200B"; // chord line marker
 // what comes after it.
 function body(out) { return out.replace(/^(#[^\n]*\n)+/, ""); }
 
+// --- Accidentals ---
+
+test("accidentals are written the way ChordPro reads them", function() {
+    // The text output and the PDF print the typographic signs, so that is how a chord arrives
+    // here. A ChordPro reader given [E♭maj9] reports a chord it cannot parse
+    var out = cp.convert(M + "B\u266D    E\u266Dmaj9  F\u266Fm   C\u00B0\n" +
+                         "one   two      three  four\n");
+
+    assert.ok(out.indexOf("[Bb]") >= 0, "a flat is a b: " + out);
+    assert.ok(out.indexOf("[Ebmaj9]") >= 0, "including before a quality");
+    assert.ok(out.indexOf("[F#m]") >= 0, "and a sharp is a hash");
+    assert.ok(out.indexOf("[Cdim]") >= 0, "and the degree sign is dim");
+    assert.equal(/[\u266D\u266F\u00B0]/.test(out), false, "nothing typographic is left: " + out);
+});
+
+test("the key directive is spelled the same way", function() {
+    var out = cp.convert("==== SONG ====\n", { key: "B\u266D" });
+    assert.ok(out.indexOf("{key: Bb}") >= 0, out.split("\n").slice(0, 4).join(" / "));
+});
+
+test("an annotation keeps whatever it says", function() {
+    // [*...] is words rather than a chord, and a word is not respelled
+    var out = cp.convert(M + "Ma\u00B0s\u266D\n" + "sing\n");
+    assert.ok(out.indexOf("Ma\u00B0s\u266D") >= 0,
+        "an annotation is left alone: " + out.replace(/\n/g, " / "));
+});
+
 // --- The credit ---
 
 test("the file opens with the credit, as lines no renderer prints", function() {
