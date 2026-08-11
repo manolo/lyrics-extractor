@@ -104,37 +104,59 @@ MuseScore {
         return I18n.t(key, params);
     }
 
-    // Read ui/i18n/<code>.json from beside this file. XMLHttpRequest against a resolved URL is
-    // how QML reads a file it ships with; FileIO is the second try, and needs the URL turned
-    // back into a path, percent escapes included, since the extension lives under a directory
-    // with a space in its name on macOS.
-    function loadLanguage(code) {
-        var url = Qt.resolvedUrl("i18n/" + code + ".json");
+    // Read a file the extension ships with, named relative to this one. XMLHttpRequest against a
+    // resolved URL is how QML reads such a file; FileIO is the second try, and needs the URL
+    // turned back into a path, percent escapes included, since the extension lives under a
+    // directory with a space in its name on macOS. Returns "" when there is no such file, which
+    // is not always an error: a language nobody translated is simply absent.
+    function readShippedFile(relativePath) {
+        var url = Qt.resolvedUrl(relativePath);
         var text = "";
-        var how = "";
+        _readRoute = "";
 
         try {
             var request = new XMLHttpRequest();
             request.open("GET", url, false);
             request.send(null);
-            if (request.responseText) { text = request.responseText; how = "request"; }
+            if (request.responseText) { text = request.responseText; _readRoute = "request"; }
         } catch (e) { /* fall through to FileIO */ }
 
         if (!text) {
             try {
                 fileIO.source = decodeURIComponent(url.toString().replace(/^file:\/\//, ""));
-                if (fileIO.exists()) { text = fileIO.read(); how = "file"; }
-            } catch (e2) { /* no such language, which is not an error */ }
+                if (fileIO.exists()) { text = fileIO.read(); _readRoute = "file"; }
+            } catch (e2) { /* no such file */ }
         }
+        return text;
+    }
+    property string _readRoute: ""
 
+    function loadLanguage(code) {
+        var text = readShippedFile("i18n/" + code + ".json");
         if (!text) return false;
         try {
             I18n.register(code, JSON.parse(text));
-            console.log("[i18n] " + code + " read by " + how);
+            console.log("[i18n] " + code + " read by " + _readRoute);
             return true;
-        } catch (e3) {
-            console.log("[i18n] " + code + ".json is not valid JSON: " + e3);
+        } catch (e) {
+            console.log("[i18n] " + code + ".json is not valid JSON: " + e);
             return false;
+        }
+    }
+
+    // The version a 4.x extension has is the one in its manifest, so that is where the dialog
+    // reads it: the version property below is what MuseScore itself reads, and is left as the
+    // fallback for an install whose manifest cannot be read at all.
+    property string pluginVersion: version
+
+    function readVersion() {
+        var text = readShippedFile("../manifest.json");
+        if (!text) return;
+        try {
+            var declared = JSON.parse(text).version;
+            if (declared) pluginVersion = declared;
+        } catch (e) {
+            console.log("[version] manifest.json is not valid JSON: " + e);
         }
     }
 
@@ -1197,7 +1219,7 @@ MuseScore {
                     // The Appropriate Legal Notice the license asks an interactive program to
                     // display, and the attribution its section 7(b) term requires be kept here.
                     // Not translated: a name and a license identifier read the same everywhere.
-                    text: "\u00A9 2026 Manolo Carrasco (do2tis) - v" + version + " - GPL-3.0-or-later"
+                    text: "\u00A9 2026 Manolo Carrasco (do2tis) - v" + pluginVersion + " - GPL-3.0-or-later"
                     font.pixelSize: 11
                     color: systemPalette.windowText
                     anchors.left: parent.left
@@ -1303,6 +1325,7 @@ MuseScore {
     }
 
     Component.onCompleted: {
+        readVersion();
         setupLanguage();
         // Migrate settings when defaults change across versions
         if (settings.settingsVersion < 1) {

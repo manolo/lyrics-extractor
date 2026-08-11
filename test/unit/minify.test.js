@@ -137,3 +137,24 @@ test("minified output produces the same text as the sources", { skip: !terser },
 
     assert.equal(small, plain, "the minified orchestrator changed the output");
 });
+
+// --- The version the dialog shows -------------------------------------------
+
+test("the manifest and the package agree on the version", function() {
+    // The dialog reads its version from manifest.json, which is where a 4.x extension declares
+    // it, so that number is what a user is told. package.json has to say the same thing, or a
+    // release is built and named after a version the plugin does not claim.
+    var manifest = JSON.parse(fs.readFileSync(path.join(BASE, "manifest.json"), "utf8"));
+    var pkg = JSON.parse(fs.readFileSync(path.join(BASE, "package.json"), "utf8"));
+
+    assert.equal(manifest.version, pkg.version,
+        "manifest.json says " + manifest.version + " and package.json says " + pkg.version);
+});
+
+test("the dialog reads its version rather than carrying one", function() {
+    var qml = fs.readFileSync(path.join(BASE, "ui/LyricsForm.qml"), "utf8");
+
+    assert.ok(/readVersion\(\)/.test(qml), "it reads the manifest at startup");
+    assert.ok(/pluginVersion/.test(qml) && !/\+ version \+ " - GPL/.test(qml),
+        "and the credit line shows what it read, not the property MuseScore reads");
+});
