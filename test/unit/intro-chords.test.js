@@ -129,3 +129,51 @@ test("buildIntroChordsPerf deduplicates consecutive same chords across passes", 
     assert.ok(joined.indexOf("Re  Re") < 0 && joined.indexOf("Re Re") < 0,
         "should not have consecutive Re Re: " + joined);
 });
+
+test("buildIntroChordsPerf emits nothing for a bar with no chord of its own", function() {
+    // A repeat can open on a bar that carries no chord symbol: what is sounding there was written
+    // before the repeat. Naming a chord for it, whether the one before or the one after, is
+    // inventing something the score does not say. Bars: Sol | (nothing) |: Fa 1. :| Do
+    var chords = [
+        { tick: 0, chord: "Sol" },      // m1, before the repeat
+        { tick: 3840, chord: "Fa" },    // m3, the volta
+        { tick: 5760, chord: "Do" }     // m4, after the repeat
+    ];
+    var repStruct = {
+        repeats: [{ startTick: 1920, endTick: 5760, repeatCount: 2 }],
+        voltas: [{ startTick: 3840, endTick: 5760, endingList: [1] }],
+        sections: [{
+            repeat: { startTick: 1920, endTick: 5760, repeatCount: 2 },
+            volta1: { startTick: 3840, endTick: 5760 },
+            volta2: null,
+            sectionEnd: 5760
+        }]
+    };
+
+    var out = IntroChords.buildIntroChordsPerf(chords, repStruct, [], 7680);
+
+    assert.deepEqual(out, ["Sol", "Fa", "Do"],
+        "the empty bar contributes nothing on either pass: " + JSON.stringify(out));
+    assert.equal(out.filter(function(c) { return c === "Sol"; }).length, 1,
+        "and the chord before the repeat is not repeated by going back to that bar");
+});
+
+test("buildIntroEntriesPerf reports the tick each played chord was written at", function() {
+    // The same chord comes back once per pass, with the tick of the bar it was written in, which is
+    // what lets a caller cut the list at a label without going back to the written order
+    var chords = [{ tick: 0, chord: "Do" }, { tick: 1920, chord: "Fa" }];
+    var repStruct = {
+        repeats: [{ startTick: 0, endTick: 3840, repeatCount: 2 }],
+        voltas: [],
+        sections: [{
+            repeat: { startTick: 0, endTick: 3840, repeatCount: 2 },
+            volta1: null, volta2: null, sectionEnd: 3840
+        }]
+    };
+
+    var entries = IntroChords.buildIntroEntriesPerf(chords, repStruct, [], 3840);
+
+    assert.deepEqual(entries.map(function(e) { return e.chord; }), ["Do", "Fa", "Do", "Fa"]);
+    assert.deepEqual(entries.map(function(e) { return e.tick; }), [0, 1920, 0, 1920],
+        "the second pass carries the ticks of the bars it plays again");
+});
