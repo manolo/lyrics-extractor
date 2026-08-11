@@ -2518,6 +2518,63 @@ test("abbreviateRepeatedStanzas does NOT abbreviate same-text stanza without lab
     assert.equal(result.length, 6, "should keep all lines when no label before duplicate: got " + result.length);
 });
 
+test("abbreviateRepeatedStanzas abbreviates every stanza of a repeated section", function() {
+    // A section of two stanzas carries its label on the first of them, so only that one has a
+    // label before it. The second used to be printed while the first vanished, which in a song
+    // with a two stanza chorus left the chorus with its second half only.
+    function stanza(a, b, tick) {
+        return [
+            { text: a, sylMap: [], startTick: tick, endTick: tick + 480, sectionEnd: false },
+            { text: b, sylMap: [], startTick: tick + 480, endTick: tick + 960, sectionEnd: true }
+        ];
+    }
+    // A label sits at the bar the stanza starts in, which is past the end of the one before it
+    var lines = []
+        .concat(stanza("verse one,", "and its end.", 0))
+        .concat(stanza("the chorus opens,", "and closes here.", 1440))
+        .concat(stanza("second half of it,", "which also repeats.", 2880))
+        .concat(stanza("verse two,", "and its end.", 4320))
+        .concat(stanza("the chorus opens,", "and closes here.", 5760))
+        .concat(stanza("second half of it,", "which also repeats.", 7200));
+
+    var systemTexts = [
+        { tick: 0, text: "Verse" }, { tick: 1440, text: "Chorus" },
+        { tick: 4320, text: "Verse" }, { tick: 5760, text: "Chorus" }
+    ];
+
+    var result = fmt.abbreviateRepeatedStanzas(lines, null, systemTexts);
+    var kept = result.filter(function(l) { return !l.abbreviated; }).map(function(l) { return l.text; });
+
+    function times(text) { return kept.filter(function(t) { return t === text; }).length; }
+
+    assert.equal(times("the chorus opens,"), 1,
+        "the chorus is printed the first time and not again: " + JSON.stringify(kept));
+    assert.equal(times("second half of it,"), 1,
+        "and its second stanza goes with it, rather than being left behind on its own");
+    assert.ok(kept.indexOf("verse two,") >= 0, "a verse that is not a repeat stays");
+});
+
+test("abbreviateRepeatedStanzas stops abbreviating when the section says something new", function() {
+    // The run ends at the first stanza that is not a repeat, so a section that carries on with
+    // new words keeps them: that is what the label rule is there to protect
+    var lines = [
+        { text: "the chorus,", sylMap: [], startTick: 0, endTick: 480, sectionEnd: true },
+        { text: "a verse,", sylMap: [], startTick: 480, endTick: 960, sectionEnd: true },
+        // repeated chorus, then something only this pass says, then a repeat again
+        { text: "the chorus,", sylMap: [], startTick: 960, endTick: 1440, sectionEnd: true },
+        { text: "only this time,", sylMap: [], startTick: 1440, endTick: 1920, sectionEnd: true },
+        { text: "a verse,", sylMap: [], startTick: 1920, endTick: 2400, sectionEnd: true }
+    ];
+    var systemTexts = [{ tick: 0, text: "Chorus" }, { tick: 480, text: "Verse" },
+                       { tick: 960, text: "Chorus" }];
+
+    var result = fmt.abbreviateRepeatedStanzas(lines, null, systemTexts);
+    var kept = result.filter(function(l) { return !l.abbreviated; }).map(function(l) { return l.text; });
+
+    assert.ok(kept.indexOf("only this time,") >= 0, "what only this pass says is printed");
+    assert.ok(kept.indexOf("a verse,") >= 0, "and the run does not carry past it: " + JSON.stringify(kept));
+});
+
 // ========================================
 // Prefix match abbreviation (volta extra lines)
 // ========================================
