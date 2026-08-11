@@ -153,14 +153,19 @@ test("patchLyrics on no score returns zero rather than throwing", function() {
 });
 
 // --- syncVBoxToMetaTags -------------------------------------------------------
+//
+// A text in the frame is recognised by the enum value of its style, reported as subStyle, and not
+// by subtypeName: that is a method rather than a property, and what it returns when called is
+// translated, so this button used to copy nothing at all.
+global.Tid = global.Tid || { TITLE: 1, SUBTITLE: 2, COMPOSER: 3, POET: 4 };
 
 test("syncVBoxToMetaTags copies the VBox fields that differ", function() {
     var score = stubScore({
         firstMeasure: {
             prev: null,
             elements: [
-                { subtypeName: "title", text: "Clavelitos" },
-                { subtypeName: "composer", text: "Valverde" }
+                { subStyle: Tid.TITLE, text: "Clavelitos" },
+                { subStyle: Tid.COMPOSER, text: "Valverde" }
             ]
         },
         _meta: { workTitle: "Untitled", composer: "Valverde" }
@@ -174,9 +179,25 @@ test("syncVBoxToMetaTags copies the VBox fields that differ", function() {
     assert.equal(score._meta.composer, "Valverde", "an equal field is not rewritten");
 });
 
+test("syncVBoxToMetaTags is not fooled by the translated style name", function() {
+    // What broke: matching on the name meant matching a function against a string, and even
+    // called it reads "Title" or "Titulo" depending on the language MuseScore runs in
+    var score = stubScore({
+        firstMeasure: {
+            prev: null,
+            elements: [{ subtypeName: "title", text: "Not a title" }]
+        },
+        _meta: { workTitle: "" }
+    });
+    stubHost(score);
+
+    assert.equal(patcher.syncVBoxToMetaTags(), 0, "nothing is copied without the enum value");
+    assert.equal(score._meta.workTitle, "");
+});
+
 test("syncVBoxToMetaTags leaves an empty VBox field alone", function() {
     var score = stubScore({
-        firstMeasure: { prev: null, elements: [{ subtypeName: "subtitle", text: "" }] },
+        firstMeasure: { prev: null, elements: [{ subStyle: Tid.SUBTITLE, text: "" }] },
         _meta: { subtitle: "keep me" }
     });
     stubHost(score);

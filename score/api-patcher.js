@@ -116,12 +116,15 @@ function patchLyrics(opts) {
 function syncVBoxToMetaTags() {
     var curScore = _host.score();
     if (!curScore) return 0;
-    // VBox subtypeName -> metaTag key
+    // The text style of a VBox text, as the enum value the API reports, and the metaTag it feeds.
+    // Tid is a QML global, absent under Node, where there is no score to read anyway.
+    var tid = (typeof Tid !== "undefined" && Tid) ? Tid : {};
     var mapping = [
-        { style: "title",    tag: "workTitle" },
-        { style: "subtitle", tag: "subtitle" },
-        { style: "composer", tag: "composer" },
-        { style: "lyricist", tag: "lyricist" }
+        { tid: tid.TITLE !== undefined ? tid.TITLE : null,       tag: "workTitle" },
+        { tid: tid.SUBTITLE !== undefined ? tid.SUBTITLE : null, tag: "subtitle" },
+        { tid: tid.COMPOSER !== undefined ? tid.COMPOSER : null, tag: "composer" },
+        // the enum calls the lyricist style POET
+        { tid: tid.POET !== undefined ? tid.POET : null,         tag: "lyricist" }
     ];
     var count = 0;
     try {
@@ -130,13 +133,15 @@ function syncVBoxToMetaTags() {
         while (mb.prev) mb = mb.prev;
         var elems = mb.elements;
         if (!elems) return 0;
-        // Collect VBox values
+        // Collect VBox values. The style of a text is the enum value in subStyle: subtypeName is
+        // a method rather than a property, and what it returns is translated, so matching it
+        // against "title" never worked and this button never copied anything.
         var vboxValues = {};
         for (var i = 0; i < elems.length; i++) {
             var el = elems[i];
-            if (!el || !el.subtypeName) continue;
+            if (!el || !el.text) continue;
             for (var m = 0; m < mapping.length; m++) {
-                if (el.subtypeName === mapping[m].style && el.text) {
+                if (mapping[m].tid !== null && el.subStyle === mapping[m].tid) {
                     vboxValues[mapping[m].tag] = el.text;
                 }
             }

@@ -59,6 +59,50 @@ test("parseXml handles attributes", function() {
     assert.equal(root.text, "text");
 });
 
+// --- The title, and where it is read from ------------------------------------
+
+// A score keeps its title in its properties, in the text of the frame at the top, or in neither.
+// The frame is where a score imported from another program has it, and it is the case that used to
+// be missed: the reading it needs is the same one the dialog got wrong, so it is pinned here and
+// exercised by test_le_SectionLabels, which carries no workTitle on purpose.
+function scoreWithTitle(metaTags, frameTitle) {
+    return '<museScore version="4.60"><Score><Division>480</Division>' +
+        metaTags +
+        '<Staff id="1">' +
+        (frameTitle === null ? "" :
+            "<VBox><Text><style>title</style><text>" + frameTitle + "</text></Text></VBox>") +
+        "<Measure><voice></voice></Measure>" +
+        "</Staff></Score></museScore>";
+}
+
+test("the title comes from the properties when they have one", function() {
+    var data = xmlExt.extractAll(scoreWithTitle(
+        '<metaTag name="workTitle">From the properties</metaTag>', "From the frame"));
+    assert.equal(data.title, "From the properties", "the properties win");
+});
+
+test("the title comes from the frame when the properties have none", function() {
+    // A score imported from Guitar Pro, or written by hand, has only this
+    var data = xmlExt.extractAll(scoreWithTitle("", "From the frame"));
+    assert.equal(data.title, "From the frame");
+
+    var empty = xmlExt.extractAll(scoreWithTitle(
+        '<metaTag name="workTitle"></metaTag>', "From the frame"));
+    assert.equal(empty.title, "From the frame", "an empty property is no property");
+});
+
+test("movementTitle is read before the frame and after workTitle", function() {
+    var data = xmlExt.extractAll(scoreWithTitle(
+        '<metaTag name="movementTitle">A movement</metaTag>', "From the frame"));
+    assert.equal(data.title, "A movement");
+});
+
+test("a score with neither has no title of its own", function() {
+    // The caller names it after its file, which is the CLI's job rather than the reader's
+    var data = xmlExt.extractAll(scoreWithTitle("", null));
+    assert.equal(data.title, "");
+});
+
 test("extractAll parses simple score", function() {
     var data = xmlExt.extractAll(SIMPLE_SCORE);
 

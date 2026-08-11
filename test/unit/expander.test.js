@@ -451,34 +451,30 @@ test("titleFromFileName lowercases minor words but not at start", function() {
 // ========================================
 // _getTitleFromVBox
 // ========================================
+//
+// A text in the frame is recognised by the enum value of its text style, which the API reports as
+// subStyle. What it is not recognised by is subtypeName: that is a method, so comparing it against
+// a string compares a function against a string, and what it returns when called is translated,
+// "Title" or "Título". The dialog matched on it and so never found a title at all.
+global.Tid = { TITLE: 1, SUBTITLE: 2, COMPOSER: 3, POET: 4 };
+
+function vbox(texts) {
+    return { firstMeasure: { prev: { prev: null, elements: texts } } };
+}
 
 test("getTitleFromVBox returns title from VBox elements", function() {
-    var mockScore = {
-        firstMeasure: {
-            prev: {
-                prev: null,
-                elements: [
-                    { text: "My Song Title", subtypeName: "title" },
-                    { text: "John Doe", subtypeName: "composer" }
-                ]
-            }
-        }
-    };
+    var mockScore = vbox([
+        { text: "My Song Title", subStyle: Tid.TITLE },
+        { text: "John Doe", subStyle: Tid.COMPOSER }
+    ]);
     assert.equal(extractor._getTitleFromVBox(mockScore), "My Song Title");
 });
 
 test("getTitleFromVBox returns empty when no title element", function() {
-    var mockScore = {
-        firstMeasure: {
-            prev: {
-                prev: null,
-                elements: [
-                    { text: "John Doe", subtypeName: "composer" },
-                    { text: "Some subtitle", subtypeName: "subtitle" }
-                ]
-            }
-        }
-    };
+    var mockScore = vbox([
+        { text: "John Doe", subStyle: Tid.COMPOSER },
+        { text: "Some subtitle", subStyle: Tid.SUBTITLE }
+    ]);
     assert.equal(extractor._getTitleFromVBox(mockScore), "");
 });
 
@@ -492,6 +488,19 @@ test("getTitleFromVBox returns empty when no VBox", function() {
 test("getTitleFromVBox returns empty on error", function() {
     assert.equal(extractor._getTitleFromVBox({}), "");
     assert.equal(extractor._getTitleFromVBox(null), "");
+});
+
+test("getTitleFromVBox ignores the translated style name", function() {
+    // What broke: a text whose only marking is subtypeName is not a title, whatever it says. The
+    // API reports that name translated, so no string comparison can be trusted
+    assert.equal(extractor._getTitleFromVBox(vbox([
+        { text: "Titulo traducido", subtypeName: "title" },
+        { text: "Also not it", subtypeName: "T\u00edtulo" }
+    ])), "", "nothing is taken for a title without the enum value");
+
+    assert.equal(extractor._getTitleFromVBox(vbox([
+        { text: "The real one", subStyle: Tid.TITLE, subtypeName: "T\u00edtulo" }
+    ])), "The real one", "and the enum value is enough on its own");
 });
 
 // ========================================
@@ -510,12 +519,12 @@ test("getTitle uses metaTag workTitle first", function() {
 });
 
 test("getTitle falls back to VBox when metaTags empty", function() {
-    var vbox = { prev: null, elements: [{ text: "VBox Title", subtypeName: "title" }] };
+    var frame = { prev: null, elements: [{ text: "VBox Title", subStyle: Tid.TITLE }] };
     extractor._setScore({
         metaTag: function() { return ""; },
         title: "",
         scoreName: "FileName",
-        firstMeasure: { prev: vbox }
+        firstMeasure: { prev: frame }
     });
     assert.equal(extractor._getTitle(), "VBox Title");
     extractor._setScore(null);

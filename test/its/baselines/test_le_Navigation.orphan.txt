@@ -47,4 +47,4 @@ Fi… nal de la cancion.
 - - - - - - - - - - - - - - - - - - - - - - - -
 Lam              Re
 Esta letra no la canta ninguna pasada.
-// mscz-mtime: 2026-08-09T05:24:12.706Z
+// mscz-mtime: 2026-08-11T06:32:51.188Z

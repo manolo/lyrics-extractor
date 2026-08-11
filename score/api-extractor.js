@@ -62,15 +62,34 @@ function _dedup(arr, eq) {
     return result;
 }
 
+// The style of a text is matched by the enum value of its text style, which is what subStyle
+// carries. Not by subtypeName: that is a method rather than a property, so comparing it against a
+// string compares a function against a string and never matches, and what it returns when it is
+// called is a translated user facing name, "Title" in English and "Título" in Spanish. A score
+// with no workTitle metaTag therefore ended up named after its file.
+//
+// The enum is a QML global, so it is absent under Node: without it there is nothing to match, and
+// the caller falls back exactly as it would for a score with no frame.
+function _tidFor(styleName) {
+    if (typeof Tid === "undefined" || !Tid) return null;
+    if (styleName === "title") return Tid.TITLE;
+    if (styleName === "subtitle") return Tid.SUBTITLE;
+    if (styleName === "composer") return Tid.COMPOSER;
+    if (styleName === "lyricist") return Tid.POET;   // the enum calls the lyricist style POET
+    return null;
+}
+
 // Read a text element from the first VBox frame by its style name.
 // styleName: "title", "subtitle", "composer", "lyricist"
 function _getVBoxText(score, styleName) {
+    var wanted = _tidFor(styleName);
+    if (wanted === null || wanted === undefined) return "";
     try {
         var mb = score.firstMeasure;
         while (mb.prev) mb = mb.prev;
         var elems = mb.elements;
         for (var i = 0; i < elems.length; i++) {
-            if (elems[i].text && elems[i].subtypeName === styleName) return elems[i].text;
+            if (elems[i].text && elems[i].subStyle === wanted) return elems[i].text;
         }
     } catch (e) {}
     return "";
