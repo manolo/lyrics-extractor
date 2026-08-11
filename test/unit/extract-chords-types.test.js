@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Licensed under the GNU General Public License version 3 or later, with an
-// additional attribution requirement under section 7(b): see LICENSE.
+// additional attribution requirement under section 7(b): see LICENSE and ATTRIBUTION.md.
 
 // Tests for chord and section title classification by element type
 // in score/api-extractor.js

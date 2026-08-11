@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Licensed under the GNU General Public License version 3 or later, with an
-// additional attribution requirement under section 7(b): see LICENSE.
+// additional attribution requirement under section 7(b): see LICENSE and ATTRIBUTION.md.
 
 // Refresh the mtime marker at the end of each snapshot baseline: the mtime of the .mscz the
 // baseline was taken from, which is what lets a failing test say whether the score changed.

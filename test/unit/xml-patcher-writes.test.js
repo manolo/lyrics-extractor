@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Licensed under the GNU General Public License version 3 or later, with an
-// additional attribution requirement under section 7(b): see LICENSE.
+// additional attribution requirement under section 7(b): see LICENSE and ATTRIBUTION.md.
 
 // score/xml-patcher.js is the only code in the project that writes into the user's score, and
 // it was the worst covered file of the project at 60.80% of branches: the Fix button is driven

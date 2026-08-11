@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Licensed under the GNU General Public License version 3 or later, with an
-// additional attribution requirement under section 7(b): see LICENSE.
+// additional attribution requirement under section 7(b): see LICENSE and ATTRIBUTION.md.
 
 // Integration tests: the snapshot suite over the scores that travel with the repository, plus
 // the fixture.mscz checks of the extraction pipeline.

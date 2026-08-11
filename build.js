@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Licensed under the GNU General Public License version 3 or later, with an
-// additional attribution requirement under section 7(b): see LICENSE.
+// additional attribution requirement under section 7(b): see LICENSE and ATTRIBUTION.md.
 
 // Build lyrics-extractor-<version>.mext: package the extension for MuseScore 4.
 //
@@ -78,9 +78,11 @@ fs.writeFileSync(BUILD + "/ui/LyricsForm.qml", qmlSrc);
 
 // Static files. The license travels with the package: "you should have received a copy of the
 // GNU General Public License along with this program" is a condition of shipping it, and the
-// .mext is the only thing most users ever receive.
+// .mext is the only thing most users ever receive. ATTRIBUTION.md goes with it, since it is the
+// notice that states the added term and section 7 asks for it to be conveyed too.
 fs.copyFileSync("logo.png", BUILD + "/logo.png");
 fs.copyFileSync("LICENSE", BUILD + "/LICENSE");
+fs.copyFileSync("ATTRIBUTION.md", BUILD + "/ATTRIBUTION.md");
 
 var manifest = fs.readFileSync("manifest.json", "utf8");
 if (version !== "dev") {

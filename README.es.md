@@ -328,7 +328,8 @@ El JavaScript se minifica: fuera comentarios y espacios, y las expresiones se co
 ## Licencia
 
 Licencia Publica General de GNU, version 3 o posterior, la misma que MuseScore Studio. Ver
-[LICENSE](LICENSE). Copyright (C) 2026 Manolo Carrasco (do2tis).
+[LICENSE](LICENSE) para la licencia y [ATTRIBUTION.md](ATTRIBUTION.md) para el copyright y el
+termino añadido. Copyright (C) 2026 Manolo Carrasco (do2tis).
 
 Puedes usar, estudiar, compartir y modificar esto, y tienes que transmitir esas mismas
 libertades: una version modificada tiene que ser software libre tambien, con su fuente

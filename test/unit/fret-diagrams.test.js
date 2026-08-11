@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Licensed under the GNU General Public License version 3 or later, with an
-// additional attribution requirement under section 7(b): see LICENSE.
+// additional attribution requirement under section 7(b): see LICENSE and ATTRIBUTION.md.
 
 // Chord diagrams are read from the guitar part of the score and drawn in the PDF, so the text
 // snapshots cannot see them: test_le_FretDiagrams.mscz would raise the coverage of

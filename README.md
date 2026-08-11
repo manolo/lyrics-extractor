@@ -333,7 +333,8 @@ The release workflow (`release.yml`) runs tests and then calls `build.js` with t
 ## License
 
 GNU General Public License, version 3 or later, the same license as MuseScore Studio itself. See
-[LICENSE](LICENSE). Copyright (C) 2026 Manolo Carrasco (do2tis).
+[LICENSE](LICENSE) for the license and [ATTRIBUTION.md](ATTRIBUTION.md) for the copyright and the
+added term. Copyright (C) 2026 Manolo Carrasco (do2tis).
 
 You may use, study, share and modify this, and you must pass those same freedoms on: a modified
 version has to be free software too, with its source available.

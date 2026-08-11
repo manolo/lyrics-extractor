@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Licensed under the GNU General Public License version 3 or later, with an
-// additional attribution requirement under section 7(b): see LICENSE.
+// additional attribution requirement under section 7(b): see LICENSE and ATTRIBUTION.md.
 
 // score/api-extractor.js reads the score MuseScore has open, through the QML API, and it was
 // at 34% of lines: the snapshot suite goes through the XML path instead, so the plugin's own

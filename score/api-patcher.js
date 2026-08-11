@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //
 // Licensed under the GNU General Public License version 3 or later, with an
-// additional attribution requirement under section 7(b): see LICENSE.
+// additional attribution requirement under section 7(b): see LICENSE and ATTRIBUTION.md.
 
 // Writes into the score MuseScore has open, through the QML API. The counterpart of
 // api-extractor.js, which only reads, and of xml-patcher.js, which writes the same fixes
