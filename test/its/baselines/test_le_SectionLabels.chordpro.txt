@@ -1,0 +1,23 @@
+# Lyrics Extractor for MuseScore
+# Copyright (C) 2026 Manolo Carrasco (do2tis)
+{title: SECTION LABELS}
+{key: C}
+
+{comment: INTRO}
+{comment: MUSIC}
+[Am] [D]
+
+
+{comment: VERSE 1}
+[G]Canta la ron[C]da, que va por,
+
+{comment: INTERLUDE}
+[E7] [Am]
+
+{comment: SOLOIST ONE}
+[D]y la luna [G]mira como, [C]
+
+{comment: A}
+[Dm]vuelve la ron[*dolce]da, [*pizz.] [F] que va, [C]
+[Am]canta la ron[D]da y se va.
+// mscz-mtime: 2026-08-11T09:03:45.454Z

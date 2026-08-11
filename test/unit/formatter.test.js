@@ -54,6 +54,35 @@ test("formatPerfLines renders title and intro chords", function() {
     assert.ok(output.indexOf("hello world") >= 0);
 });
 
+test("formatPerfLines splits the intro at a label without repeating it", function() {
+    // An intro with two labels is printed as a block per label. The loop that does it never moved
+    // its starting tick, so every block after the first began again at the first chord of the
+    // intro: whatever the first block printed, the second printed again in front of its own.
+    var lines = [{
+        text: "the singing starts here",
+        sylMap: [{ tick: 7680, pos: 0, chord: "Do" }],
+        startTick: 7680, endTick: 8160, sectionEnd: false
+    }];
+    var chords = [
+        { tick: 0, chord: "Lam" }, { tick: 1920, chord: "Re" },      // under the first label
+        { tick: 3840, chord: "Sol" }, { tick: 5760, chord: "Mi7" },  // under the second
+        { tick: 7680, chord: "Do" }
+    ];
+    var systemTexts = [
+        { tick: 0, text: "Intro" }, { tick: 3840, text: "Music" }, { tick: 7680, text: "Verse" }
+    ];
+
+    var output = fmt.formatPerfLines(
+        lines, ["Lam", "Re", "Sol", "Mi7"], null, "", chords, null, systemTexts, false, -1, []
+    ).text;
+
+    var blocks = output.split("\n").filter(function(l) { return /^\u200B?(Lam|Re|Sol|Mi7)/.test(l); });
+    assert.equal(blocks.length, 2, "one block per label: " + JSON.stringify(blocks));
+    assert.equal(blocks[0].replace(/\u200B/, ""), "Lam  Re", "the first label takes its own chords");
+    assert.equal(blocks[1].replace(/\u200B/, ""), "Sol  Mi7",
+        "and the second takes the ones after it, not the whole intro again");
+});
+
 test("formatPerfLines does not suppress homeChord when late in line", function() {
     // homeChord = "Lam", line has only Lam at pos 40 (end of line)
     // Should NOT be suppressed because it's not at the start

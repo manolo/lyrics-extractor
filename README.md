@@ -297,6 +297,8 @@ Each score in the corpus exists to reach code the others do not: no lyrics at al
 
 `test/its/snapshot.js` drives them, and it is told nothing: a song is snapshotted because a baseline exists for it, and a mode runs because that mode's baseline exists. So adding a score is copying it in and generating its baselines, with no list to edit.
 
+The modes are `compact`, `full`, `orphan` and `chordpro`, named in the baseline: `test_le_LongLines.full.txt`. The first three are what the CLI prints; `chordpro` is the `.cho` file it writes, taken on a copy of the score in a temporary directory so a run leaves nothing beside the corpus.
+
 That is also what lets a developer keep a suite of their own beside it, in a folder git ignores whole:
 
 ```

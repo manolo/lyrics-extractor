@@ -27,12 +27,19 @@ var SCORE_PREFIX = "test_le_";
 var MTIME_PREFIX = "// mscz-mtime: ";
 
 // The flags each mode is taken with. A mode with no baseline for a song does not run: orphan
-// only means something for a score with a verse no pass sings.
+// only means something for a score with a verse no pass sings, and chordpro is worth taking on
+// the scores whose chords or labels the format has something to say about.
 var MODES = {
     compact: "--compact",
     full: "--full",
-    orphan: "--full --orphan-lyrics"
+    orphan: "--full --orphan-lyrics",
+    chordpro: "--chordpro"
 };
+
+// ChordPro is written to a file of its own rather than printed, and the file lands beside the
+// score. The score is copied to a temporary directory first, so a run leaves nothing behind in
+// the corpus: a stray .cho there once got itself committed.
+var FILE_MODES = { chordpro: "-lyrics.cho" };
 
 // { Song: { mode: baselinePath } } for every baseline in a directory
 function findBaselines(dir) {
@@ -47,6 +54,30 @@ function findBaselines(dir) {
         found[m[1]][m[2]] = path.join(dir, name);
     });
     return found;
+}
+
+function run(cli, scorePath, flags) {
+    return child.execSync(
+        "node " + JSON.stringify(cli) + " " + JSON.stringify(scorePath) + " " + flags,
+        { encoding: "utf8", timeout: 30000 }
+    );
+}
+
+// For a mode whose output is a file the CLI writes beside the score: run it on a copy in a
+// temporary directory and read that file, so the corpus is left as it was found.
+function runIntoFile(cli, scorePath, flags, suffix) {
+    var dir = fs.mkdtempSync(path.join(require("os").tmpdir(), "le-snap-"));
+    try {
+        var copy = path.join(dir, path.basename(scorePath));
+        fs.copyFileSync(scorePath, copy);
+        child.execSync(
+            "node " + JSON.stringify(cli) + " " + JSON.stringify(copy) + " " + flags,
+            { encoding: "utf8", timeout: 30000, stdio: ["ignore", "ignore", "ignore"] }
+        );
+        return fs.readFileSync(copy.replace(/\.[^.]+$/, suffix), "utf8");
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
 }
 
 function msczMtime(scorePath) {
@@ -95,10 +126,8 @@ function define(opts) {
                 var expected = fs.readFileSync(baselinePath, "utf8")
                     .replace(/\n\/\/ mscz-mtime: .+\n?$/, "\n");
 
-                var actual = child.execSync(
-                    "node " + JSON.stringify(cli) + " " + JSON.stringify(scorePath) + " " + flag,
-                    { encoding: "utf8", timeout: 30000 }
-                );
+                var actual = FILE_MODES[mode] ? runIntoFile(cli, scorePath, flag, FILE_MODES[mode])
+                                              : run(cli, scorePath, flag);
                 if (actual === expected) return;
 
                 var msg = song + " " + flag + " output changed";
