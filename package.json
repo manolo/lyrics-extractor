@@ -1,6 +1,6 @@
 {
   "name": "lyrics-extractor",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "MuseScore 4 extension that extracts lyrics with aligned chords from a score",
   "license": "GPL-3.0-or-later",
   "author": "Manolo Carrasco (do2tis)",
