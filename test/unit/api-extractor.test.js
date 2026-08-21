@@ -178,7 +178,7 @@ test("extractChords keeps staff text as an annotation rather than a chord", func
     var chords = api.extractChords(0);
     var texts = chords.filter(function(c) { return c.isText; });
     assert.equal(texts.length, 1, "the staff text is there: " + JSON.stringify(chords));
-    assert.equal(texts[0].chord, "Muy-lento", "with its spaces joined, so it stays one token");
+    assert.equal(texts[0].chord, "{Muy lento}", "braced, so it stays one token and reads as words");
     assert.ok(chords.some(function(c) { return c.chord === "Lam" && !c.isText; }),
         "and the chord is still a chord");
 });

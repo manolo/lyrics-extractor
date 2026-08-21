@@ -320,7 +320,7 @@ test("extractAll extracts SystemText and StaffText elements", function() {
     assert.equal(data.systemTexts[0].tick, 0);
     // StaffText "Solo" is now an inline chord-like text
     assert.equal(data.chords.length, 1, "should have 1 chord (StaffText as inline)");
-    assert.equal(data.chords[0].chord, "Solo");
+    assert.equal(data.chords[0].chord, "{Solo}");
     assert.equal(data.chords[0].tick, 960);
 });
 
@@ -737,7 +737,7 @@ test("extractAll extracts <PlayTechAnnotation> as inline chord text", function()
 
     var data = xmlExt.extractAll(xml);
     assert.equal(data.chords.length, 1);
-    assert.equal(data.chords[0].chord, "harmonics");
+    assert.equal(data.chords[0].chord, "{harmonics}");
     assert.equal(data.chords[0].tick, 0);
 });
 
@@ -757,7 +757,7 @@ test("extractAll extracts <Expression> as inline chord text", function() {
 
     var data = xmlExt.extractAll(xml);
     assert.equal(data.chords.length, 1);
-    assert.equal(data.chords[0].chord, "rit.");
+    assert.equal(data.chords[0].chord, "{rit.}");
     assert.equal(data.chords[0].tick, 0);
 });
 
@@ -1351,7 +1351,7 @@ test("extractAll can leave text annotations out of the chord line", function() {
 
     var withText = xmlExt.extractAll(xml, [], "standard");
     var names = withText.chords.map(function(c) { return c.chord; });
-    assert.ok(names.indexOf("Muy-lento") >= 0, "annotations are included by default: " + names);
+    assert.ok(names.indexOf("{Muy lento}") >= 0, "annotations are included by default: " + names);
     assert.ok(names.indexOf("C") >= 0, "chord present: " + names);
 
     var without = xmlExt.extractAll(xml, [], "standard", { includeAnnotations: false });

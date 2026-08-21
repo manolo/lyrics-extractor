@@ -9,8 +9,14 @@
 // Used when QML API cannot read chord names from FretDiagram annotations
 // Self-contained: includes minimal XML parser and measure walking logic
 //
-// Usage (QML): XmlChordReader.extractChords(xmlString, Constants)
+// Usage (QML): XmlChordReader.setTextUtils(TextUtils), then extractChords(xmlString, Constants)
 // Usage (Node.js): require("./xml-chord-reader").extractChords(xmlString, require("../lib/constants"))
+
+// --- Injected dependencies ---
+// text-utils is injected via setTextUtils() to avoid duplicating code.
+// QML caller passes TextUtils; Node.js auto-wires via require() at the bottom.
+var _textUtils = null;
+function setTextUtils(tu) { _textUtils = tu; }
 
 // --- Minimal XML parser ---
 
@@ -257,11 +263,12 @@ function extractChords(xmlString, C, spelling) {
                         // Inline text annotations on the harmony staff appear in the chord line
                         var inlineText = _ct(e, "text");
                         if (inlineText) {
-                            // Collapse internal whitespace to '-' for readability
-                            inlineText = inlineText.replace(/\s+/g, "-");
                             if (!counts[sid]) counts[sid] = 0;
                             counts[sid]++;
-                            all.push({ staffId: sid, tick: vt, chord: inlineText, isText: true });
+                            all.push({
+                                staffId: sid, tick: vt,
+                                chord: _textUtils.braceAnnotation(inlineText), isText: true
+                            });
                         }
                     }
 
@@ -429,6 +436,10 @@ function extractFretDiagrams(xmlString) {
 }
 
 if (typeof exports !== "undefined") {
+    // Auto-wire text-utils in Node.js context, as api-extractor does
+    _textUtils = require("../lib/text-utils");
+
     exports.extractChords = extractChords;
     exports.extractFretDiagrams = extractFretDiagrams;
+    exports.setTextUtils = setTextUtils;
 }

@@ -10,6 +10,7 @@
 // Used by the Node.js CLI
 
 var Constants = require("../lib/constants");
+var TextUtils = require("../lib/text-utils");
 
 // Simple XML DOM parser (no external dependencies)
 // Returns a tree of { tag, attrs, children, text }
@@ -771,11 +772,12 @@ function extractAll(xmlString, excerptXmls, spelling, options) {
                 (elem.tag === "StaffText" || elem.tag === "Expression" || elem.tag === "PlayTechAnnotation")) {
                 var inlineText = childText(elem, "text");
                 if (inlineText) {
-                    // Collapse internal whitespace to '-' for readability in chord line
-                    inlineText = inlineText.replace(/\s+/g, "-");
                     if (!harmonyCounts[staffId]) harmonyCounts[staffId] = 0;
                     harmonyCounts[staffId]++;
-                    allChords.push({ staffId: staffId, tick: voiceTick, chord: inlineText, isText: true });
+                    allChords.push({
+                        staffId: staffId, tick: voiceTick,
+                        chord: TextUtils.braceAnnotation(inlineText), isText: true
+                    });
                 }
             }
         });

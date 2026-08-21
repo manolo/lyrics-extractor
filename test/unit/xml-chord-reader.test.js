@@ -464,10 +464,10 @@ test("extractChords picks up StaffText, Expression and PlayTechAnnotation as cho
 
     var chords = reader.extractChords(xml, Constants, "solfeggio");
     var names = chords.map(function(c) { return c.chord; });
-    // Internal whitespace is collapsed to '-' so each text is one token
-    assert.ok(names.indexOf("Staff-text") >= 0, "should have Staff-text: " + names);
-    assert.ok(names.indexOf("harmonics") >= 0, "should have harmonics: " + names);
-    assert.ok(names.indexOf("rit.") >= 0, "should have rit.: " + names);
+    // Braces hold the words together as one token, and say they are not a harmony
+    assert.ok(names.indexOf("{Staff text}") >= 0, "should have {Staff text}: " + names);
+    assert.ok(names.indexOf("{harmonics}") >= 0, "should have {harmonics}: " + names);
+    assert.ok(names.indexOf("{rit.}") >= 0, "should have {rit.}: " + names);
     assert.ok(names.indexOf("Sol") >= 0, "should have Sol: " + names);
 });
 

@@ -478,10 +478,7 @@ function extractChords(harmonyStaffIdx) {
                     if (inlineStaff === harmonyStaffIdx || harmonyStaffIdx === -1) {
                         var inlineText = _stripHtml(ann.text || "");
                         if (inlineText) {
-                            // Collapse internal whitespace to '-' so the chord line reads
-                            // as a single token (otherwise "Staff text" looks like two chords).
-                            inlineText = inlineText.replace(/\s+/g, "-");
-                            chords.push({ tick: segment.tick, chord: inlineText, isText: true });
+                            chords.push({ tick: segment.tick, chord: _textUtils.braceAnnotation(inlineText), isText: true });
                         }
                     }
                 }

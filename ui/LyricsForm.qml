@@ -1333,6 +1333,7 @@ MuseScore {
             settings.settingsVersion = 1;
         }
         Extractor.setTextUtils(TextUtils);
+        XmlChordReader.setTextUtils(TextUtils);
         LineBuilder.setTextUtils(TextUtils);
         Formatter.setLineBuilder(LineBuilder);
         ChordProWriter.setConvertChord(ChordUtils.convertChord);

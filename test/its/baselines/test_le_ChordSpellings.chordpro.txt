@@ -5,7 +5,7 @@
 
 
 {comment: VERSE}
-[Bb]Sube la lu[Bb/F]na po[F/A]r el cie[*Muy-lento]lo [Bbmaj7] de mi al[Ebmaj9]dea que [Cm]duerme.
+[Bb]Sube la lu[Bb/F]na po[F/A]r el cie[*Muy lento]lo [Bbmaj7] de mi al[Ebmaj9]dea que [Cm]duerme.
 
 {comment: CHORUS}
 [F7]Y canta la [Gm]ronda sin fin.

@@ -208,11 +208,12 @@ test("converts a complete formatted document", function() {
 // --- Text annotations vs chords ---
 
 test("emits text annotations with the ChordPro annotation syntax", function() {
-    // "Muy-lento" is staff text carried on the chord line, not a chord: as a plain
-    // [Muy-lento] tag a ChordPro reader would try to transpose it.
-    var input = M + "Do        Muy-lento   Sol\nhola mundo que tal\n";
+    // "{Muy lento}" is staff text carried on the chord line, not a chord: as a plain
+    // [Muy lento] tag a ChordPro reader would try to transpose it. The braces come off,
+    // since the star is what marks an annotation in this format.
+    var input = M + "Do        {Muy lento} Sol\nhola mundo que tal\n";
     var out = cp.convert(input);
-    assert.ok(out.indexOf("[*Muy-lento]") >= 0, "annotation should use [*...]: " + out);
+    assert.ok(out.indexOf("[*Muy lento]") >= 0, "annotation should use [*...]: " + out);
     assert.ok(out.indexOf("[C]") >= 0, "real chords stay plain: " + out);
     assert.ok(out.indexOf("[G]") >= 0, "real chords stay plain: " + out);
 });
@@ -250,4 +251,23 @@ test("converts a solfeo key name to anglo in the directive", function() {
 test("omits the key directive when no key is given", function() {
     var out = cp.convert("==== X ====\n");
     assert.ok(out.indexOf("{key:") < 0, "no key directive expected: " + out);
+});
+
+test("a braced annotation is one token, spaces and all", function() {
+    // The chord line is read back by column, and everything else on it is separated by
+    // spaces. The braces are what let an annotation keep the words the score has.
+    var input = M + "Do   {muy suave}   Sol\nhola mundo que tal\n";
+    var out = cp.convert(input, {});
+
+    assert.ok(out.indexOf("[*muy suave]") >= 0, "the words stay together: " + out);
+    assert.ok(out.indexOf("[*muy]") < 0, "and are not read as two tags: " + out);
+    assert.ok(out.indexOf("{muy suave}") < 0, "the braces come off, the star is the marker here");
+});
+
+test("a chord that carries a bracket is still one token", function() {
+    // Mi7(b5) is why the marker is a brace and not a parenthesis.
+    var input = M + "Mi7(b5)  Lam\nhola mundo\n";
+    var out = cp.convert(input, {});
+
+    assert.ok(out.indexOf("[E7(b5)]") >= 0, "the quality bracket is part of the chord: " + out);
 });

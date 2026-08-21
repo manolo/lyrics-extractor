@@ -1,0 +1,11 @@
+# Lyrics Extractor for MuseScore
+# Copyright (C) 2026 Manolo Carrasco (do2tis)
+{title: ANNOTATIONS}
+
+{comment: ESTROFA}
+[C]Canta muy bien [Am]la ronda va [G]por [*Continue rhythm] la ciudad con [F] voz [*Solo]de miel [C]y [*Cejilla b3] el viento l[D7]leva la voz.
+
+La ronda va [G]por [*Continue rhythm] la ciudad con [F] voz [*Solo]de miel [C]y [*Cejilla b3] el viento l[D7]leva la voz.
+
+[G]Cant[*muy suave]a la mar [C]jamas.
+// mscz-mtime: 2026-08-21T10:21:23.677Z

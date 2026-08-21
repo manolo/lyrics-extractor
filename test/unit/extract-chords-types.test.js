@@ -88,7 +88,7 @@ test("extractChords picks up StaffText (type 52) on the harmony staff as inline 
     }));
     var chords = msExtractor.extractChords(0);
     assert.equal(chords.length, 2);
-    assert.equal(chords[1].chord, "Solo");
+    assert.equal(chords[1].chord, "{Solo}");
 });
 
 test("extractChords picks up Expression (type 42) on the harmony staff as inline chord", function() {
@@ -98,7 +98,7 @@ test("extractChords picks up Expression (type 42) on the harmony staff as inline
     }));
     var chords = msExtractor.extractChords(0);
     assert.equal(chords.length, 2);
-    assert.equal(chords[1].chord, "rit.");
+    assert.equal(chords[1].chord, "{rit.}");
 });
 
 test("extractChords filters StaffText/Expression by harmony staff", function() {
@@ -225,7 +225,7 @@ test("STAFF_TEXT on the harmony staff becomes a chord and never a section title"
     var chords = msExtractor.extractChords(0);
     var texts = msExtractor.extractSystemTexts();
     assert.equal(chords.length, 1, "STAFF_TEXT on harmony staff is chord");
-    assert.equal(chords[0].chord, "Solo");
+    assert.equal(chords[0].chord, "{Solo}");
     assert.equal(texts.length, 0, "STAFF_TEXT should never appear as section title");
 });
 
@@ -237,8 +237,8 @@ test("PlayTechAnnotation (type 56) on the harmony staff is extracted as inline c
     }));
     var chords = msExtractor.extractChords(0);
     assert.equal(chords.length, 3);
-    assert.equal(chords[1].chord, "harmonics");
-    assert.equal(chords[2].chord, "pizz.");
+    assert.equal(chords[1].chord, "{harmonics}");
+    assert.equal(chords[2].chord, "{pizz.}");
 });
 
 test("PlayTechAnnotation on a non-harmony staff is filtered out", function() {
@@ -249,7 +249,7 @@ test("PlayTechAnnotation on a non-harmony staff is filtered out", function() {
     assert.equal(chords.length, 0);
 });
 
-test("inline text with internal whitespace is collapsed to '-'", function() {
+test("inline text with internal whitespace is braced, not joined", function() {
     setScore(makeMockScore({
         0: [{ type: Element.STAFF_TEXT, text: "Staff text", track: 0 }],
         480: [{ type: 56, text: "molto rit.", track: 0 }],
@@ -257,7 +257,9 @@ test("inline text with internal whitespace is collapsed to '-'", function() {
     }));
     var chords = msExtractor.extractChords(0);
     assert.equal(chords.length, 3);
-    assert.equal(chords[0].chord, "Staff-text");
-    assert.equal(chords[1].chord, "molto-rit.");
-    assert.equal(chords[2].chord, "-multiple-spaces-");
+    assert.equal(chords[0].chord, "{Staff text}");
+    assert.equal(chords[1].chord, "{molto rit.}");
+    // Runs of whitespace come down to one space and the ends are trimmed, so a text typed
+    // with stray spaces still reads as words rather than as a token full of gaps.
+    assert.equal(chords[2].chord, "{multiple spaces}");
 });

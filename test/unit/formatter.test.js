@@ -2098,7 +2098,7 @@ test("formatPerfLines: trailing chords exactly at width boundary", function() {
 // Already covered for QML extractor in test/extract-chords-types.test.js
 // Here we verify orchestrator output renders multi-word StaffText as one chord token
 
-test("xml-extractor: StaffText with internal whitespace collapses to '-'", function() {
+test("xml-extractor: StaffText with internal whitespace is braced whole", function() {
     var xmlExt = require("../../score/xml-extractor");
     var xml = [
         '<?xml version="1.0" encoding="UTF-8"?>',
@@ -2113,7 +2113,7 @@ test("xml-extractor: StaffText with internal whitespace collapses to '-'", funct
     ].join("\n");
     var data = xmlExt.extractAll(xml);
     assert.equal(data.chords.length, 1);
-    assert.equal(data.chords[0].chord, "molto-rit.-ed-espressivo");
+    assert.equal(data.chords[0].chord, "{molto rit. ed espressivo}");
 });
 
 test("formatLines reports lastChordTick so orchestrator can dedup coda", function() {
@@ -3029,7 +3029,7 @@ test("formatPerfLines puts the words after the chord they share a beat with", fu
     }];
     var chords = [
         { tick: 0, chord: "Bbmaj7" },
-        { tick: 0, chord: "Continue-rhythm", isText: true }
+        { tick: 0, chord: "{Continue rhythm}", isText: true }
     ];
 
     var output = fmt.formatPerfLines(lines, [], null, null, chords).text;
@@ -3039,8 +3039,8 @@ test("formatPerfLines puts the words after the chord they share a beat with", fu
     });
 
     assert.ok(chordLine, "the harmony is printed");
-    assert.ok(chordLine.indexOf("Continue-rhythm") >= 0, "and so are the words");
-    assert.ok(chordLine.indexOf("Bbmaj7") < chordLine.indexOf("Continue-rhythm"),
+    assert.ok(chordLine.indexOf("{Continue rhythm}") >= 0, "and so are the words");
+    assert.ok(chordLine.indexOf("Bbmaj7") < chordLine.indexOf("{Continue rhythm}"),
         "the chord keeps the syllable and the words follow it: " + JSON.stringify(chordLine));
 });
 
@@ -3057,10 +3057,10 @@ test("formatPerfLines keeps the words when the chord beside them is a restatemen
     }];
     var chords = [
         { tick: 0, chord: "Lam" },
-        { tick: 0, chord: "pizz.", isText: true }
+        { tick: 0, chord: "{pizz.}", isText: true }
     ];
 
     var output = fmt.formatPerfLines(lines, ["Lam"], null, null, chords).text;
 
-    assert.ok(output.indexOf("pizz.") >= 0, "the words are printed even with no chord to sit beside");
+    assert.ok(output.indexOf("{pizz.}") >= 0, "the words are printed even with no chord to sit beside");
 });

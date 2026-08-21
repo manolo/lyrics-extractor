@@ -248,3 +248,55 @@ test("generatePdf still typesets a section label that looks like a rule", functi
     var result = pdf.generatePdf(text, {});
     assert.ok(result.indexOf("(ESTROFA 1) Tj") >= 0, "the label is still text");
 });
+
+// --- Annotations on the chord line -------------------------------------------
+//
+// The extractor braces a staff text so that everything reading a chord line back can tell
+// words from a harmony. The PDF has colour, so it says it that way instead: the braces are
+// drawn as spaces, which keeps every column where the text layout put it.
+
+test("splitAnnotations gives the words their own run", function() {
+    var runs = pdf.splitAnnotations("B♭maj7 {Continue rhythm}      Fadd4");
+
+    assert.equal(runs.length, 3);
+    assert.deepEqual(runs[0], { col: 0, text: "B♭maj7 ", isText: false });
+    assert.deepEqual(runs[1], { col: 7, text: " Continue rhythm ", isText: true });
+    assert.deepEqual(runs[2], { col: 24, text: "      Fadd4", isText: false });
+});
+
+test("splitAnnotations keeps a run at the column the text had", function() {
+    // Each brace becomes a space rather than disappearing. Drawing the runs at their columns
+    // has to reproduce the line, or the chords stop sitting over their syllables.
+    ["{dolce} {pizz.} Fa      Do",
+     "Mi Fa Mi {bajos} Do",
+     "Lam  Re  Sol",
+     "{solo}",
+     ""].forEach(function(line) {
+        var out = [];
+        pdf.splitAnnotations(line).forEach(function(run) {
+            for (var i = 0; i < run.text.length; i++) out[run.col + i] = run.text.charAt(i);
+        });
+        var drawn = "";
+        for (var c = 0; c < line.length; c++) drawn += (out[c] === undefined ? " " : out[c]);
+        assert.equal(drawn, line.replace(/[{}]/g, " "), "drawn runs differ from " + JSON.stringify(line));
+    });
+});
+
+test("splitAnnotations leaves a brace it cannot pair alone", function() {
+    // Malformed input is drawn as it stands rather than half eaten: no annotation from the
+    // extractor looks like this, and guessing would hide whatever wrote it.
+    var runs = pdf.splitAnnotations("Do {sin cerrar");
+
+    assert.equal(runs.length, 1);
+    assert.equal(runs[0].isText, false);
+    assert.equal(runs[0].text, "Do {sin cerrar");
+});
+
+test("a chord line with an annotation is drawn in two colours", function() {
+    var pdfBytes = pdf.generatePdf("- VERSE -\n" + M + "Do {muy suave} Sol\nsing along now\n", {});
+    var text = Buffer.from(pdfBytes).toString("latin1");
+
+    assert.ok(text.indexOf("0.298 0.686 0.314 rg") >= 0, "the chords keep the chord colour");
+    assert.ok(text.indexOf("0.85 0.45 0.1 rg") >= 0 || text.indexOf("0.85 0.45 0.10 rg") >= 0,
+        "and the words get their own");
+});
