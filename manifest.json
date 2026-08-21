@@ -13,7 +13,7 @@
             "code": "lyrics-form",
             "type": "form",
             "title": "Lyrics and Chords",
-            "icon": "TEXT",
+            "icon": "FRET_FRAME",
             "show_on_toolbar": true,
             "path": "ui/LyricsForm.qml"
         }
