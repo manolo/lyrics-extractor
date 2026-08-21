@@ -169,7 +169,8 @@ function _bassTpc(hi) {
 // Extracts all chords (from both standalone Harmony and nested Harmony in FretDiagram)
 // Returns: [{tick, chord}] sorted by tick
 // spelling: "solfeggio", "standard", etc. Controls chord name language.
-function extractChords(xmlString, C, spelling) {
+function extractChords(xmlString, C, spelling, includeAnnotations) {
+    includeAnnotations = (includeAnnotations !== false);
     var root = _parseXml(xmlString);
     if (!root) return [];
 
@@ -259,7 +260,8 @@ function extractChords(xmlString, C, spelling) {
                             counts[sid]++;
                             all.push({ staffId: sid, tick: vt, chord: hname });
                         }
-                    } else if (e.tag === "StaffText" || e.tag === "Expression" || e.tag === "PlayTechAnnotation") {
+                    } else if (includeAnnotations &&
+                               (e.tag === "StaffText" || e.tag === "Expression" || e.tag === "PlayTechAnnotation")) {
                         // Inline text annotations on the harmony staff appear in the chord line
                         var inlineText = _ct(e, "text");
                         if (inlineText) {

@@ -25,7 +25,7 @@ var SECTIONS = [
         "help.splitting", "help.forceBreak", "help.preventBreak", "help.verses"
     ] },
     { heading: "help.heading.extraction", rows: [
-        "help.solfeo", "help.fullRepeat", "help.lyricsOnly"
+        "help.solfeo", "help.fullRepeat", "help.lyricsOnly", "help.staffTexts"
     ], scoresDirAfter: true },
     { heading: "help.heading.pdf", rows: [
         "help.pdfHeader", "help.pdfFooter", "help.onePage", "help.lineNumbers", "help.noDiagrams"

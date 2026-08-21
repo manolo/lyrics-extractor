@@ -263,3 +263,22 @@ test("inline text with internal whitespace is braced, not joined", function() {
     // with stray spaces still reads as words rather than as a token full of gaps.
     assert.equal(chords[2].chord, "{multiple spaces}");
 });
+
+test("extractChords can leave the annotations out", function() {
+    // What the dialog's checkbox turns off, and what --no-annotations has always done in the
+    // CLI. Until now only the CLI's reader honoured it, so the setting did nothing in the
+    // dialog and nothing in the fret-diagram fallback either.
+    setScore(makeMockScore({
+        0: [{ type: Element.HARMONY, text: "Do", track: 0 },
+            { type: Element.STAFF_TEXT, text: "muy suave", track: 0 }],
+        480: [{ type: 42, text: "dolce", track: 0 }]
+    }));
+
+    var withThem = msExtractor.extractChords(0, true);
+    var without = msExtractor.extractChords(0, false);
+
+    assert.equal(withThem.length, 3, "the chord and both annotations");
+    assert.equal(without.length, 1, "the chord alone");
+    assert.equal(without[0].chord, "Do");
+    assert.equal(msExtractor.extractChords(0).length, 3, "and they are in by default");
+});

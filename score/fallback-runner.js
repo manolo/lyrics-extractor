@@ -206,7 +206,11 @@ function extractChords(opts) {
         if (stderr1) _logMsg("[fallback] tar: stderr=" + stderr1.substring(0, 200));
 
         if (xml.length > 100 && xml.indexOf("<museScore") > -1) {
-            var xmlChords = opts.XmlChordReader.extractChords(xml, opts.Constants, opts.spelling);
+            // The whole chord array is replaced by what the file says, annotations included, so
+            // the checkbox has to reach here too or turning it off would only work until a score
+            // needed its fret diagrams read from disk.
+            var xmlChords = opts.XmlChordReader.extractChords(xml, opts.Constants, opts.spelling,
+                opts.includeAnnotations);
             _logMsg("[fallback] tar: parsed " + xmlChords.length + " chords from XML");
             if (xmlChords.length > 0) {
                 chords = xmlChords;

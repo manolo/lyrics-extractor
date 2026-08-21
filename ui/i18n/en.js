@@ -64,6 +64,7 @@ var strings = {
     "option.fullRepeat": "Full repeat",
     "option.lyricsOnly": "Lyrics only",
     "option.orphanLyrics": "Orphan lyrics",
+    "option.staffTexts": "Staff texts",
     "option.directory": "Directory:",
     "option.usingFile": "Using file:",
 
@@ -144,8 +145,9 @@ var strings = {
         "any guitar part: <i>Add > Frames > Chord diagram legend</i>. They are drawn in the PDF header. " +
         "Diagrams placed on notes are also extracted as chords.",
     "help.staffText.label": "Score text",
-    "help.staffText.body": "<code>Ctrl+T</code>. Texts on the accompaniment staff appear on the chord line as " +
-        "if they were a chord (e.g. <code>Bass</code>, <code>A cappella</code>).",
+    "help.staffText.body": "<code>Ctrl+T</code>. Texts on the accompaniment staff appear on the chord " +
+        "line, in braces so they read as words rather than as a chord (e.g. <code>&#123;bass&#125;</code>, " +
+        "<code>&#123;a cappella&#125;</code>). The PDF prints them in a colour of their own.",
     "help.expression.label": "Expression",
     "help.expression.body": "<code>Ctrl+E</code>. Expression texts on the accompaniment staff also appear on " +
         "the chord line.",
@@ -189,6 +191,9 @@ var strings = {
     "help.fullRepeat.body": "Write all repetitions even if the text is identical (no abbreviated choruses).",
     "help.lyricsOnly.label": "Lyrics only",
     "help.lyricsOnly.body": "Omit chord lines, keeping only lyrics text and section labels.",
+    "help.staffTexts.label": "Staff texts",
+    "help.staffTexts.body": "Include staff text, expressions and play techniques on the chord " +
+        "line. Off leaves the chords alone (<code>--no-annotations</code> in the CLI).",
     "help.scoresDir.label": "Scores directory",
     "help.scoresDir.body": "While the QML API does not expose chord diagrams, which no 4.7.x release does, " +
         "the plugin needs to read the .mscz file from disk to extract them. Set the root folder where you " +

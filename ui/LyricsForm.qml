@@ -78,6 +78,7 @@ MuseScore {
         property bool fullRepeat: true
         property bool lyricsOnly: false
         property bool orphanLyrics: false
+        property bool staffTexts: true
         property bool onePage: false
         property bool lineNumbers: false
         property bool noDiagrams: false
@@ -434,6 +435,7 @@ MuseScore {
             cliPath: cliPath,
             data: data,
             spelling: settings.useSolfeo ? "solfeggio" : "standard",
+            includeAnnotations: settings.staffTexts,
             scoresDirectory: scoresDirectory
         });
 
@@ -448,6 +450,7 @@ MuseScore {
         }
 
         var extractOpts = selectedVoiceStaff >= 0 ? { lyricStaff: selectedVoiceStaff } : {};
+        extractOpts.includeAnnotations = settings.staffTexts;
         var data = Extractor.extractAll(extractOpts);
         if (!data) {
             statusText.text = t("extract.noLyrics");
@@ -937,6 +940,13 @@ MuseScore {
                             text: t("option.orphanLyrics")
                             checked: settings.orphanLyrics
                             onCheckedChanged: settings.orphanLyrics = checked
+                        }
+
+                        CheckBox {
+                            id: staffTextsCheck
+                            text: t("option.staffTexts")
+                            checked: settings.staffTexts
+                            onCheckedChanged: settings.staffTexts = checked
                         }
                     }
 

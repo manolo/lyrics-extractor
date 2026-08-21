@@ -39,6 +39,7 @@
   "option.fullRepeat": "Repetir todo",
   "option.lyricsOnly": "Solo letra",
   "option.orphanLyrics": "Letras huerfanas",
+  "option.staffTexts": "Textos de pentagrama",
   "option.directory": "Directorio:",
   "option.usingFile": "Usando archivo:",
 
@@ -93,7 +94,7 @@
   "help.diagrams.label": "Colección de acordes",
   "help.diagrams.body": "Inserta una leyenda de diagramas de acordes seleccionando el primer elemento de la partitura general o de cualquier parte de guitarra: <i>Añadir > Marcos > Leyenda de diagrama de acordes</i>. Se dibujan en el encabezado del PDF. Los diagramas colocados sobre notas también se extraen como acordes.",
   "help.staffText.label": "Texto de partitura",
-  "help.staffText.body": "<code>Ctrl+T</code>. Los textos en el pentagrama de acompañamiento se muestran en la línea de acordes como si fueran un acorde (ej: <code>Bajos</code>, <code>Capella</code>).",
+  "help.staffText.body": "<code>Ctrl+T</code>. Los textos en el pentagrama de acompañamiento se muestran en la línea de acordes, entre llaves para que se lean como palabras y no como un acorde (ej: <code>&#123;bajos&#125;</code>, <code>&#123;a capella&#125;</code>). El PDF los imprime en un color propio.",
   "help.expression.label": "Expresión",
   "help.expression.body": "<code>Ctrl+E</code>. Los textos de expresión en el pentagrama de acompañamiento también aparecen en la línea de acordes.",
 
@@ -122,6 +123,8 @@
   "help.fullRepeat.body": "Escribe todas las repeticiones aunque el texto sea idéntico (sin abreviar estribillos).",
   "help.lyricsOnly.label": "Solo letra",
   "help.lyricsOnly.body": "Omite las líneas de acordes, dejando solo el texto de la letra y las etiquetas de sección.",
+  "help.staffTexts.label": "Textos de pentagrama",
+  "help.staffTexts.body": "Incluir textos de pentagrama, expresiones y técnicas de interpretación en la línea de acordes. Desmarcado, solo salen los acordes (<code>--no-annotations</code> en el CLI).",
   "help.scoresDir.label": "Directorio de partituras",
   "help.scoresDir.body": "Mientras la API de QML no exponga los diagramas de acordes, y ninguna 4.7.x lo hace, el plugin necesita leer el archivo .mscz del disco para extraerlos. Configura aquí la carpeta raíz donde guardas tus partituras (ej: HOME/Music).",
 

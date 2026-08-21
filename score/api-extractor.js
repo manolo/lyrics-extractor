@@ -429,7 +429,10 @@ function extractSyllables(staffIdx) {
 
 // Extract chord symbols from a staff
 // Returns: array of { tick, chord }
-function extractChords(harmonyStaffIdx) {
+// includeAnnotations defaults to true: a score has said what it says for releases, and turning
+// the dialog's checkbox off is what leaves the staff texts out.
+function extractChords(harmonyStaffIdx, includeAnnotations) {
+    includeAnnotations = (includeAnnotations !== false);
     var chords = [];
     var debugInfo = {
         fretDiagramsFound: [],
@@ -472,7 +475,8 @@ function extractChords(harmonyStaffIdx) {
                     }
                 }
                 // Inline text annotations -> chord line: STAFF_TEXT, EXPRESSION, PLAYTECH_ANNOTATION.
-                if (ann && (ann.type === Element.STAFF_TEXT || ann.type === Element.EXPRESSION
+                if (includeAnnotations && ann
+                        && (ann.type === Element.STAFF_TEXT || ann.type === Element.EXPRESSION
                             || ann.type === Element.PLAYTECH_ANNOTATION)) {
                     var inlineStaff = Math.floor(ann.track / 4);
                     if (inlineStaff === harmonyStaffIdx || harmonyStaffIdx === -1) {
@@ -1200,7 +1204,7 @@ function extractAll(options) {
         selectedVoiceStaff = options.lyricStaff;
     }
     var syllables = selectedVoiceStaff >= 0 ? extractSyllables(selectedVoiceStaff) : [];
-    var chords = extractChords(staves.harmonyStaff);
+    var chords = extractChords(staves.harmonyStaff, !(options && options.includeAnnotations === false));
     var repeats = extractRepeats();
     var voltas = extractVoltas();
     var navigation = extractNavigation();
