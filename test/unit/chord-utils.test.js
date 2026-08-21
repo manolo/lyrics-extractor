@@ -893,3 +893,72 @@ test("isChordName rejects annotation text", function() {
         assert.equal(cu.isChordName(text), false, JSON.stringify(text) + " should not be a chord");
     });
 });
+
+// --- A word that begins like a chord ----------------------------------------
+//
+// Reported as issue #1: a staff text reading "Continue rhythm" printed as "C°ntinue-rhythm".
+// prettifyChord read the leading "C" as a root and the "o" after it as a diminished mark,
+// which is what convertChord and isChordName test a quality regex to avoid.
+
+test("prettifyChord leaves a word that opens with a note name alone", function() {
+    ["Continue", "Continue rhythm", "Coro", "Coda", "Como antes", "Ebony", "Ebro", "Doble",
+     "Abajo", "Golpe", "Dolce", "Fade out", "Cejilla b3", "Bajos", "Do it"].forEach(function(word) {
+        assert.equal(cu.prettifyChord(word), word, JSON.stringify(word) + " is words, not a chord");
+    });
+});
+
+test("prettifyChord still reads every quality that follows a root", function() {
+    // The guard must not narrow what a chord may say. A bare "o" stays diminished, which is
+    // the licence that makes "Solo" undecidable on spelling alone.
+    assert.equal(cu.prettifyChord("Reo"), "Re°");
+    assert.equal(cu.prettifyChord("LaO"), "La°");
+    assert.equal(cu.prettifyChord("Reo7"), "Re°7");
+    assert.equal(cu.prettifyChord("Sib/Fa"), "Si♭/Fa");
+    assert.equal(cu.prettifyChord("Do7b9b13"), "Do7♭9♭13");
+    assert.equal(cu.prettifyChord("C#dim"), "C#dim");
+    assert.equal(cu.prettifyChord("Mi7(b5)"), "Mi7(♭5)");
+    assert.equal(cu.prettifyChord("Domaj7"), "Domaj7");
+    assert.equal(cu.prettifyChord("Bibb"), "Bibb");
+    assert.equal(cu.prettifyChord("Sibb"), "Si♭♭");
+    // The jazz font writes maj7 as "t", so a flat root with one has to survive the guard
+    assert.equal(cu.prettifyChord("Bbt"), "B♭t");
+    assert.equal(cu.prettifyChord("Ebt9"), "E♭t9");
+});
+
+test("prettifyChords prints an annotation as the score has it", function() {
+    // "Solo" is the case no regex can settle: "Sol" plus "o" is written exactly like
+    // "Re" plus "o". Only the flag says which one it is.
+    var chords = [
+        { tick: 0, chord: "Sib" },
+        { tick: 480, chord: "Solo", isText: true },
+        { tick: 960, chord: "Reo" }
+    ];
+    cu.prettifyChords(chords);
+    assert.equal(chords[0].chord, "Si♭");
+    assert.equal(chords[1].chord, "Solo", "the annotation keeps its words");
+    assert.equal(chords[2].chord, "Re°", "and a real diminished chord still prints");
+});
+
+test("normalizeChords does not report an annotation as a typo", function() {
+    var chords = [{ tick: 0, chord: "Cejilla b3", isText: true }, { tick: 480, chord: "SI b" }];
+    var typos = cu.normalizeChords(chords);
+
+    assert.equal(chords[0].chord, "Cejilla b3", "words are left as they stand");
+    assert.equal(chords[1].chord, "Sib", "a real chord is still tidied");
+    assert.equal(typos.length, 1, "and only the real chord is offered as a fix");
+    assert.equal(typos[0].original, "SI b");
+});
+
+test("convertChords does not re-spell an annotation", function() {
+    var chords = [{ tick: 0, chord: "Do it", isText: true }, { tick: 480, chord: "Do7" }];
+    cu.convertChords(chords, false);
+
+    assert.equal(chords[0].chord, "Do it", "an annotation says what the score says");
+    assert.equal(chords[1].chord, "C7");
+});
+
+test("detectSolfeo ignores an annotation", function() {
+    // One staff text opening with an anglo root used to re-spell every chord in the score.
+    assert.equal(cu.detectSolfeo([{ chord: "Continue rhythm", isText: true }, { chord: "Sol" }]), true);
+    assert.equal(cu.detectSolfeo([{ chord: "Solo", isText: true }, { chord: "Am" }]), false);
+});
