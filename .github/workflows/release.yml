@@ -54,6 +54,10 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
+          # Without this the release is titled after the tag, "v2.0.3", while the ones released
+          # by hand read "Lyrics Extractor 2.0.3". The list of releases should not say which of
+          # the two made each one.
+          name: Lyrics Extractor ${{ steps.version.outputs.version }}
           files: |
             lyrics-extractor-${{ steps.version.outputs.version }}.mext
             lyrics-extractor.mext
