@@ -45,6 +45,11 @@ var strings = {
     "fix.meta": "properties updated",
 
     // --- the Extract button ---
+    "group.fix": "Fix Lyrics & Chords",
+    "group.extract": "Extract Lyrics & Chords",
+    "group.pdf": "Save as PDF",
+    "button.saveCho": "Save ChordPro",
+    "button.debug": "Debug",
     "button.extract": "Extract",
     "extract.working": "Extracting...",
     "extract.noLyrics": "No lyrics found in the score",
@@ -119,6 +124,8 @@ var strings = {
         "3) File name. The <b>Fix</b> button syncs VBox fields (title, subtitle, composer, lyricist) to " +
         "project properties.",
     "help.systemText.label": "System text",
+    "help.repeatCount.label": "A label that is a count",
+    "help.repeatCount.body": "A text that says only how many times to play, <code>3x</code> or <code>x3</code>, is not a section name and is skipped: the repeat barline already carries the play count.",
     "help.systemText.body": "<code>Ctrl+Shift+T</code>. Mark sections (Intro, Verse, Chorus, Music). " +
         "They appear as <code>- LABEL -</code> in the output. Use <code>#</code> for auto-numbering: " +
         "<code>Chorus #</code> produces Chorus 1, Chorus 2, etc. Use <code>:</code> or <code>-</code> for " +
@@ -191,6 +198,17 @@ var strings = {
     "help.fullRepeat.body": "Write all repetitions even if the text is identical (no abbreviated choruses).",
     "help.lyricsOnly.label": "Lyrics only",
     "help.lyricsOnly.body": "Omit chord lines, keeping only lyrics text and section labels.",
+    "help.staffSelector.label": "Staff",
+    "help.staffSelector.body": "When more than one staff carries lyrics, which one to read. Left on " +
+        "automatic, the staff with the most syllables is used, which is the lead voice in most scores.",
+    "help.orphanLyrics.label": "Orphan lyrics",
+    "help.orphanLyrics.body": "A score with more lyric lines than passes leaves the last ones unsung. " +
+        "On, they are printed after the music, ruled off, with the chords of their own bars above them.",
+    "help.chordpro.label": "Save ChordPro",
+    "help.chordpro.body": "Write a <code>.cho</code> file, the format songbook apps read. Chords go " +
+        "inline in anglo spelling so any reader can transpose them, section labels become comments, " +
+        "and a staff text becomes an annotation, <code>[*muy suave]</code>, which a transposing app " +
+        "leaves alone.",
     "help.staffTexts.label": "Staff texts",
     "help.staffTexts.body": "Include staff text, expressions and play techniques on the chord " +
         "line. Off leaves the chords alone (<code>--no-annotations</code> in the CLI).",

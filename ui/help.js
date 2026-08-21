@@ -15,7 +15,8 @@
 var SECTIONS = [
     { heading: "help.heading.howTo", steps: "help.howTo.steps" },
     { heading: "help.heading.general", rows: [
-        "help.title", "help.systemText", "help.rehearsalMark", "help.repeats", "help.stanzas"
+        "help.title", "help.systemText", "help.repeatCount", "help.rehearsalMark", "help.repeats",
+        "help.stanzas"
     ] },
     { heading: "help.heading.guitar", rows: [
         "help.chords", "help.diagrams", "help.staffText", "help.expression"
@@ -25,13 +26,14 @@ var SECTIONS = [
         "help.splitting", "help.forceBreak", "help.preventBreak", "help.verses"
     ] },
     { heading: "help.heading.extraction", rows: [
-        "help.solfeo", "help.fullRepeat", "help.lyricsOnly", "help.staffTexts"
+        "help.staffSelector", "help.solfeo", "help.fullRepeat", "help.lyricsOnly", "help.staffTexts",
+        "help.orphanLyrics"
     ], scoresDirAfter: true },
     { heading: "help.heading.pdf", rows: [
         "help.pdfHeader", "help.pdfFooter", "help.onePage", "help.lineNumbers", "help.noDiagrams"
     ] },
     { heading: "help.heading.buttons", rows: [
-        "help.fix", "help.debug"
+        "help.fix", "help.chordpro", "help.debug"
     ] }
 ];
 

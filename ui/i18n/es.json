@@ -142,5 +142,18 @@
   "help.fix.label": "Corregir",
   "help.fix.body": "Readapta la entrada de la letra: convierte sinalefas a ‿ (arco de unión), y los marcadores de no salto (<code>..</code> <code>,,</code> <code>...</code>) a sus símbolos internos.",
   "help.debug.label": "Debug",
-  "help.debug.body": "Exporta los datos internos como JSON para diagnóstico."
+  "help.debug.body": "Exporta los datos internos como JSON para diagnóstico.",
+  "group.fix": "Corregir letras y acordes",
+  "group.extract": "Extraer letras y acordes",
+  "group.pdf": "Guardar como PDF",
+  "button.saveCho": "Guardar ChordPro",
+  "button.debug": "Depurar",
+  "help.repeatCount.label": "Etiqueta que es un contador",
+  "help.repeatCount.body": "Un texto que solo dice cuantas veces se toca, <code>3x</code> o <code>x3</code>, no es el nombre de una seccion y se omite: la barra de repeticion ya lleva ese numero.",
+  "help.staffSelector.label": "Pentagrama",
+  "help.staffSelector.body": "Cuando hay letra en mas de un pentagrama, cual leer. En automatico se usa el que tiene mas silabas, que en la mayoria de partituras es la voz principal.",
+  "help.orphanLyrics.label": "Letras huerfanas",
+  "help.orphanLyrics.body": "Una partitura con mas lineas de letra que pasadas deja las ultimas sin cantar. Marcado, se imprimen despues de la musica, tras una raya, con los acordes de sus propios compases encima.",
+  "help.chordpro.label": "Guardar ChordPro",
+  "help.chordpro.body": "Escribe un fichero <code>.cho</code>, el formato que leen las aplicaciones de cancionero. Los acordes van en linea y en cifrado anglosajon para que cualquier lector pueda transportarlos, las etiquetas de seccion pasan a comentarios, y un texto de pentagrama pasa a anotacion, <code>[*muy suave]</code>, que una aplicacion que transporta deja en paz."
 }

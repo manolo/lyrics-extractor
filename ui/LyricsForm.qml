@@ -756,7 +756,7 @@ MuseScore {
                     spacing: 8
 
                     Text {
-                        text: "Fix Lyrics & Chords"
+                        text: t("group.fix")
                         font.bold: true
                         color: systemPalette.windowText
                     }
@@ -856,7 +856,7 @@ MuseScore {
                         spacing: 10
 
                         Text {
-                            text: "Extract Lyrics & Chords"
+                            text: t("group.extract")
                             font.bold: true
                             color: systemPalette.windowText
                         }
@@ -1117,7 +1117,7 @@ MuseScore {
                             }
 
                             Button {
-                                text: "Save ChordPro"
+                                text: t("button.saveCho")
                                 opacity: 0.85
                                 onClicked: saveChordProFile(extractedOutput || lyricsPreview.text)
                             }
@@ -1142,7 +1142,7 @@ MuseScore {
                     spacing: 6
 
                     Text {
-                        text: "Save as PDF"
+                        text: t("group.pdf")
                         font.bold: true
                         color: systemPalette.windowText
                     }
@@ -1242,7 +1242,7 @@ MuseScore {
                     anchors.verticalCenter: parent.verticalCenter
 
                     Button {
-                        text: "Debug"
+                        text: t("button.debug")
                         onClicked: exportDebugData()
                     }
 
@@ -1286,14 +1286,32 @@ MuseScore {
                 Layout.bottomMargin: 4
             }
 
+            // The help covers the dialog while it is open, so the way out of it has to be
+            // findable without hunting: flat and in the window's own colours, this was a glyph
+            // the eye slid over. Red is the one colour a person looks for to leave something.
             Button {
+                id: helpCloseButton
                 text: "\u2715"
-                flat: true
-                implicitWidth: 32
-                implicitHeight: 28
-                Layout.rightMargin: 6
-                Layout.topMargin: 4
+                implicitWidth: 30
+                implicitHeight: 26
+                Layout.rightMargin: 8
+                Layout.topMargin: 6
                 onClicked: helpDialog.close()
+
+                background: Rectangle {
+                    radius: 4
+                    color: helpCloseButton.pressed ? "#a03027"
+                         : helpCloseButton.hovered ? "#e05a4f" : "#c9433a"
+                }
+
+                contentItem: Text {
+                    text: helpCloseButton.text
+                    color: "white"
+                    font.pixelSize: 13
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
             }
         }
 

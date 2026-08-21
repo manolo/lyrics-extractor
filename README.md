@@ -54,6 +54,15 @@ The **Fix** button corrects all issues automatically:
 - Chord names follow the score's spelling setting (solfeo or anglo), no manual conversion needed
 - Works from any tab, including excerpt/part views (uses masterScore automatically)
 
+### Staff text on the chord line
+Staff text, expressions and play techniques from the accompaniment staff are printed on the chord line, wrapped in braces so they read as words rather than as a chord: `{muy suave}`, `{8va 2nd time}`. Braces because a parenthesis belongs to the chord vocabulary, `Mi7(b5)`, while no chord notation uses a brace. When one shares a beat with a chord, both are printed, the chord first. The PDF gives them a colour of their own, and ChordPro writes them as `[*muy suave]`, which a transposing app leaves alone. The **Staff texts** option, or `--no-annotations`, leaves them out.
+
+### ChordPro export
+**Save ChordPro** writes a `.cho` file, the format songbook apps read: chords inline in anglo spelling so any reader can transpose them, section labels as comments, and the title and key of the score as `{title:}` and `{key:}`.
+
+### Orphan lyrics
+A score with more lyric lines than the music has passes leaves the last ones unsung. The plugin says which line that is, and the **Orphan lyrics** option prints it after the music, ruled off, with the chords of its own bars above it.
+
 ### Chord-only mode
 For scores without lyrics (instrumentals), the plugin automatically shows the chord progression structured by sections, barlines, and repeat markers.
 
@@ -72,17 +81,27 @@ Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) a
 | Control | Description |
 |---------|-------------|
 | **Fix** | Correct synalepha, hyphens, syllabic chains, chord sync |
+| **Staff** | Which staff's lyrics to read, when more than one has them. Automatic picks the one with the most syllables |
 | **Extract** | Extract lyrics with chords, show preview |
 | **Copy** | Copy extracted text to clipboard |
-| **Save** (text) | Save text file alongside the score and open it |
+| **Save txt** | Save text file alongside the score and open it |
+| **Save ChordPro** | Save a `.cho` file alongside the score |
 | **Debug** | Export raw data as JSON |
 
 ### Settings (persisted)
+
+Every option in the dialog is remembered between sessions, under the `LyricsExtractor` category.
 
 | Setting | Description |
 |---------|-------------|
 | Solfeo | Convert chord names to solfeo (Do, Re, Mi) or anglo (C, D, E) |
 | Full repeat | Expand all D.S./D.C. repeats even without new lyrics |
+| Lyrics only | Omit the chord lines, keeping lyrics and section labels |
+| Orphan lyrics | Print the lyric lines no pass of the score sings |
+| Staff texts | Include staff text, expressions and play techniques on the chord line |
+| Fit in 1 page, Line numbers, No chord diagrams | The PDF options below |
+| Header, Footer | The PDF header and footer text |
+| Scores directory | Where the plugin reads a `.mscz` from to find its chord diagrams |
 
 ### PDF options (visible after extraction)
 
@@ -209,7 +228,7 @@ node cli/index.js song.mscz --chords-only             # chord progression only
 | `--staff <name\|num>` | Extract lyrics from a specific staff (by index or instrument name) |
 | `--anglo` | Force anglo chord names (C, D, E) |
 | `--solfeo` | Force solfeo chord names (Do, Re, Mi) |
-| `--full` | Write all D.S./D.C. repeats |
+| `--compact` | Abbreviate a stanza that repeats, printing it once with `...` |
 | `--check` | Check lyrics for issues (synalepha, hyphens, syllabic) |
 | `--fix` | Fix lyrics issues, sync chords, sync VBox to project properties |
 | `--debug` | Export raw extracted data as JSON |
@@ -284,7 +303,7 @@ npm test              # same as: node --test 'test/**/*.test.js'
 npm run test:package  # build the package, then run that same suite against its minified CLI
 ```
 
-820 tests covering score readers, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
+925 tests covering score readers, formatting, repeats, navigation, PDF output, chord-only mode, spelling detection, fretboard diagrams, native API detection, the disk fallback, score file lookup, element type classification, chord line layout, punctuation handling, lyrics fixing, XML patching, label emission on repeat passes, and integration.
 
 The unit suites are in `test/unit/`, one per module. Beside them, the snapshot suite compares CLI output against baseline `.txt` files:
 
@@ -293,7 +312,7 @@ test/its/scores/       the corpus, small .mscz files, committed
 test/its/baselines/    what the CLI must print for each of them
 ```
 
-Each score in the corpus exists to reach code the others do not: no lyrics at all, repeats that carry no lyrics, phrases that have to be split, chord spellings, section labels, instrumental intros and interludes, chord diagrams in the guitar part. How they were made is not the repository's business: they are the fixtures of record, and a maintainer may well have drawn one by hand in MuseScore.
+Each score in the corpus exists to reach code the others do not: no lyrics at all, repeats that carry no lyrics, phrases that have to be split, chord spellings, section labels, instrumental intros and interludes, chord diagrams in the guitar part, staff text sharing a beat with a chord inside a repeat. How they were made is not the repository's business: they are the fixtures of record, and a maintainer may well have drawn one by hand in MuseScore.
 
 `test/its/snapshot.js` drives them, and it is told nothing: a song is snapshotted because a baseline exists for it, and a mode runs because that mode's baseline exists. So adding a score is copying it in and generating its baselines, with no list to edit.
 
@@ -310,18 +329,18 @@ test/local/local.test.js
 
 `npm test` is a recursive glob, so that suite runs when it is there and is not missed when it is not: nothing in `package.json` refers to it. Nothing about that music reaches the repository, and the generators stay there too, so what the corpus is worth is judged by what it covers rather than by how it was written.
 
-`node test/its/coverage-gap.js` reports how much of `lib/` and `score/` only a local suite reaches, running the snapshots twice under coverage. It is the measure a new synthetic score has to move: writing them took the snapshot tests a contributor can run from 14 to 28, and the whole suite from a fresh checkout now covers 90.9% of lines and 89.1% of branches, against 91.1% and 90.0% with a local suite of nineteen real scores added.
+`node test/its/coverage-gap.js` reports how much of `lib/` and `score/` only a local suite reaches, running the snapshots twice under coverage. It is the measure a new synthetic score has to move: writing them took the snapshot tests a contributor can run from 14 to 26, and the whole suite from a fresh checkout now covers 91.4% of lines and 90.0% of branches, against 91.4% and 90.0% with a local suite of twenty one real scores added: the corpus reaches what that music reaches.
 
 Baselines are reviewed by hand: never regenerate one without checking whether the score itself changed (each baseline stores the `.mscz` mtime in a trailing comment).
 
-`npm run test:package` is the run that matters before a release: it minifies, then drives the suite through the **packaged** CLI, so a minification that changes any output fails. The release workflow uses it as its gate before publishing the `.mext`.
+`npm run test:package` is the run that matters before a release: it minifies, then drives the suite through the **packaged** CLI, so a minification that changes any output fails. The release workflow does the same thing a step at a time rather than calling it, because it has to package the real version first and must not have that tree rebuilt as a dev version underneath. It removes the staging directory afterwards either way: MuseScore reads a manifest from any subdirectory, so one left behind while developing makes the plugin appear twice in the Extensions menu.
 
 ## Building the .mext package
 
 ```bash
 npm install --ignore-scripts   # once, for terser
 npm run build                  # dev build
-node build.js 1.6.1            # versioned build
+node build.js 2.0.3            # versioned build
 node build.js dev --no-minify  # sources verbatim, to bisect a packaging problem
 npm run install-local          # build and copy into the local MuseScore extensions dir
 ```

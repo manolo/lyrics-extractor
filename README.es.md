@@ -52,6 +52,15 @@ El boton **Corregir** arregla todos los problemas automaticamente:
 - Los nombres de acordes siguen la ortografia de la partitura (solfeo o anglo), sin conversion manual
 - Funciona desde cualquier pestana, incluyendo vistas de excerpt/particella (usa masterScore automaticamente)
 
+### Texto de pentagrama en la linea de acordes
+Los textos de pentagrama, expresiones y tecnicas de interpretacion del pentagrama de acompanamiento se imprimen en la linea de acordes, entre llaves para que se lean como palabras y no como un acorde: `{muy suave}`, `{8va 2nd time}`. Llaves porque el parentesis forma parte del vocabulario de los acordes, `Mi7(b5)`, mientras que ninguna notacion de acordes usa llaves. Cuando uno comparte tiempo con un acorde se imprimen los dos, el acorde primero. El PDF les da un color propio, y ChordPro los escribe como `[*muy suave]`, que una aplicacion que transporta deja en paz. La opcion **Textos de pentagrama**, o `--no-annotations`, los deja fuera.
+
+### Exportar a ChordPro
+**Guardar ChordPro** escribe un fichero `.cho`, el formato que leen las aplicaciones de cancionero: acordes en linea y en cifrado anglosajon para que cualquier lector pueda transportarlos, etiquetas de seccion como comentarios, y el titulo y la tonalidad de la partitura como `{title:}` y `{key:}`.
+
+### Letras huerfanas
+Cuando una partitura tiene mas lineas de letra que pasadas tiene la musica, las ultimas se quedan sin cantar. El plugin dice cual es esa linea, y la opcion **Letras huerfanas** la imprime tras la musica, despues de una raya, con los acordes de sus propios compases encima.
+
 ### Modo solo acordes
 Para partituras sin letras (instrumentales), el plugin muestra automaticamente la progresion de acordes estructurada por secciones, barlines y marcas de repeticion.
 
@@ -70,17 +79,27 @@ Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) 
 | Control | Descripcion |
 |---------|-------------|
 | **Corregir** | Corregir sinalefas, guiones, cadenas silabicas, sincronizar acordes |
+| **Pentagrama** | De que pentagrama leer la letra, cuando hay letra en varios. En automatico se usa el que tiene mas silabas |
 | **Extraer** | Extraer letras con acordes, mostrar vista previa |
 | **Copiar** | Copiar texto extraido al portapapeles |
-| **Guardar** (texto) | Guardar archivo de texto junto a la partitura y abrirlo |
-| **Debug** | Exportar datos crudos como JSON |
+| **Guardar txt** | Guardar archivo de texto junto a la partitura y abrirlo |
+| **Guardar ChordPro** | Guardar un fichero `.cho` junto a la partitura |
+| **Depurar** | Exportar datos crudos como JSON |
 
 ### Ajustes (persistentes)
+
+Todas las opciones del dialogo se recuerdan entre sesiones, bajo la categoria `LyricsExtractor`.
 
 | Ajuste | Descripcion |
 |--------|-------------|
 | Solfeo | Convierte nombres de acordes a solfeo (Do, Re, Mi) o anglo (C, D, E) |
 | Repetir todo | Expandir todas las repeticiones D.S./D.C. aunque no haya nuevas letras |
+| Solo letras | Omitir las lineas de acordes, dejando letra y etiquetas de seccion |
+| Letras huerfanas | Imprimir las lineas de letra que ninguna pasada canta |
+| Textos de pentagrama | Incluir textos de pentagrama, expresiones y tecnicas en la linea de acordes |
+| Ajustar a 1 pagina, Numeros de linea, Sin diagramas | Las opciones de PDF de abajo |
+| Encabezado, Pie | El texto de encabezado y pie del PDF |
+| Directorio de partituras | De donde lee el plugin un `.mscz` para encontrar sus diagramas |
 
 ### Opciones PDF (visibles tras la extraccion)
 
@@ -207,7 +226,7 @@ node cli/index.js cancion.mscz --chords-only                # solo progresion de
 | `--staff <nombre\|num>` | Extraer letras de un pentagrama especifico (por indice o nombre de instrumento) |
 | `--anglo` | Forzar nombres de acorde anglo (C, D, E) |
 | `--solfeo` | Forzar nombres de acorde solfeo (Do, Re, Mi) |
-| `--full` | Expandir todas las repeticiones D.S./D.C. |
+| `--compact` | Abreviar una estrofa que se repite, imprimiendola una vez con `...` |
 | `--check` | Analizar letras (sinalefa, guiones, silabico, puntuacion) |
 | `--fix` | Corregir letras, sincronizar acordes y propiedades del proyecto |
 | `--debug` | Exportar datos crudos como JSON |
@@ -281,7 +300,7 @@ npm test              # equivalente a: node --test 'test/**/*.test.js'
 npm run test:package  # construye el paquete y corre la misma suite contra su CLI minificado
 ```
 
-820 tests cubriendo lectores de partitura, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
+925 tests cubriendo lectores de partitura, formateo, repeticiones, navegacion, salida PDF, modo solo acordes, deteccion de ortografia, diagramas de trastes, API nativa, busqueda de archivos, clasificacion de tipos de elemento, layout de la linea de acordes, manejo de puntuacion e integracion.
 
 Las suites unitarias estan en `test/unit/`, una por modulo. Al lado, los tests de snapshot comparan la salida del CLI con ficheros `.txt` de referencia:
 
@@ -290,7 +309,7 @@ test/its/scores/       el corpus, .mscz pequeños, versionados
 test/its/baselines/    lo que el CLI tiene que imprimir para cada uno
 ```
 
-Cada partitura del corpus existe para alcanzar codigo que las demas no tocan: sin letra ninguna, repeticiones sin letra, frases que hay que partir, cifrados de acorde, etiquetas de seccion, intros e interludios instrumentales, diagramas de acorde en la part de guitarra. De donde salieron no es asunto del repositorio: son las fixtures oficiales, y bien puede ser que el mantenedor dibujara alguna a mano en MuseScore.
+Cada partitura del corpus existe para alcanzar codigo que las demas no tocan: sin letra ninguna, repeticiones sin letra, frases que hay que partir, cifrados de acorde, etiquetas de seccion, intros e interludios instrumentales, diagramas de acorde en la part de guitarra, texto de pentagrama compartiendo tiempo con un acorde dentro de una repeticion. De donde salieron no es asunto del repositorio: son las fixtures oficiales, y bien puede ser que el mantenedor dibujara alguna a mano en MuseScore.
 
 `test/its/snapshot.js` es quien las corre, y no sabe ningun nombre: una cancion entra porque existe una referencia suya, y un modo se ejecuta porque existe la referencia de ese modo. Asi que añadir una partitura es copiarla y generar sus referencias, sin ninguna lista que editar.
 
@@ -305,18 +324,18 @@ test/local/local.test.js
 
 `npm test` es un glob recursivo, asi que esa suite corre cuando esta y no se echa de menos cuando no: nada en `package.json` la nombra. Ninguna letra de esa musica llega al repositorio, y los generadores se quedan alli tambien, de modo que el corpus vale por lo que cubre y no por como se escribio.
 
-`node test/its/coverage-gap.js` mide cuanto de `lib/` y `score/` alcanza solo una suite local, corriendo los snapshots dos veces bajo cobertura. Es la medida que una sintetica nueva tiene que mover: escribirlas llevo los tests de snapshot que un colaborador puede correr de 14 a 28, y la suite entera desde un checkout limpio cubre ahora el 90,9% de lineas y el 89,1% de ramas, frente al 91,1% y el 90,0% con una suite local de diecinueve partituras reales.
+`node test/its/coverage-gap.js` mide cuanto de `lib/` y `score/` alcanza solo una suite local, corriendo los snapshots dos veces bajo cobertura. Es la medida que una sintetica nueva tiene que mover: escribirlas llevo los tests de snapshot que un colaborador puede correr de 14 a 26, y la suite entera desde un checkout limpio cubre ahora el 91,4% de lineas y el 90,0% de ramas, lo mismo que con una suite local de veintiuna partituras reales anadida: el corpus llega ya donde llega esa musica.
 
 Las referencias se revisan a mano: nunca regenerar una sin comprobar antes si la partitura cambio (cada referencia guarda el mtime del `.mscz` en un comentario final).
 
-`npm run test:package` es el que importa antes de una release: minifica y luego pasa la suite por el CLI empaquetado, asi que una minificacion que cambie cualquier salida falla. El workflow de release lo usa como puerta.
+`npm run test:package` es el que importa antes de una release: minifica y luego pasa la suite por el CLI empaquetado, asi que una minificacion que cambie cualquier salida falla. El workflow de release hace lo mismo paso a paso en vez de llamarlo, porque tiene que empaquetar la version real primero y no puede permitir que ese arbol se reconstruya como version dev por debajo. En cualquiera de los dos casos la carpeta de montaje se borra despues: MuseScore lee un manifiesto de cualquier subdirectorio, asi que una que se quede olvidada mientras se desarrolla hace que el plugin aparezca dos veces en el menu de extensiones.
 
 ## Construir el paquete .mext
 
 ```bash
 npm install --ignore-scripts   # una vez, para terser
 npm run build                  # build de desarrollo
-node build.js 1.6.1            # build con version
+node build.js 2.0.3            # build con version
 node build.js dev --no-minify  # fuentes tal cual, para aislar un problema de empaquetado
 npm run install-local          # construir y copiar al directorio local de extensiones
 ```

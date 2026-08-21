@@ -121,6 +121,32 @@ test("every key the dialog uses exists in English", function() {
     assert.deepEqual(missing, [], "ui/i18n/en.js is missing keys the dialog asks for");
 });
 
+test("nothing the dialog shows is written in place", function() {
+    // The test above says every key resolves, and cannot see a string that never asks for one.
+    // Five did: two buttons and three group headings, so a dialog in Spanish had English in it
+    // for releases. The words a person reads belong in ui/i18n/, without exception.
+    var qml = fs.readFileSync(path.join(UI, "LyricsForm.qml"), "utf8");
+
+    // Properties whose value is shown to somebody, as against a name, a colour or a font
+    var re = /\b(text|placeholderText|toolTipText|title)\s*:\s*"([^"]*)"/g;
+    var literals = [];
+    var m;
+    while ((m = re.exec(qml)) !== null) {
+        // An icon written as an escape is a picture, not a sentence: strip the escapes before
+        // asking whether what is left reads as words, or "\uD83D" counts as letters itself.
+        var written = m[2].replace(/\\u[0-9a-fA-F]{4}/g, "");
+        if (!/[A-Za-z]{2}/.test(written)) continue;
+        // The plugin's own name, which MuseScore reads from the manifest rather than showing
+        if (m[2] === "Lyrics Extraction") continue;
+        // The credit line: an author, a version and a licence, the same in every language
+        if (/Manolo Carrasco/.test(m[2])) continue;
+        literals.push(m[1] + ': "' + m[2] + '"');
+    }
+
+    assert.deepEqual(literals, [],
+        "these read as words to a user and never reach a translation: " + literals.join(", "));
+});
+
 test("every key the help page uses exists in English", function() {
     var asked = [];
     help.build(function(key) { asked.push(key); return ""; }, true);
