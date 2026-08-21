@@ -5,7 +5,7 @@
     "description": "Lyrics tools for vocal scores: synalepha formatting, lyrics+chords export",
     "category": "lyrics",
     "thumbnail": "logo.png",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "apiversion": 1,
 
     "actions": [
