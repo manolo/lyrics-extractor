@@ -153,8 +153,8 @@ var strings = {
         "Diagrams placed on notes are also extracted as chords.",
     "help.staffText.label": "Score text",
     "help.staffText.body": "<code>Ctrl+T</code>. Texts on the accompaniment staff appear on the chord " +
-        "line, in braces so they read as words rather than as a chord (e.g. <code>&#123;bass&#125;</code>, " +
-        "<code>&#123;a cappella&#125;</code>). The PDF prints them in a colour of their own.",
+        "line, in brackets so they read as words rather than as a chord (e.g. <code>(bass)</code>, " +
+        "<code>(a cappella)</code>). The PDF prints them in a colour of its own instead.",
     "help.expression.label": "Expression",
     "help.expression.body": "<code>Ctrl+E</code>. Expression texts on the accompaniment staff also appear on " +
         "the chord line.",

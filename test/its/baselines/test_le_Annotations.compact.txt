@@ -1,12 +1,12 @@
 ==== ANNOTATIONS ====
 
 - ESTROFA -
-Do             Lam         Sol {Continue rhythm} Fa      {Solo}  Do {Cejilla b3} Re7
+Do             Lam         Sol (Continue rhythm) Fa      (Solo)  Do (Cejilla b3) Re7
 Canta muy bien la ronda va por     la ciudad con     voz de miel y    el viento lleva  la voz.
 
-            Sol {Continue rhythm} Fa      {Solo}  Do {Cejilla b3} Re7
+            Sol (Continue rhythm) Fa      (Solo)  Do (Cejilla b3) Re7
 La ronda va por     la ciudad con     voz de miel y    el viento lleva  la voz.
 
-Sol {muy suave}  Do
+Sol (muy suave)  Do
 Canta     la mar jamas.
 // mscz-mtime: 2026-08-21T10:21:23.677Z

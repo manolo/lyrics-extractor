@@ -3064,3 +3064,29 @@ test("formatPerfLines keeps the words when the chord beside them is a restatemen
 
     assert.ok(output.indexOf("{pizz.}") >= 0, "the words are printed even with no chord to sit beside");
 });
+
+// --- The text as a person reads it -------------------------------------------
+
+test("forReading puts an annotation in round brackets", function() {
+    var M = fmt.CHORD_LINE_MARKER;
+
+    assert.equal(fmt.forReading(M + "Bbmaj7 {Continue rhythm}   Fadd4"),
+        "Bbmaj7 (Continue rhythm)   Fadd4", "and the marker is gone with them");
+    assert.equal(fmt.forReading(M + "{dolce} {pizz.} Fa"), "(dolce) (pizz.) Fa",
+        "two of them on one line");
+    assert.equal(fmt.forReading(M + "Mi7(b5) Lam"), "Mi7(b5) Lam",
+        "a chord that already has brackets is not touched");
+    assert.equal(fmt.forReading("sing along now"), "sing along now", "a lyric line is left alone");
+    assert.equal(fmt.forReading(""), "");
+});
+
+test("forReading changes the width of nothing", function() {
+    // Braces and brackets are one character each, so the chords stay over their syllables.
+    var M = fmt.CHORD_LINE_MARKER;
+    var chordLine = M + "Do    {muy suave}  Sol";
+    var lyric = "sing along now, and again";
+
+    assert.equal(fmt.forReading(chordLine).length, chordLine.length - M.length);
+    assert.equal(fmt.forReading(chordLine).indexOf("Sol"), chordLine.indexOf("Sol") - M.length);
+    assert.equal(fmt.forReading(lyric), lyric);
+});

@@ -55,7 +55,7 @@ The **Fix** button corrects all issues automatically:
 - Works from any tab, including excerpt/part views (uses masterScore automatically)
 
 ### Staff text on the chord line
-Staff text, expressions and play techniques from the accompaniment staff are printed on the chord line, wrapped in braces so they read as words rather than as a chord: `{muy suave}`, `{8va 2nd time}`. Braces because a parenthesis belongs to the chord vocabulary, `Mi7(b5)`, while no chord notation uses a brace. When one shares a beat with a chord, both are printed, the chord first. The PDF gives them a colour of their own, and ChordPro writes them as `[*muy suave]`, which a transposing app leaves alone. The **Staff texts** option, or `--no-annotations`, leaves them out.
+Staff text, expressions and play techniques from the accompaniment staff are printed on the chord line in brackets, so they read as words rather than as a chord: `(muy suave)`, `(8va 2nd time)`. When one shares a beat with a chord, both are printed, the chord first. The PDF gives them a colour of their own instead of the brackets, and ChordPro writes them as `[*muy suave]`, which a transposing app leaves alone. Inside the pipeline they travel in braces, which no chord notation uses, because a bracket is part of the chord vocabulary, `Mi7(b5)`: that is what lets the PDF know what to colour and ChordPro what to mark, and the brackets are put on last, for the reader. The **Staff texts** option, or `--no-annotations`, leaves them out.
 
 ### ChordPro export
 **Save ChordPro** writes a `.cho` file, the format songbook apps read: chords inline in anglo spelling so any reader can transpose them, section labels as comments, and the title and key of the score as `{title:}` and `{key:}`.

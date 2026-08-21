@@ -390,8 +390,9 @@ function main() {
         output = formatter.stripChordLines(output);
     }
 
-    // Text output (strip zero-width space chord markers, only needed for PDF coloring)
-    var textOutput = output.replace(/\u200B/g, "");
+    // Text output: markers off, and an annotation in round brackets, which is how a reader
+    // wants it. The PDF and the .cho above were made from the braced form on purpose.
+    var textOutput = formatter.forReading(output);
     if (outputPath) {
         fs.writeFileSync(outputPath, textOutput, "utf8");
         console.error("Written to: " + outputPath);

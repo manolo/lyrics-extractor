@@ -536,7 +536,7 @@ MuseScore {
 
         extractedOutput = output; // keep markers for PDF
         var displayOutput = settings.lyricsOnly ? Formatter.stripChordLines(output) : output;
-        lyricsPreview.text = Formatter.stripChordMarkers(displayOutput);
+        lyricsPreview.text = Formatter.forReading(displayOutput);
         var sylCount = data.syllables ? data.syllables.length : 0;
         var chordCount = data.chords ? data.chords.length : 0;
         var diagramCount = extractedFretDiagrams.length;
@@ -1113,7 +1113,7 @@ MuseScore {
                             Button {
                                 text: t("button.saveTxt")
                                 opacity: 0.85
-                                onClicked: saveLyricsToFile(Formatter.stripChordMarkers(lyricsPreview.text))
+                                onClicked: saveLyricsToFile(lyricsPreview.text)
                             }
 
                             Button {

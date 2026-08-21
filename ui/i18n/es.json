@@ -2,7 +2,6 @@
   "app.title": "Extractor de Letras y Acordes",
   "button.help": "Ayuda",
   "button.close": "Cerrar",
-
   "check.checking": "Analizando...",
   "check.correct": "Partitura correcta",
   "check.issues": "{count} problemas detectados",
@@ -14,14 +13,12 @@
   "check.chordTypos": "{count} acordes con typos: {detail}",
   "check.scopeSelection": "Seleccion",
   "check.scopeScore": "Partitura completa",
-
   "button.fix": "Corregir",
   "fix.noChanges": "Letras correctas, no se necesitan cambios",
   "fix.syllables": "{count} silaba(s) corregida(s)",
   "fix.typos": "{count} acorde(s) con typo corregido(s)",
   "fix.synced": "{count} acorde(s) sincronizado(s)",
   "fix.meta": "propiedades actualizadas",
-
   "button.extract": "Extraer",
   "extract.working": "Extrayendo...",
   "extract.noLyrics": "No se encontraron letras en la partitura",
@@ -29,12 +26,10 @@
   "extract.summary": "{syllables} silabas, {chords} acordes extraidos",
   "extract.summaryTypos": "{syllables} silabas, {chords} acordes. Typos corregidos: {typos}",
   "extract.summaryOrphan": "{syllables} silabas, {chords} acordes. La estructura no canta la letra {verses}: marca Letras huerfanas para incluirla",
-
   "diagrams.theFile": "el archivo .mscz",
   "diagrams.notExtracted": "Diagramas detectados pero no extraidos de {path}. Exporta debug para diagnostico.",
   "diagrams.dirMissing": "El directorio de partituras {dir} no existe. Ajustalo a la carpeta que contiene {file}",
   "diagrams.fileNotFound": "{file} no esta en ningun sitio dentro de {dir}. Ajusta el directorio de partituras",
-
   "option.solfeo": "Solfeo (Do, Re, Mi)",
   "option.fullRepeat": "Repetir todo",
   "option.lyricsOnly": "Solo letra",
@@ -42,7 +37,6 @@
   "option.staffTexts": "Textos de pentagrama",
   "option.directory": "Directorio:",
   "option.usingFile": "Usando archivo:",
-
   "button.copy": "Copiar",
   "button.saveTxt": "Guardar txt",
   "button.savePdf": "Guardar pdf",
@@ -54,20 +48,16 @@
   "save.choDone": "ChordPro guardado en: {path}",
   "save.pdfError": "Error guardando PDF",
   "save.pdfDone": "PDF guardado en: {path}",
-
   "pdf.header": "Cabecera:",
   "pdf.footer": "Pie:",
   "pdf.groupName": "Nombre del grupo",
   "pdf.onePage": "Condensar en 1 pagina",
   "pdf.lineNumbers": "Num. linea",
   "pdf.noDiagrams": "Sin diagramas de acordes",
-
   "debug.noData": "No se encontraron datos",
   "debug.error": "Error guardando debug",
   "debug.done": "Debug exportado: {path}",
-
   "error.noScore": "Error: No hay partitura abierta",
-
   "help.heading.howTo": "Cómo usar el plugin",
   "help.heading.general": "Preparar la partitura General",
   "help.heading.guitar": "Preparar la partitura de Guitarra",
@@ -75,9 +65,7 @@
   "help.heading.extraction": "Opciones de extracción",
   "help.heading.pdf": "Opciones del PDF",
   "help.heading.buttons": "Otros botones",
-
   "help.howTo.steps": "<li>Abre una partitura con letra y acordes en MuseScore.</li><li>Pulsa <b>Extraer</b> para extraer letra con acordes alineados.</li><li>Revisa el resultado en la previsualización.</li><li>Pulsa <b>Guardar txt</b> para guardar como texto plano, o <b>Guardar pdf</b> para generar un PDF con formato.</li>",
-
   "help.title.label": "Título",
   "help.title.body": "El plugin busca el título en: 1) Propiedades del proyecto, 2) Texto del VBox (marco superior), 3) Nombre del archivo. El botón <b>Corregir</b> sincroniza los campos del VBox (título, subtítulo, compositor, letrista) a las propiedades del proyecto.",
   "help.systemText.label": "Texto de sistema",
@@ -88,16 +76,14 @@
   "help.repeats.body": "Las barras de repetición, casillas de volta, Da Capo, Da Segno y saltos se respetan. El plugin expande las repeticiones en orden de ejecución.",
   "help.stanzas.label": "Separar estrofas",
   "help.stanzas.body": "Estos elementos generan un salto de párrafo (línea en blanco) en la salida: textos de sistema, marcas de ensayo (salvo las numeradas por compás), barras de fin, doble barra y barra gruesa.",
-
   "help.chords.label": "Acordes",
   "help.chords.body": "<code>Ctrl+K</code>. Añade símbolos de acorde en la nota justa donde cambia la armonía. Utiliza el estilo solfeo o anglosajón según tus preferencias. Se extraen automáticamente del pentagrama de acompañamiento.",
   "help.diagrams.label": "Colección de acordes",
   "help.diagrams.body": "Inserta una leyenda de diagramas de acordes seleccionando el primer elemento de la partitura general o de cualquier parte de guitarra: <i>Añadir > Marcos > Leyenda de diagrama de acordes</i>. Se dibujan en el encabezado del PDF. Los diagramas colocados sobre notas también se extraen como acordes.",
   "help.staffText.label": "Texto de partitura",
-  "help.staffText.body": "<code>Ctrl+T</code>. Los textos en el pentagrama de acompañamiento se muestran en la línea de acordes, entre llaves para que se lean como palabras y no como un acorde (ej: <code>&#123;bajos&#125;</code>, <code>&#123;a capella&#125;</code>). El PDF los imprime en un color propio.",
+  "help.staffText.body": "<code>Ctrl+T</code>. Los textos en el pentagrama de acompañamiento se muestran en la línea de acordes, entre parentesis para que se lean como palabras y no como un acorde (ej: <code>(bajos)</code>, <code>(a capella)</code>). El PDF los imprime en un color propio en su lugar.",
   "help.expression.label": "Expresión",
   "help.expression.body": "<code>Ctrl+E</code>. Los textos de expresión en el pentagrama de acompañamiento también aparecen en la línea de acordes.",
-
   "help.textEntry.label": "Introducción de texto",
   "help.textEntry.body": "<code>Ctrl+L</code>. Introduce el texto en la partitura sílaba a sílaba y utiliza ciertos caracteres descritos más abajo para separaciones.",
   "help.syllables.label": "Sílabas (guión)",
@@ -116,7 +102,6 @@
   "help.preventBreak.body": "A veces la puntuación o un silencio cortan la frase en dos líneas. Para evitarlo, duplica el carácter en la sílaba: <code>..</code> muestra un punto, <code>,,</code> muestra una coma, <code>...</code> muestra puntos suspensivos. Todos impiden que el plugin parta la línea ahí.",
   "help.verses.label": "Múltiples versos",
   "help.verses.body": "MuseScore soporta múltiples letras para el mismo pasaje (verso 1, 2, 3...). El plugin las extrae en el orden de la partitura.",
-
   "help.solfeo.label": "Solfeo",
   "help.solfeo.body": "Usa nombres Do, Re, Mi en vez de C, D, E.",
   "help.fullRepeat.label": "Repetir todo",
@@ -127,7 +112,6 @@
   "help.staffTexts.body": "Incluir textos de pentagrama, expresiones y técnicas de interpretación en la línea de acordes. Desmarcado, solo salen los acordes (<code>--no-annotations</code> en el CLI).",
   "help.scoresDir.label": "Directorio de partituras",
   "help.scoresDir.body": "Mientras la API de QML no exponga los diagramas de acordes, y ninguna 4.7.x lo hace, el plugin necesita leer el archivo .mscz del disco para extraerlos. Configura aquí la carpeta raíz donde guardas tus partituras (ej: HOME/Music).",
-
   "help.pdfHeader.label": "Cabecera",
   "help.pdfHeader.body": "Texto alineado a la derecha en la parte superior de cada página (ej: nombre del grupo).",
   "help.pdfFooter.label": "Pie de página",
@@ -138,7 +122,6 @@
   "help.lineNumbers.body": "Muestra números de línea a la izquierda de cada verso.",
   "help.noDiagrams.label": "Sin diagramas",
   "help.noDiagrams.body": "Omite los diagramas de acordes del encabezado del PDF.",
-
   "help.fix.label": "Corregir",
   "help.fix.body": "Readapta la entrada de la letra: convierte sinalefas a ‿ (arco de unión), y los marcadores de no salto (<code>..</code> <code>,,</code> <code>...</code>) a sus símbolos internos.",
   "help.debug.label": "Debug",
