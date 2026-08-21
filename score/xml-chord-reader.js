@@ -295,7 +295,11 @@ function extractChords(xmlString, C, spelling) {
     var chords = [];
     for (var ci = 0; ci < all.length; ci++) {
         if (all[ci].staffId === best || best === -1) {
-            chords.push({ tick: all[ci].tick, chord: all[ci].chord });
+            var entry = { tick: all[ci].tick, chord: all[ci].chord };
+            // Same as xml-extractor: without the flag, an annotation sharing a tick with a
+            // harmony wins it, and the harmony is never printed.
+            if (all[ci].isText) entry.isText = true;
+            chords.push(entry);
         }
     }
     chords.sort(function(a, b) { return a.tick - b.tick; });

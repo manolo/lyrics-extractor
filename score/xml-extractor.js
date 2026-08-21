@@ -881,10 +881,15 @@ function extractAll(xmlString, excerptXmls, spelling, options) {
     var chords = [];
     for (var cf = 0; cf < allChords.length; cf++) {
         if (allChords[cf].staffId === bestHarmonyStaff || bestHarmonyStaff === -1) {
-            chords.push({
+            var entry = {
                 tick: allChords[cf].tick,
                 chord: allChords[cf].chord
-            });
+            };
+            // The flag is what tells a harmony from an annotation when the two share a tick,
+            // which is the whole of findChordAtTick's tie-break. Dropping it here let the
+            // annotation take the syllable and the chord vanish with it.
+            if (allChords[cf].isText) entry.isText = true;
+            chords.push(entry);
         }
     }
     chords.sort(function(a, b) { return a.tick - b.tick; });

@@ -3012,3 +3012,55 @@ test("formatLines emits the chords that precede a label inside the gap", functio
         assert.equal(count, 1, chord + " should appear once, found " + count + ":\n" + out);
     });
 });
+
+// --- An annotation sharing a syllable with a chord ---------------------------
+//
+// Reported as issue #1. A syllable carries one chord and findChordAtTick gives that slot to
+// the harmony, so the annotation that shares the tick has nowhere to go and used to be
+// dropped without trace. It is placed beside the chord instead.
+
+test("formatPerfLines puts the words after the chord they share a beat with", function() {
+    var lines = [{
+        text: "sing along",
+        sylMap: [{ tick: 0, pos: 0, chord: "Bbmaj7" }],
+        startTick: 0,
+        endTick: 480,
+        sectionEnd: false
+    }];
+    var chords = [
+        { tick: 0, chord: "Bbmaj7" },
+        { tick: 0, chord: "Continue-rhythm", isText: true }
+    ];
+
+    var output = fmt.formatPerfLines(lines, [], null, null, chords).text;
+    var chordLine = null;
+    output.split("\n").forEach(function(line) {
+        if (line.indexOf("Bbmaj7") >= 0) chordLine = line;
+    });
+
+    assert.ok(chordLine, "the harmony is printed");
+    assert.ok(chordLine.indexOf("Continue-rhythm") >= 0, "and so are the words");
+    assert.ok(chordLine.indexOf("Bbmaj7") < chordLine.indexOf("Continue-rhythm"),
+        "the chord keeps the syllable and the words follow it: " + JSON.stringify(chordLine));
+});
+
+test("formatPerfLines keeps the words when the chord beside them is a restatement", function() {
+    // The chord is suppressed because it has not changed, which is the rule for every chord.
+    // The annotation is not a chord, so it is printed either way: this is why it is placed
+    // outside the block that decides whether the harmony is worth repeating.
+    var lines = [{
+        text: "sing along",
+        sylMap: [{ tick: 0, pos: 0, chord: "Lam" }],
+        startTick: 0,
+        endTick: 480,
+        sectionEnd: false
+    }];
+    var chords = [
+        { tick: 0, chord: "Lam" },
+        { tick: 0, chord: "pizz.", isText: true }
+    ];
+
+    var output = fmt.formatPerfLines(lines, ["Lam"], null, null, chords).text;
+
+    assert.ok(output.indexOf("pizz.") >= 0, "the words are printed even with no chord to sit beside");
+});

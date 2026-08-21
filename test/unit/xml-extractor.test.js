@@ -1408,3 +1408,60 @@ function repeatCountScore(text) {
         assert.deepEqual(labels, ["Estribillo", text], "should stay a title: " + labels);
     });
 });
+
+// --- An annotation sharing a tick with a harmony -----------------------------
+//
+// Reported as issue #1: the chord sounding under a staff text was not printed at all.
+// Annotations travel in the chord array with a flag saying they are not harmonies, and
+// findChordAtTick gives the tick to the harmony when the two collide. This path used to drop
+// the flag when the array was filtered to the staff that carries the chords, so the rule had
+// nothing to read and the later entry won, which is the staff text: MuseScore writes it after
+// the <Harmony> of the same segment.
+
+var chordUtils = require("../../lib/chord-utils");
+
+var SAME_TICK_SCORE = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<museScore version="4.40">',
+    '<Score>',
+    '<Division>480</Division>',
+    '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+    '<Staff id="1">',
+    '<Measure>',
+    '<voice>',
+    '<Harmony><harmonyInfo><root>16</root><name>maj7</name></harmonyInfo></Harmony>',
+    '<StaffText><text>Continue rhythm</text></StaffText>',
+    '<Chord><durationType>half</durationType>',
+    '<Lyrics><text>sing</text><syllabic>single</syllabic></Lyrics>',
+    '<Note><pitch>60</pitch></Note></Chord>',
+    '</voice>',
+    '</Measure>',
+    '</Staff>',
+    '</Score>',
+    '</museScore>'
+].join("\n");
+
+test("extractAll marks a staff text as an annotation, not as a chord", function() {
+    var data = xmlExt.extractAll(SAME_TICK_SCORE);
+
+    var harmony = null;
+    var annotation = null;
+    for (var i = 0; i < data.chords.length; i++) {
+        if (data.chords[i].isText) annotation = data.chords[i];
+        else harmony = data.chords[i];
+    }
+
+    assert.ok(harmony, "the harmony is in the chord array");
+    assert.ok(annotation, "and so is the staff text");
+    assert.equal(annotation.isText, true, "the staff text says it is not a harmony");
+    assert.equal(harmony.isText, undefined, "and the harmony says nothing, as before");
+    assert.equal(harmony.tick, annotation.tick, "the two share the tick, which is the case at issue");
+});
+
+test("a harmony keeps its tick when a staff text is written after it", function() {
+    var data = xmlExt.extractAll(SAME_TICK_SCORE);
+    var tick = data.chords[0].tick;
+
+    assert.equal(chordUtils.findChordAtTick(data.chords, tick), "Dmaj7",
+        "the chord sounds there, the staff text only says how to play it");
+});

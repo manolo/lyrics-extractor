@@ -511,3 +511,44 @@ test("extractChords applies voice-level location offsets", function() {
     assert.equal(chords.length, 1);
     assert.equal(chords[0].tick, 1440, "location -1/4 should rewind one quarter from 1920");
 });
+
+// --- An annotation sharing a tick with a harmony -----------------------------
+//
+// This reader is what the dialog falls back to when the fret diagrams have to be read from
+// the file on disk, so it answers the same question as xml-extractor and needs the same
+// answer: a staff text is flagged, and the flag survives the filter to the chord staff.
+// Without it, findChordAtTick has no tie-break and the annotation takes the harmony's tick.
+
+var chordUtils = require("../../lib/chord-utils");
+
+var SAME_TICK_SCORE = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<museScore version="4.40">',
+    '<Score>',
+    '<Division>480</Division>',
+    '<Part><Staff id="1"><StaffType group="pitched"/></Staff></Part>',
+    '<Staff id="1">',
+    '<Measure>',
+    '<voice>',
+    '<Harmony><harmonyInfo><root>16</root><name>maj7</name></harmonyInfo></Harmony>',
+    '<StaffText><text>Continue rhythm</text></StaffText>',
+    '<Chord><durationType>half</durationType><Note><pitch>60</pitch></Note></Chord>',
+    '</voice>',
+    '</Measure>',
+    '</Staff>',
+    '</Score>',
+    '</museScore>'
+].join("\n");
+
+test("extractChords marks a staff text as an annotation, not as a chord", function() {
+    var chords = reader.extractChords(SAME_TICK_SCORE, Constants);
+
+    assert.equal(chords.length, 2, "both the harmony and the staff text are on the chord line");
+    var annotation = chords[0].isText ? chords[0] : chords[1];
+    var harmony = chords[0].isText ? chords[1] : chords[0];
+
+    assert.equal(annotation.isText, true);
+    assert.equal(harmony.isText, undefined);
+    assert.equal(chordUtils.findChordAtTick(chords, harmony.tick), harmony.chord,
+        "the harmony holds its tick, whatever order the file wrote the two in");
+});
