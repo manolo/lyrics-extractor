@@ -178,6 +178,7 @@ Add System Text (`Cmd+Shift+T`) to mark sections. Labels control the output stru
 - **Multiple labels in `|: :|`:** all re-emit on each pass
 - **Numbered labels:** use `#` (e.g. `Estrofa #`) for `ESTROFA 1`, `ESTROFA 2`
 - **Explicit sequence:** use `:` to list values (e.g. `Solista manolo:juan:pedro` produces `SOLISTA MANOLO`, `SOLISTA JUAN`, `SOLISTA PEDRO`). Works with numbers: `Estrofa 1:2`. Empty items between separators are ignored (`Estrofa 1::2::` = `Estrofa 1:2`). When the sequence is exhausted, the label is suppressed entirely
+- **Label inside a word:** a section entered on a pickup has its first word spread over the barline, and the label sits on the beat where that word ends. The label is printed above the whole word, pickup included, so the section keeps its first words. The exception is a word ending in `.` `!` `?`: that one closes the phrase before it, and the label stays under it. Put the mark at the bar where the section starts, as you would write it on paper
 
 ### Verse numbering
 

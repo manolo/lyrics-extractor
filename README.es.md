@@ -176,6 +176,7 @@ Agregar Texto de Sistema (`Cmd+Shift+T`) para marcar secciones. Las etiquetas co
 - **Varias etiquetas en `|: :|`:** todas se re-emiten en cada pasada
 - **Etiquetas numeradas:** usar `#` (ej: `Estrofa #`) para `ESTROFA 1`, `ESTROFA 2`
 - **Secuencia explicita:** usar `:` para listar valores (ej: `Solista manolo:juan:pedro` produce `SOLISTA MANOLO`, `SOLISTA JUAN`, `SOLISTA PEDRO`). Funciona con numeros: `Estrofa 1:2`. Los items vacios entre separadores se ignoran (`Estrofa 1::2::` = `Estrofa 1:2`). Cuando la secuencia se agota, la etiqueta se suprime
+- **Etiqueta dentro de una palabra:** una seccion que entra en anacrusa tiene su primera palabra repartida a los dos lados de la barra, y la etiqueta cae en el tiempo donde esa palabra termina. La etiqueta se imprime sobre la palabra entera, anacrusa incluida, para que la seccion conserve sus primeras palabras. La excepcion es una palabra terminada en `.` `!` `?`: esa cierra la frase anterior y la etiqueta se queda debajo. La marca va en el compas donde empieza la seccion, como se escribe en papel
 
 ### Numeracion de versos
 

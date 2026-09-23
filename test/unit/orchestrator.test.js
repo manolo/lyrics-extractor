@@ -1070,3 +1070,28 @@ test("a verse with its own words keeps its own layout", function() {
     assert.ok(out.indexOf("Sola linea distinta") >= 0 || out.indexOf("sola linea distinta") >= 0,
         "on its own line, not on the frame of the first verse:\n" + out);
 });
+
+test("processExtraction does not break a stanza at a label written inside a word", function() {
+    // The forced break at a label tick lands between "ca" and "lá", in the middle of the word
+    // the chorus opens with. Cutting there would leave "Alca" hanging above the heading, and
+    // the anchor the formatter uses to place that heading depends on the word staying whole.
+    var data = {
+        title: "",
+        syllables: [
+            { tick: 0, verse: 0, text: "Al", syllabic: "begin", durationQ: 0.5, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: 240, verse: 0, text: "ca", syllabic: "middle", durationQ: 0.5, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: 480, verse: 0, text: "lá", syllabic: "end", durationQ: 1.5, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: 1200, verse: 0, text: "de", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: 1680, verse: 0, text: "Henares.", syllabic: "single", durationQ: 2, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+        ],
+        chords: [],
+        repeats: [],
+        voltas: [],
+        systemTexts: [{ tick: 480, text: "Estribillo" }]
+    };
+
+    var output = orch.processExtraction(data);
+    assert.ok(output.indexOf("Alcalá") >= 0, "the word is printed whole: " + JSON.stringify(output));
+    assert.ok(output.indexOf("- ESTRIBILLO -") < output.indexOf("Alcalá"),
+        "and the heading stands above it");
+});

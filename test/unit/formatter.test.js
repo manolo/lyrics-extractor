@@ -3090,3 +3090,149 @@ test("forReading changes the width of nothing", function() {
     assert.equal(fmt.forReading(chordLine).indexOf("Sol"), chordLine.indexOf("Sol") - M.length);
     assert.equal(fmt.forReading(lyric), lyric);
 });
+
+// --- A section heading written inside the word that opens a line --------------
+
+// A pickup sung before the repeat barline finishes its word on the beat the heading is
+// written at, so the heading falls inside the word: it belongs above the whole word.
+
+function pickupLine(startTick, lastSylTick, text) {
+    return {
+        text: text || "Alcalá de Henares",
+        sylMap: [
+            { tick: startTick, pos: 0 },
+            { tick: startTick + 240, pos: 2 },
+            { tick: lastSylTick, pos: 4 },
+            { tick: lastSylTick + 720, pos: 7 },
+            { tick: lastSylTick + 960, pos: 10 }
+        ],
+        startTick: startTick,
+        endTick: lastSylTick + 960
+    };
+}
+
+test("formatPerfLines heads the line whose opening word the label was written inside", function() {
+    var lines = [
+        pickupLine(0, 480),
+        { text: "qué bien pareces", sylMap: [{ tick: 1920, pos: 0 }], startTick: 1920, endTick: 2400 }
+    ];
+    var systemTexts = [{ tick: 480, text: "Estribillo" }];
+
+    var out = fmt.formatPerfLines(lines, null, null, "", null, null, systemTexts).text;
+    var idxLabel = out.indexOf("- ESTRIBILLO -");
+    var idxLyric = out.indexOf("Alcalá");
+    assert.ok(idxLabel >= 0, "the label is emitted");
+    assert.ok(idxLabel < idxLyric, "and it comes before the pickup, not after it");
+    assert.equal(out.split("- ESTRIBILLO -").length - 1, 1, "once only");
+});
+
+// Both passes of the repeat, as the expander lays them out: the pickup of the second pass is
+// sung in the first ending (tick 4800) and its word finishes back at the label (480) through
+// the repeat jump, so the backwards step happens inside the line rather than between lines.
+function bothPasses() {
+    return [
+        pickupLine(0, 480),
+        { text: "qué bien pareces", sylMap: [{ tick: 1920, pos: 0 }], startTick: 1920,
+          endTick: 2400, sectionEnd: true },
+        { text: "ningún arma", sylMap: [{ tick: 4000, pos: 0 }, { tick: 4400, pos: 7 }],
+          startTick: 4000, endTick: 4400, sectionEnd: true },
+        pickupLine(4800, 480),
+        { text: "qué bien pareces", sylMap: [{ tick: 1920, pos: 0 }], startTick: 1920, endTick: 2400 }
+    ];
+}
+
+test("formatPerfLines heads the pickup again on the repeat pass", function() {
+    // Two labels inside the repeat, as in a chorus/soloist song: a pass with a single label
+    // is the verse alternation that deliberately keeps one heading for both passes.
+    var systemTexts = [{ tick: 480, text: "Estribillo" }, { tick: 3000, text: "Solista" }];
+    var repeats = [{ startTick: 480, endTick: 5280 }];
+
+    var out = fmt.formatPerfLines(bothPasses(), null, null, "", null, null, systemTexts,
+        true, 480, repeats).text;
+    var rows = out.split("\n");
+    var heads = [];
+    for (var i = 0; i < rows.length; i++) {
+        if (rows[i].indexOf("- ESTRIBILLO -") >= 0) heads.push(rows[i + 1]);
+    }
+    assert.equal(heads.length, 2, "the chorus is headed on both passes");
+    assert.ok(heads[0].indexOf("Alcalá") >= 0, "first pass: the pickup follows the heading");
+    assert.ok(heads[1].indexOf("Alcalá") >= 0, "second pass: so does the one sung in the ending");
+});
+
+test("formatPerfLines leaves a heading alone when the straddling word ends the phrase", function() {
+    // The D.S. case: "Amor." closes the soloist phrase, it does not head the section.
+    var lines = [
+        { text: "Amor. ya la ronda", sylMap: [{ tick: 0, pos: 0 }, { tick: 240, pos: 2 },
+            { tick: 720, pos: 6 }], startTick: 0, endTick: 960 },
+        { text: "llega aquí", sylMap: [{ tick: 1920, pos: 0 }], startTick: 1920, endTick: 2400 }
+    ];
+    var systemTexts = [{ tick: 240, text: "Estribillo" }];
+
+    var out = fmt.formatPerfLines(lines, null, null, "", null, null, systemTexts).text;
+    assert.ok(out.indexOf("Amor.") < out.indexOf("- ESTRIBILLO -"), "the word keeps closing its phrase");
+});
+
+test("formatPerfLines opens no pickup chord zone under such a heading", function() {
+    var lines = bothPasses();
+    lines[3].sylMap[0].chord = "Sol";
+    var chords = [{ tick: 480, chord: "Sol" }, { tick: 1200, chord: "Re7" },
+                  { tick: 2400, chord: "Lam" }, { tick: 3600, chord: "Fa" }];
+    var systemTexts = [{ tick: 480, text: "Estribillo" }, { tick: 3000, text: "Solista" }];
+    var repeats = [{ startTick: 480, endTick: 5280 }];
+
+    var out = fmt.formatPerfLines(lines, null, null, "", chords, null, systemTexts, true, 480, repeats).text;
+    var rows = out.split("\n");
+    var lyricIdx = rows.length - 1 - rows.slice().reverse().findIndex(function(r) { return r.indexOf("Alcalá") >= 0; });
+    var above = rows[lyricIdx - 1].replace(/​/g, "");
+    assert.ok(above.indexOf("Re7") < 0 && above.indexOf("Lam") < 0 && above.indexOf("Fa") < 0,
+        "the chords of the whole section are not dumped over the pickup: " + above);
+});
+
+test("formatPerfLines prints no labelled interlude under such a heading", function() {
+    var lines = bothPasses();
+    var chords = [{ tick: 480, chord: "Sol" }, { tick: 1200, chord: "Re7" },
+                  { tick: 2400, chord: "Lam" }, { tick: 3600, chord: "Fa" }];
+    var systemTexts = [{ tick: 480, text: "Estribillo" }, { tick: 3000, text: "Solista" }];
+    var repeats = [{ startTick: 480, endTick: 5280 }];
+
+    var out = fmt.formatPerfLines(lines, null, null, "", chords, null, systemTexts, true, 480, repeats).text;
+    var rows = out.split("\n");
+    var labelIdx = rows.length - 1 - rows.slice().reverse().findIndex(function(r) { return r.indexOf("- ESTRIBILLO -") >= 0; });
+    assert.ok(rows[labelIdx + 1].indexOf("Lam") < 0 && rows[labelIdx + 1].indexOf("Fa") < 0,
+        "no chord-only line stands between the heading and its first words: " + rows[labelIdx + 1]);
+});
+
+test("formatPerfLines leaves no blank chord line between such a heading and its line", function() {
+    var lines = [
+        pickupLine(0, 480),
+        { text: "qué bien pareces", sylMap: [{ tick: 1920, pos: 0 }], startTick: 1920, endTick: 2400 }
+    ];
+    var systemTexts = [{ tick: 480, text: "Estribillo" }];
+
+    var out = fmt.formatPerfLines(lines, null, null, "", null, null, systemTexts).text;
+    var rows = out.split("\n");
+    var labelIdx = rows.findIndex(function(r) { return r.indexOf("- ESTRIBILLO -") >= 0; });
+    assert.ok(rows[labelIdx + 1].indexOf("Alcalá") >= 0,
+        "the lyric follows the heading with nothing in between: " + JSON.stringify(rows[labelIdx + 1]));
+});
+
+test("formatLines heads the line whose opening word the label was written inside", function() {
+    var lines = [
+        pickupLine(0, 480),
+        { text: "qué bien pareces", sylMap: [{ tick: 1920, pos: 0 }], startTick: 1920, endTick: 2400 }
+    ];
+    var systemTexts = [{ tick: 480, text: "Estribillo" }];
+
+    var out = fmt.formatLines(lines, [], null, -1, systemTexts).output;
+    assert.ok(out.indexOf("- ESTRIBILLO -") < out.indexOf("Alcalá"));
+});
+
+test("labelAnchorTick reaches to the end of a split opening word, and no further", function() {
+    assert.equal(fmt.labelAnchorTick(pickupLine(0, 480)), 480, "the split word carries the anchor");
+    assert.equal(fmt.labelAnchorTick({ text: "hola mundo", sylMap: [{ tick: 60, pos: 0 },
+        { tick: 300, pos: 5 }], startTick: 60 }), 60, "a one-syllable opening word does not");
+    assert.equal(fmt.labelAnchorTick({ text: "Amor. ya", sylMap: [{ tick: 60, pos: 0 },
+        { tick: 300, pos: 2 }], startTick: 60 }), 60, "nor does one that ends the phrase");
+    assert.equal(fmt.labelAnchorTick({ text: "", sylMap: [], startTick: 900 }), 900,
+        "an abbreviated line has nothing to look at");
+});
