@@ -12,6 +12,26 @@ var fs = require("fs");
 var zlib = require("zlib");
 
 // Minimal ZIP reader: finds and extracts the .mscx file from a ZIP archive
+// CRC-32 of a buffer, as the zip format wants it. zlib has had it since Node 20.15; the table
+// is here for the older 20.x the package still allows.
+var _crcTable = null;
+function crc32(buf) {
+    if (typeof zlib.crc32 === "function") return zlib.crc32(buf);
+    if (!_crcTable) {
+        _crcTable = [];
+        for (var n = 0; n < 256; n++) {
+            var c = n;
+            for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+            _crcTable[n] = c >>> 0;
+        }
+    }
+    var crc = 0xFFFFFFFF;
+    for (var i = 0; i < buf.length; i++) {
+        crc = (_crcTable[(crc ^ buf[i]) & 0xFF] ^ (crc >>> 8)) >>> 0;
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
 function readZip(buffer) {
     var entries = [];
     var offset = 0;
@@ -34,7 +54,8 @@ function readZip(buffer) {
             name: name,
             compression: compressionMethod,
             data: data,
-            uncompressedSize: uncompressedSize
+            uncompressedSize: uncompressedSize,
+            crc: buffer.readUInt32LE(offset + 14)
         });
 
         offset = dataStart + compressedSize;
@@ -177,6 +198,9 @@ function writeMscz(inputPath, outputPath, newMscxContent) {
         var data = isMscx ? mscxData : entry.data;
         var uncompressedSize = isMscx ? Buffer.byteLength(newMscxContent, "utf8") : entry.uncompressedSize;
         var compression = isMscx ? 8 : entry.compression;
+        // Every reader but MuseScore checks this, and an archive written with none is
+        // corrupt for unzip, for Python and for anything else the scores are piped through
+        var crc = isMscx ? crc32(Buffer.from(newMscxContent, "utf8")) : entry.crc;
 
         var localOffset = 0;
         for (var p = 0; p < parts.length; p++) localOffset += parts[p].length;
@@ -190,7 +214,7 @@ function writeMscz(inputPath, outputPath, newMscxContent) {
         header.writeUInt16LE(compression, 8);         // compression method
         header.writeUInt16LE(0, 10);                  // mod time
         header.writeUInt16LE(0, 12);                  // mod date
-        header.writeUInt32LE(0, 14);                  // crc32 (0 for simplicity)
+        header.writeUInt32LE(crc, 14);                // crc32 of the uncompressed data
         header.writeUInt32LE(data.length, 18);        // compressed size
         header.writeUInt32LE(uncompressedSize, 22);   // uncompressed size
         header.writeUInt16LE(nameLen, 26);            // name length
@@ -209,7 +233,7 @@ function writeMscz(inputPath, outputPath, newMscxContent) {
         cdEntry.writeUInt16LE(compression, 10);        // compression
         cdEntry.writeUInt16LE(0, 12);                  // mod time
         cdEntry.writeUInt16LE(0, 14);                  // mod date
-        cdEntry.writeUInt32LE(0, 16);                  // crc32
+        cdEntry.writeUInt32LE(crc, 16);                // crc32
         cdEntry.writeUInt32LE(data.length, 20);        // compressed size
         cdEntry.writeUInt32LE(uncompressedSize, 24);   // uncompressed size
         cdEntry.writeUInt16LE(nameLen, 28);            // name length
