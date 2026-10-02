@@ -1310,3 +1310,118 @@ test("volta transition still applies noBreakAfter for short intro (normal verse 
     assert.ok(madridSyl.noBreakAfter,
         "last Volta-1 syllable SHOULD have noBreakAfter for normal short-intro verse repeat");
 });
+
+// A D.S. al Coda whose "To Coda" sits in the bar just before the first ending: the segment of
+// the last pass is extended to the barline after the marker, so that a syllable written after
+// the marker but still in the same bar gets sung. In this score that barline is where the first
+// ending begins, and its first syllable belongs to the ending, which this pass does not play,
+// so it must not be dragged in (VirgenDeAmor, where it came out as a stray "Pi." line).
+test("a to-coda extension does not reach into the first ending", function() {
+    function syl(tick, text) {
+        return { tick: tick, verse: 0, text: text, syllabic: "single", durationQ: 1,
+                 restAfter: false, restDurationQ: 0, gapDurationQ: 0 };
+    }
+    var data = {
+        syllables: [
+            syl(0, "segno"),
+            syl(480, "rep"),
+            syl(960, "coda"),     // the bar the To Coda is written in
+            syl(1200, "post"),    // still that bar, after the marker: it is sung
+            syl(1440, "first"),   // first ending, which the last pass skips
+            syl(1920, "second"),  // second ending
+            syl(2880, "tail")     // the coda section
+        ],
+        chords: [],
+        repeats: [{ startTick: 480, endTick: 1920, repeatCount: 2 }],
+        voltas: [
+            { startTick: 1440, endTick: 1920, _measureIdx: 3, endingList: [1] },
+            { startTick: 1920, endTick: 2400, _measureIdx: 4, endingList: [2] }
+        ],
+        markers: [
+            { tick: 0, label: "segno", type: "segno" },
+            { tick: 960, label: "coda", type: "tocoda" },
+            { tick: 2880, label: "codab", type: "coda" }
+        ],
+        jumps: [{ tick: 2400, jumpTo: "segno", playUntil: "coda", continueAt: "codab", playRepeats: true }],
+        systemTexts: [],
+        // The double barline drawn where the first ending starts: it is what the extension
+        // reaches for
+        barlines: [{ tick: 1440, type: "double" }],
+        lastTick: 3360
+    };
+
+    var stream = exp.expand(data);
+    var afterJump = stream.filter(function(s) { return s._jumpReplay; })
+                          .map(function(s) { return s.text; });
+    var lastPass = afterJump.slice(afterJump.lastIndexOf("rep"));
+    assert.deepEqual(lastPass, ["rep", "coda", "post", "tail"],
+        "the last pass of the replay runs from the repeat to the coda, with nothing of the " +
+        "first ending: " + JSON.stringify(afterJump));
+});
+
+// When the To Coda cuts a phrase in half, the coda section finishes it: "...yo confio en" is
+// sung before the jump and "ti como si fuera en Dios" after it, and they belong to one phrase.
+// The same mechanism the voltas have, where the content after the jump continues the line
+// instead of opening a stanza of its own.
+function codaJumpData(lastWordBeforeCoda) {
+    function syl(tick, text, dur) {
+        return { tick: tick, verse: 0, text: text, syllabic: "single", durationQ: dur || 1,
+                 restAfter: false, restDurationQ: 0, gapDurationQ: 0 };
+    }
+    return {
+        syllables: [
+            // The last word before the jump ends exactly where the first ending begins, as it
+            // does in the score: it is the last thing sung before the coda
+            syl(0, "segno"), syl(480, "rep"), syl(960, "coda"), syl(1200, lastWordBeforeCoda, 0.5),
+            syl(1440, "first"), syl(1920, "second"), syl(2880, "tail")
+        ],
+        chords: [],
+        repeats: [{ startTick: 480, endTick: 1920, repeatCount: 2 }],
+        voltas: [
+            { startTick: 1440, endTick: 1920, _measureIdx: 3, endingList: [1] },
+            { startTick: 1920, endTick: 2400, _measureIdx: 4, endingList: [2] }
+        ],
+        markers: [
+            { tick: 0, label: "segno", type: "segno" },
+            { tick: 960, label: "coda", type: "tocoda" },
+            { tick: 2880, label: "codab", type: "coda" }
+        ],
+        jumps: [{ tick: 2400, jumpTo: "segno", playUntil: "coda", continueAt: "codab", playRepeats: true }],
+        systemTexts: [], barlines: [{ tick: 1440, type: "double" }], lastTick: 3360
+    };
+}
+
+test("the coda continues the phrase the to-coda jump cut in half", function() {
+    var stream = exp.expand(codaJumpData("post"));
+    var coda = stream[stream.length - 1];
+    var before = stream[stream.length - 2];
+
+    assert.equal(coda.text, "tail", "the coda is the last thing sung");
+    assert.ok(!before.sectionEnd,
+        "the word before the jump does not close a stanza, the phrase goes on after it");
+});
+
+test("the coda opens a stanza when the phrase was finished before the jump", function() {
+    var stream = exp.expand(codaJumpData("post."));
+    var before = stream[stream.length - 2];
+
+    assert.ok(before.sectionEnd,
+        "a full stop before the jump ends the stanza, and the coda starts another");
+});
+
+test("every syllable of a replay is marked as one, endings included", function() {
+    // An ending played inside the replay belongs to it. Left unmarked it splits the replay in
+    // two, and the orchestrator reads the second half as a replay of its own, heading it with
+    // a section of its own (VirgenDeAmor printed the intro of its replay twice).
+    var stream = exp.expand(codaJumpData("post"));
+    var firstReplay = -1;
+    for (var i = 0; i < stream.length; i++) {
+        if (stream[i]._jumpReplay) { firstReplay = i; break; }
+    }
+    assert.ok(firstReplay >= 0, "the replay is in the stream");
+
+    var unmarked = stream.slice(firstReplay).filter(function(s) { return !s._jumpReplay; })
+                         .map(function(s) { return s.text; });
+    assert.deepEqual(unmarked, [],
+        "nothing after the jump is left unmarked: " + JSON.stringify(unmarked));
+});
