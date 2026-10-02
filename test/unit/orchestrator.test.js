@@ -1095,3 +1095,31 @@ test("processExtraction does not break a stanza at a label written inside a word
     assert.ok(output.indexOf("- ESTRIBILLO -") < output.indexOf("Alcalá"),
         "and the heading stands above it");
 });
+
+test("a D.S. replay is headed by the section its jump lands in", function() {
+    // The replay goes back to the segno, which sits in the intro, and runs into the verse.
+    // Both are played again, so both are headed: the intro as an instrumental section of its
+    // own, the verse with its words (VirgenDeAmor).
+    var data = {
+        title: "",
+        syllables: [
+            { tick: 1440, verse: 0, text: "Can", syllabic: "begin", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: 1920, verse: 0, text: "ta", syllabic: "end", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+            { tick: 2400, verse: 0, text: "hoy.", syllabic: "single", durationQ: 2, restAfter: true, restDurationQ: 4, gapDurationQ: 4 }
+        ],
+        chords: [
+            { tick: 0, chord: "Lam" }, { tick: 480, chord: "Re" }, { tick: 960, chord: "Sol" },
+            { tick: 1440, chord: "Do" }
+        ],
+        repeats: [], voltas: [],
+        markers: [{ tick: 480, label: "segno", type: "segno" }],
+        jumps: [{ tick: 3360, jumpTo: "segno", playUntil: "end", continueAt: "", playRepeats: false }],
+        systemTexts: [{ tick: 0, text: "Intro" }, { tick: 1440, text: "Estrofa" }],
+        barlines: [], lastTick: 3840
+    };
+
+    var output = orch.processExtraction(data);
+    var labels = (output.match(/- [A-ZÁÉÍÓÚÑ ]+ -/g) || []);
+    assert.deepEqual(labels, ["- INTRO -", "- ESTROFA -", "- INTRO -", "- ESTROFA -"],
+        "each pass is headed by the intro and then the verse, in that order: " + output);
+});
