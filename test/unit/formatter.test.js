@@ -3065,6 +3065,76 @@ test("formatPerfLines keeps the words when the chord beside them is a restatemen
     assert.ok(output.indexOf("{pizz.}") >= 0, "the words are printed even with no chord to sit beside");
 });
 
+// --- An annotation with no syllable under it ---------------------------------
+//
+// The chord line is built from the chord each syllable carries, from an annotation sharing a
+// syllable's tick, and from the chords after the end of the line. An annotation that falls in
+// a hole of the melody matches none of the three, and LinaresMinero lost four of its seven
+// "bajos" that way: the guitar plays the bass run while the voices hold a long note.
+
+test("formatPerfLines prints an annotation that falls in a hole between syllables", function() {
+    // "Linares,..." held over a melisma, and the guitar marked "bajos" in the middle of it
+    var lines = [{
+        text: "Linares Pueblo andaluz",
+        sylMap: [
+            { tick: 0, pos: 0, chord: "Mim" },
+            { tick: 2160, pos: 8, chord: "Re7" },
+            { tick: 2640, pos: 15, chord: "Re7" }
+        ],
+        startTick: 0,
+        endTick: 3120,
+        sectionEnd: false
+    }];
+    var chords = [
+        { tick: 0, chord: "Mim" },
+        { tick: 1200, chord: "{bajos}", isText: true },
+        { tick: 2160, chord: "Re7" }
+    ];
+
+    var output = fmt.formatPerfLines(lines, [], null, null, chords).text;
+    assert.ok(output.indexOf("{bajos}") >= 0, "the annotation is printed: " + JSON.stringify(output));
+    var chordLine = output.split("\n").filter(function(line) { return line.indexOf("{bajos}") >= 0; })[0];
+    assert.ok(chordLine.indexOf("{bajos}") < chordLine.indexOf("Re7"),
+        "and before the chord of the syllable that follows the hole: " + JSON.stringify(chordLine));
+});
+
+test("formatPerfLines prints an annotation after the last syllable of the line", function() {
+    // The line ends its words at 1200 but runs to 2400, where the next line starts, so the
+    // tail of the line begins too late to see an annotation at 1680
+    var lines = [{
+        text: "y el bronce",
+        sylMap: [
+            { tick: 0, pos: 0, chord: "Re" },
+            { tick: 1200, pos: 5, chord: "Re" }
+        ],
+        startTick: 0,
+        endTick: 2400,
+        sectionEnd: false
+    }, {
+        text: "se quiebra",
+        sylMap: [{ tick: 2400, pos: 0, chord: "Do" }],
+        startTick: 2400,
+        endTick: 2880,
+        sectionEnd: false
+    }];
+    var chords = [
+        { tick: 0, chord: "Re" },
+        { tick: 1680, chord: "{bajos}", isText: true },
+        { tick: 2400, chord: "Do" }
+    ];
+
+    var output = fmt.formatPerfLines(lines, [], null, null, chords).text;
+    assert.ok(output.indexOf("{bajos}") >= 0, "the annotation is printed: " + JSON.stringify(output));
+    var lines2 = output.split("\n");
+    var annotLine = -1, nextLyric = -1;
+    for (var i = 0; i < lines2.length; i++) {
+        if (annotLine < 0 && lines2[i].indexOf("{bajos}") >= 0) annotLine = i;
+        if (lines2[i].indexOf("se quiebra") >= 0) nextLyric = i;
+    }
+    assert.ok(annotLine >= 0 && annotLine < nextLyric,
+        "and stays with the line it belongs to, not the next one: " + JSON.stringify(output));
+});
+
 // --- The text as a person reads it -------------------------------------------
 
 test("forReading puts an annotation in round brackets", function() {
