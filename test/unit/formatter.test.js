@@ -3236,3 +3236,48 @@ test("labelAnchorTick reaches to the end of a split opening word, and no further
     assert.equal(fmt.labelAnchorTick({ text: "", sylMap: [], startTick: 900 }), 900,
         "an abbreviated line has nothing to look at");
 });
+
+// --- Abbreviating a stanza that belongs to another section -------------------
+
+// Compact mode abbreviates a stanza whose words were printed before. What counts as "before"
+// is the same section coming round again, not another section that happens to open with the
+// same words: Guadalajara sings its title four times a capella and again at the top of the
+// first verse, and the verse was coming out headed and empty.
+
+function stanzaLines(entries) {
+    // entries: [{text, startTick, sectionEnd}]
+    return entries.map(function(e) {
+        return {
+            text: e.text,
+            sylMap: [{ tick: e.startTick, pos: 0 }],
+            startTick: e.startTick,
+            endTick: e.startTick + 480,
+            sectionEnd: !!e.sectionEnd
+        };
+    });
+}
+
+test("abbreviateRepeatedStanzas keeps a stanza whose twin belongs to another section", function() {
+    var lines = stanzaLines([
+        { text: "Guadalajara, Guadalajara.", startTick: 0, sectionEnd: true },
+        { text: "Guadalajara, Guadalajara.", startTick: 4800, sectionEnd: true },
+        { text: "Tienes el alma de provinciana.", startTick: 9600, sectionEnd: true }
+    ]);
+    var systemTexts = [{ tick: 0, text: "Capella" }, { tick: 4800, text: "Estrofa 1" }];
+
+    var result = fmt.abbreviateRepeatedStanzas(lines, null, systemTexts);
+    assert.ok(!result[1].abbreviated,
+        "the verse sings those words itself, it is not a repeat of the a capella opening");
+});
+
+test("abbreviateRepeatedStanzas still abbreviates a section that comes round again", function() {
+    var lines = stanzaLines([
+        { text: "Vuelve, mi bien.", startTick: 0, sectionEnd: true },
+        { text: "Canta la vez.", startTick: 4800, sectionEnd: true },
+        { text: "Vuelve, mi bien.", startTick: 0, sectionEnd: true }
+    ]);
+    var systemTexts = [{ tick: 0, text: "Estribillo" }, { tick: 4800, text: "Estrofa" }];
+
+    var result = fmt.abbreviateRepeatedStanzas(lines, null, systemTexts);
+    assert.ok(result[2].abbreviated, "the chorus sung a second time is abbreviated");
+});
