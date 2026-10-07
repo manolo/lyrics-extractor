@@ -1455,3 +1455,60 @@ test("a pass of a repeat sings the pickup written for its own verse", function()
         "the second pass sings its own pickup and then the bar the repeat starts at: " +
         JSON.stringify(stream.map(function(s) { return s.verse + ":" + s.text; })));
 });
+
+test("a repeat whose first ending is played on both passes still goes on to the rest", function() {
+    // How the second chorus of LinaresMinero is written: the repeat has two endings, the first
+    // marked "1.2." so it is played on both passes, the second only on the second. What comes
+    // after the repeat is the rest of the song, and it was being dropped: the extraction ended
+    // at the repeat and the last three sections never came out.
+    function syl(tick, text) {
+        return { tick: tick, verse: 0, text: text, syllabic: "single", durationQ: 1,
+                 restAfter: false, restDurationQ: 0, gapDurationQ: 0 };
+    }
+    var data = {
+        syllables: [syl(0, "body"), syl(480, "both"), syl(960, "second"), syl(1440, "after")],
+        chords: [],
+        repeats: [{ startTick: 0, endTick: 960, repeatCount: 2 }],
+        voltas: [
+            { startTick: 480, endTick: 960, _measureIdx: 1, endingList: [1, 2] },
+            { startTick: 960, endTick: 1440, _measureIdx: 2, endingList: [2] }
+        ],
+        markers: [], jumps: [], systemTexts: [], barlines: [], lastTick: 1920
+    };
+
+    var texts = exp.expand(data).map(function(s) { return s.text; });
+    assert.ok(texts.indexOf("after") >= 0,
+        "what follows the repeat is sung: " + JSON.stringify(texts));
+    assert.ok(texts.indexOf("second") >= 0,
+        "and so is the ending that only the second pass plays: " + JSON.stringify(texts));
+});
+
+test("an ending written for the first verse alone does not cut into the second verse's word", function() {
+    // The same repeat of LinaresMinero, with both verses: the ending marked "1.2." carries the
+    // close of the first verse's word ("pan de ro."), and the second verse closes its own word
+    // ("mi ne ro.") in the ending that only the second pass plays. On that second pass the
+    // first ending has nothing of its own, and the first verse's syllables were coming out in
+    // the middle of the word, which read "un midero".
+    function syl(tick, verse, text, syllabic) {
+        return { tick: tick, verse: verse, text: text, syllabic: syllabic || "single", durationQ: 1,
+                 restAfter: false, restDurationQ: 0, gapDurationQ: 0 };
+    }
+    var data = {
+        syllables: [
+            syl(0, 0, "un"), syl(240, 0, "pan", "begin"),
+            syl(0, 1, "un"), syl(240, 1, "mi", "begin"),
+            syl(480, 0, "de", "middle"), syl(720, 0, "ro.", "end"),
+            syl(960, 1, "ne", "middle"), syl(1200, 1, "ro.", "end")
+        ],
+        chords: [],
+        repeats: [{ startTick: 0, endTick: 960, repeatCount: 2 }],
+        voltas: [
+            { startTick: 480, endTick: 960, _measureIdx: 1, endingList: [1, 2] },
+            { startTick: 960, endTick: 1440, _measureIdx: 2, endingList: [2] }
+        ],
+        markers: [], jumps: [], systemTexts: [], barlines: [], lastTick: 1920
+    };
+
+    var texts = exp.expand(data).map(function(s) { return s.text; }).join(" ");
+    assert.equal(texts, "un pan de ro. un mi ne ro.", "got: " + texts);
+});
