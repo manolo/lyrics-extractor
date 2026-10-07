@@ -255,8 +255,14 @@ test("extractFretDiagrams TPC conversion to solfeo", function() {
         { tpc: 19, expected: "Si" },
         { tpc: 20, expected: "Fa#" },
         { tpc: 21, expected: "Do#" },
-        { tpc: 6, expected: "Sib" },
-        { tpc: 12, expected: "Mib" }
+        // The flats, as the shared table in lib/constants.js reads them and as the chord line
+        // above the words prints them. This test used to say tpc 6 was Sib and tpc 12 Mib,
+        // which is a fifth out: ChotisDeLaKermes writes its B flat diminished with root 12,
+        // and both the score and the chord line call it Sibdis.
+        { tpc: 6, expected: "Fab" },
+        { tpc: 12, expected: "Sib" },
+        { tpc: 11, expected: "Mib" },
+        { tpc: 10, expected: "Lab" }
     ];
     
     for (var i = 0; i < tpcMap.length; i++) {

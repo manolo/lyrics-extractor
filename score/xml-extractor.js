@@ -349,19 +349,19 @@ function durationToTicks(durationType, dots, division, measureTicks) {
 }
 
 // Convert MuseScore TPC (Tonal Pitch Class) to Spanish solfeo note name
+// The note a tpc names, read from the table the rest of the plugin reads. This used to be a
+// copy kept here, with the flats a step out of place: tpc 12 is Sib and it answered Mib, so a
+// diagram said "Mibdis" where the chord line above the words said "Sibdis".
 function tpcToSpanishRoot(tpc) {
-    var map = {
-        13: "Fa", 14: "Do", 15: "Sol", 16: "Re", 17: "La", 18: "Mi", 19: "Si",
-        20: "Fa#", 21: "Do#", 22: "Sol#", 23: "Re#", 24: "La#",
-        6: "Sib", 7: "Fab", 8: "Dob", 9: "Solb", 10: "Reb", 11: "Lab", 12: "Mib"
-    };
-    return map[tpc] || "";
+    var name = Constants.tpcToNoteName(tpc);
+    return name === "?" ? "" : name;
 }
 
 // Extract fretboard diagrams from FBox elements in first staff
 // Returns deduplicated array of {chordName, strings, fretOffset, barre}
 // excerptXmls: optional array of XML strings from guitar excerpts to search if main score has no diagrams
 function extractFretDiagrams(score, excerptXmls) {
+    var seenChords = {};
     var diagrams = [];
     var seen = {};
     
