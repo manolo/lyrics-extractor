@@ -415,3 +415,28 @@ test("splitLongLines does NOT use low rest threshold for lines 70-75 chars", fun
     var result = lb.splitLongLines(lines, syls);
     assert.equal(result.length, 1, "should NOT split 72-char line with 0.5Q rest");
 });
+
+test("mergeShortLines leaves a line the user broke on purpose alone", function() {
+    // The fullwidth comma, and the semicolon it is written from, always mean a new line
+    // (spec 4.1 and 5.3). The backward merge was swallowing whatever short line came after
+    // one, so two bars of "Guadalajara, Guadalajara" written as two lines came out as one.
+    var lines = [
+        { text: "son mil palomas tu caserío，", sylMap: [{ tick: 0, pos: 0 }], startTick: 0, endTick: 480 },
+        { text: "Guadalajara, Guadalajara，", sylMap: [{ tick: 960, pos: 0 }], startTick: 960, endTick: 1440 },
+        { text: "hueles a pura tierra mojada.", sylMap: [{ tick: 1920, pos: 0 }], startTick: 1920, endTick: 2400 }
+    ];
+
+    var result = lb.mergeShortLines(lines);
+    assert.equal(result.length, 3, "the three lines stay three: " +
+        JSON.stringify(result.map(function(l) { return l.text; })));
+});
+
+test("mergeShortLines still takes in a short line after an ordinary comma", function() {
+    var lines = [
+        { text: "son mil palomas tu caserío,", sylMap: [{ tick: 0, pos: 0 }], startTick: 0, endTick: 480 },
+        { text: "Guadalajara, Guadalajara", sylMap: [{ tick: 960, pos: 0 }], startTick: 960, endTick: 1440 }
+    ];
+
+    var result = lb.mergeShortLines(lines);
+    assert.equal(result.length, 1, "a comma the composer wrote is no instruction to break");
+});
