@@ -89,6 +89,7 @@ function mockFretDiagram(opts) {
         fd.frets = opts.frets || 4;
         fd.fretOffset = opts.fretOffset || 0;
     }
+    if (opts.visible !== undefined) fd.visible = opts.visible;
     // Without hasAPI, dots/markers/barres are not functions (simulating pre-4.7)
     return fd;
 }
@@ -242,10 +243,11 @@ test("_extractFretDiagramsFromScore skips FretDiagram without harmonyPlainText",
 });
 
 test("_extractFretDiagramsFromScore skips non-FretDiagram elements", function() {
+    // The diagram carries a dot because an empty grid is now dropped on its own account
     var fd = mockFretDiagram({
         hasAPI: true,
         harmonyPlainText: "Do",
-        dots: [],
+        dots: [{ string: 1, fret: 2, dotType: 0 }],
         markers: [],
         barres: []
     });
@@ -437,5 +439,139 @@ test("_isRepeatCountLabel matches a bare repeat count and nothing else", functio
     });
     ["Estrofa 3x", "3xY", "Solo x2 veces", "x", "3", "Mix", "", "Estribillo"].forEach(function(t) {
         assert.equal(msExtractor._isRepeatCountLabel(t), false, JSON.stringify(t) + " is a title");
+    });
+});
+
+// ============================================================
+// Diagrams the score does not mean to show
+// ============================================================
+
+// MuseScore sometimes ends up with two diagrams for one chord, one named in solfeggio and one
+// in anglo, and only one of them carries the fingering. The other is an empty grid, which the
+// user hides. Hidden, empty, or a chord that already has its diagram: none of them belong in
+// the chart (AyMiMorena, its guitar tab part).
+
+test("_extractFretDiagramsFromScore skips a diagram hidden in the score", function() {
+    var hidden = mockFretDiagram({
+        hasAPI: true, visible: false, harmonyPlainText: "Fa",
+        dots: [{ string: 1, fret: 1, dotType: 0 }], markers: [], barres: []
+    });
+    var shown = mockFretDiagram({
+        hasAPI: true, harmonyPlainText: "Sol",
+        dots: [{ string: 2, fret: 3, dotType: 0 }], markers: [], barres: []
+    });
+    var result = msExtractor._extractFretDiagramsFromScore(mockScore([{ elements: [hidden, shown] }]));
+    assert.deepEqual(result.map(function(d) { return d.chordName; }), ["Sol"]);
+});
+
+test("_extractFretDiagramsFromScore skips a diagram with nothing drawn on it", function() {
+    var empty = mockFretDiagram({ hasAPI: true, harmonyPlainText: "Fa", dots: [], markers: [], barres: [] });
+    var shown = mockFretDiagram({
+        hasAPI: true, harmonyPlainText: "Sol",
+        dots: [{ string: 2, fret: 3, dotType: 0 }], markers: [], barres: []
+    });
+    var result = msExtractor._extractFretDiagramsFromScore(mockScore([{ elements: [empty, shown] }]));
+    assert.deepEqual(result.map(function(d) { return d.chordName; }), ["Sol"]);
+});
+
+test("_extractFretDiagramsFromScore keeps a chord played on open strings", function() {
+    // Circles and crosses and no dots at all: that is a chord, not an empty grid
+    var openChord = mockFretDiagram({
+        hasAPI: true, harmonyPlainText: "Mim",
+        dots: [], markers: [{ string: 0, markerType: 1 }, { string: 5, markerType: 2 }], barres: []
+    });
+    var result = msExtractor._extractFretDiagramsFromScore(mockScore([{ elements: [openChord] }]));
+    assert.deepEqual(result.map(function(d) { return d.chordName; }), ["Mim"]);
+});
+
+test("_extractFretDiagramsFromScore keeps one diagram per chord, whatever it is named", function() {
+    // The same chord twice, once in solfeggio and once in anglo, both drawn
+    var solfeo = mockFretDiagram({
+        hasAPI: true, harmonyPlainText: "Fa",
+        dots: [{ string: 1, fret: 1, dotType: 0 }], markers: [], barres: []
+    });
+    var anglo = mockFretDiagram({
+        hasAPI: true, harmonyPlainText: "F",
+        dots: [{ string: 2, fret: 3, dotType: 0 }], markers: [], barres: []
+    });
+    var result = msExtractor._extractFretDiagramsFromScore(mockScore([{ elements: [solfeo, anglo] }]));
+    assert.deepEqual(result.map(function(d) { return d.chordName; }), ["Fa"],
+        "the first one drawn is the one that stays");
+});
+
+// ============================================================
+// The same rules on the XML paths
+// ============================================================
+
+// The dialog reads diagrams through the API when MuseScore exposes it, and off the .mscz on
+// disk when it does not. Both have to drop the same diagrams, or what the chart shows depends
+// on which build is running.
+
+var xmlExtractor = require("../../score/xml-extractor");
+var xmlChordReader = require("../../score/xml-chord-reader");
+
+function fretBoxScore(diagrams) {
+    return '<?xml version="1.0"?>\n<museScore version="4.60">\n<Score>\n<Division>480</Division>\n' +
+        '<Staff id="1">\n<FBox>\n' + diagrams.join("\n") + '\n</FBox>\n' +
+        '<Measure><voice></voice></Measure>\n</Staff>\n</Score>\n</museScore>\n';
+}
+
+function fretXml(name, opts) {
+    opts = opts || {};
+    var info = (opts.root !== undefined ? "<root>" + opts.root + "</root>" : "") +
+        "<name>" + name + "</name>";
+    return "<FretDiagram>\n" +
+        (opts.hidden ? "<visible>0</visible>\n" : "") +
+        "<Harmony><harmonyInfo>" + info + "</harmonyInfo></Harmony>\n" +
+        "<fretDiagram>\n" + (opts.empty ? "" :
+            '<string no="1"><dot fret="' + (opts.fret || 2) + '">normal</dot></string>\n') +
+        "</fretDiagram>\n</FretDiagram>";
+}
+
+test("the XML paths drop an empty diagram the score still shows", function() {
+    var xml = fretBoxScore([fretXml("Fa", { empty: true }), fretXml("Sol")]);
+    assert.deepEqual(xmlExtractor.extractAll(xml, [], "standard").fretDiagrams
+        .map(function(d) { return d.chordName; }), ["Sol"]);
+    assert.deepEqual(xmlChordReader.extractFretDiagrams(xml)
+        .map(function(d) { return d.chordName; }), ["Sol"]);
+});
+
+test("the XML paths keep one diagram per chord, whatever it is named", function() {
+    var xml = fretBoxScore([fretXml("Fa"), fretXml("F", { fret: 3 })]);
+    assert.deepEqual(xmlExtractor.extractAll(xml, [], "standard").fretDiagrams
+        .map(function(d) { return d.chordName; }), ["Fa"]);
+    assert.deepEqual(xmlChordReader.extractFretDiagrams(xml)
+        .map(function(d) { return d.chordName; }), ["Fa"]);
+});
+
+test("the XML paths keep two ways of playing the same chord", function() {
+    var xml = fretBoxScore([fretXml("Do"), fretXml("Do", { fret: 5 })]);
+    assert.equal(xmlExtractor.extractAll(xml, [], "standard").fretDiagrams.length, 2);
+    assert.equal(xmlChordReader.extractFretDiagrams(xml).length, 2);
+});
+
+test("the XML paths still drop a hidden diagram", function() {
+    var xml = fretBoxScore([fretXml("Fa", { hidden: true }), fretXml("Sol")]);
+    assert.deepEqual(xmlExtractor.extractAll(xml, [], "standard").fretDiagrams
+        .map(function(d) { return d.chordName; }), ["Sol"]);
+});
+
+test("a diagram names a flat root the way the chord line does", function() {
+    // MuseScore writes the chord as a root plus a suffix: tpc 12 is B flat, Sib in solfeggio,
+    // and the suffix is "dis". The chord line had it right and the diagram said "Mibdis",
+    // because the diagram reader carried a table of its own with the flats rotated
+    // (ChotisDeLaKermes).
+    var xml = fretBoxScore([fretXml("dis", { root: 12 })]);
+    assert.deepEqual(xmlExtractor.extractAll(xml, [], "solfeggio").fretDiagrams
+        .map(function(d) { return d.chordName; }), ["Sibdis"]);
+});
+
+test("a diagram names every flat root as the shared table does", function() {
+    var constants = require("../../lib/constants");
+    [6, 7, 8, 9, 10, 11, 12].forEach(function(tpc) {
+        var xml = fretBoxScore([fretXml("m", { root: tpc })]);
+        var got = xmlExtractor.extractAll(xml, [], "solfeggio").fretDiagrams[0];
+        assert.equal(got && got.chordName, constants.tpcToNoteName(tpc) + "m",
+            "tpc " + tpc + " should read as " + constants.tpcToNoteName(tpc));
     });
 });

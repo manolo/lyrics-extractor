@@ -11,6 +11,7 @@
 
 var Constants = require("../lib/constants");
 var TextUtils = require("../lib/text-utils");
+var fretFilter = require("../lib/fret-filter");
 
 // Simple XML DOM parser (no external dependencies)
 // Returns a tree of { tag, attrs, children, text }
@@ -486,7 +487,10 @@ function extractFretDiagrams(score, excerptXmls) {
             
             if (seen[fingerprint]) continue;
             seen[fingerprint] = true;
-            
+
+            // An empty grid, or a chord that already has its diagram under another spelling
+            if (!fretFilter.keepDiagram(seenChords, chordName, strings, barre)) continue;
+
             diagrams.push({
                 chordName: chordName,
                 strings: strings,

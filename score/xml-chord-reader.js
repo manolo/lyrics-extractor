@@ -16,6 +16,11 @@
 // text-utils is injected via setTextUtils() to avoid duplicating code.
 // QML caller passes TextUtils; Node.js auto-wires via require() at the bottom.
 var _textUtils = null;
+// The rule for which diagrams belong in the chart, shared with the other readers. QML injects
+// it; node wires it below.
+var _fretFilter = null;
+function setFretFilter(mod) { _fretFilter = mod; }
+
 function setTextUtils(tu) { _textUtils = tu; }
 
 // --- Minimal XML parser ---
@@ -347,6 +352,7 @@ function extractFretDiagrams(xmlString) {
 
     var diagrams = [];
     var seen = {};
+    var seenChords = {};
 
     for (var fb = 0; fb < fboxes.length; fb++) {
         var fds = _fcs(fboxes[fb], "FretDiagram");
@@ -424,6 +430,9 @@ function extractFretDiagrams(xmlString) {
             if (seen[fp]) continue;
             seen[fp] = true;
 
+            // An empty grid, or a chord that already has its diagram under another spelling
+            if (_fretFilter && !_fretFilter.keepDiagram(seenChords, chordName, strings, barre)) continue;
+
             diagrams.push({
                 chordName: chordName,
                 strings: strings,
@@ -440,8 +449,10 @@ function extractFretDiagrams(xmlString) {
 if (typeof exports !== "undefined") {
     // Auto-wire text-utils in Node.js context, as api-extractor does
     _textUtils = require("../lib/text-utils");
+    _fretFilter = require("../lib/fret-filter");
 
     exports.extractChords = extractChords;
     exports.extractFretDiagrams = extractFretDiagrams;
     exports.setTextUtils = setTextUtils;
+    exports.setFretFilter = setFretFilter;
 }

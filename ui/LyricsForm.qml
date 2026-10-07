@@ -27,6 +27,7 @@ import "../lib/chord-formatter.js" as ChordFormatter
 import "../lib/pdf-writer.js" as PdfWriter
 import "../lib/chordpro-writer.js" as ChordProWriter
 import "../lib/fretboard-renderer.js" as FretboardRenderer
+import "../lib/fret-filter.js" as FretFilter
 import "../score/api-extractor.js" as Extractor
 import "../score/api-patcher.js" as ApiPatcher
 // FretDiagram fallback: remove these 3 imports when MuseScore exposes FretDiagram.harmony
@@ -1362,6 +1363,11 @@ MuseScore {
         }
         Extractor.setTextUtils(TextUtils);
         XmlChordReader.setTextUtils(TextUtils);
+        // Which fretboard diagrams belong in the chart: the same rule on the API path and on
+        // the XML one, so the chart does not depend on which build is running
+        FretFilter.setChordUtils(ChordUtils);
+        Extractor.setFretFilter(FretFilter);
+        XmlChordReader.setFretFilter(FretFilter);
         LineBuilder.setTextUtils(TextUtils);
         Formatter.setLineBuilder(LineBuilder);
         ChordProWriter.setConvertChord(ChordUtils.convertChord);

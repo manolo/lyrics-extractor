@@ -106,6 +106,14 @@ var _fretDiagramDebug = null;
 // text-utils is injected via setTextUtils() to avoid duplicating code.
 // QML caller passes TextUtils; Node.js auto-wires via require().
 var _textUtils = null;
+// The rule for which fretboard diagrams belong in the chart, shared with the XML readers.
+// QML injects it; node requires it below.
+var FretFilter = null;
+if (typeof require !== "undefined") {
+    FretFilter = require("../lib/fret-filter");
+}
+function setFretFilter(mod) { FretFilter = mod; }
+
 function setTextUtils(tu) { _textUtils = tu; }
 
 // --- Internal helpers (delegating to injected text-utils) ---
@@ -1041,6 +1049,7 @@ function _fretApiAvailable() {
 function _extractFretDiagramsFromScore(score) {
     var diagrams = [];
     var seen = {};
+    var seenChords = {};
     try {
         var mb = score.firstMeasure;
         if (!mb) return diagrams;
@@ -1053,6 +1062,10 @@ function _extractFretDiagramsFromScore(score) {
                     for (var i = 0; i < elems.length; i++) {
                         var fd = elems[i];
                         if (!fd || fd.type !== Element.FRET_DIAGRAM) continue;
+                        // A diagram the score hides is one the user took out of the chart:
+                        // MuseScore leaves a second, empty diagram per chord when the same
+                        // chord is written in two spellings, and that is the one hidden.
+                        try { if (fd.visible === false) continue; } catch (e) {}
 
                         var chordName = "";
                         try { chordName = fd.harmonyPlainText || ""; } catch (e) { continue; }
@@ -1067,6 +1080,7 @@ function _extractFretDiagramsFromScore(score) {
 
                         // Read dots -> convert to renderer format
                         var strings = [];
+                        var readFailed = false;
                         var dotsByString = {};
                         try {
                             var apiDots = fd.dots();
@@ -1075,6 +1089,7 @@ function _extractFretDiagramsFromScore(score) {
                                 dotsByString[dot.string] = { fret: dot.fret };
                             }
                         } catch (e) {
+                            readFailed = true;
                             console.log("[fret-api] dots() failed: " + e);
                         }
 
@@ -1088,6 +1103,7 @@ function _extractFretDiagramsFromScore(score) {
                                 markersByString[mk.string] = mk.markerType === 2 ? "cross" : "circle";
                             }
                         } catch (e) {
+                            readFailed = true;
                             console.log("[fret-api] markers() failed: " + e);
                         }
 
@@ -1111,7 +1127,16 @@ function _extractFretDiagramsFromScore(score) {
                                 barre = { start: b.startString, end: b.endString, fret: b.fret };
                             }
                         } catch (e) {
+                            readFailed = true;
                             console.log("[fret-api] barres() failed: " + e);
+                        }
+
+                        // An empty grid, or a chord that already has its diagram under
+                        // another spelling. A diagram whose reading threw is not empty, it is
+                        // unread, and it stays.
+                        if (FretFilter && !FretFilter.keepDiagram(seenChords, chordName, strings,
+                                                                  barre, { assumeDrawn: readFailed })) {
+                            continue;
                         }
 
                         // Deduplicate by fingerprint
@@ -1311,4 +1336,5 @@ if (typeof exports !== "undefined") {
     exports._fretApiAvailableInScore = _fretApiAvailableInScore;
     exports.needsFallbackDirectory = needsFallbackDirectory;
     exports.setTextUtils = setTextUtils;
+    exports.setFretFilter = setFretFilter;
 }
