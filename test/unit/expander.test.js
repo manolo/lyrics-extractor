@@ -1425,3 +1425,33 @@ test("every syllable of a replay is marked as one, endings included", function()
     assert.deepEqual(unmarked, [],
         "nothing after the jump is left unmarked: " + JSON.stringify(unmarked));
 });
+
+test("a pass of a repeat sings the pickup written for its own verse", function() {
+    // Both verses of the pickup are written in the bar before the repeat barline, one under
+    // the other, which is how a copyist writes two lyrics that enter on an upbeat. The second
+    // pass sings the second verse, and it starts there, not at the barline: AyMiMorena was
+    // dropping "Por los enci" and printing the verse as "nares de la dehesa...".
+    function syl(tick, verse, text, syllabic) {
+        return { tick: tick, verse: verse, text: text, syllabic: syllabic || "single",
+                 durationQ: 0.5, restAfter: false, restDurationQ: 0, gapDurationQ: 0 };
+    }
+    var data = {
+        syllables: [
+            syl(0, 0, "En"), syl(240, 0, "u", "begin"), syl(480, 0, "na", "end"),
+            syl(0, 1, "Por"), syl(240, 1, "los"), syl(480, 1, "en", "begin"),
+            syl(720, 0, "de", "begin"), syl(960, 0, "he", "middle"), syl(1200, 0, "sa", "end"),
+            syl(720, 1, "ci", "middle"), syl(960, 1, "na", "middle"), syl(1200, 1, "res", "end")
+        ],
+        chords: [],
+        repeats: [{ startTick: 720, endTick: 1440, repeatCount: 2 }],
+        voltas: [], markers: [], jumps: [], systemTexts: [], barlines: [],
+        lastTick: 1920
+    };
+
+    var stream = exp.expand(data);
+    var secondPass = stream.filter(function(s) { return s.verse === 1; })
+                           .map(function(s) { return s.text; });
+    assert.deepEqual(secondPass, ["Por", "los", "en", "ci", "na", "res"],
+        "the second pass sings its own pickup and then the bar the repeat starts at: " +
+        JSON.stringify(stream.map(function(s) { return s.verse + ":" + s.text; })));
+});
