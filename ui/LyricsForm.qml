@@ -83,6 +83,7 @@ MuseScore {
         property bool onePage: false
         property bool lineNumbers: false
         property bool noDiagrams: false
+        property string pageFormat: "a4"
         property string pdfHeader: ""
         property string pdfFooter: ""
         property string scoresDirectory: ""
@@ -679,6 +680,7 @@ MuseScore {
             footer: settings.pdfFooter,
             onePage: settings.onePage,
             lineNumbers: settings.lineNumbers,
+            page: settings.pageFormat,
             fretDiagrams: settings.noDiagrams ? [] : extractedFretDiagrams
         };
         var pdfContent = PdfWriter.generatePdf(content, pdfOptions);
@@ -1206,6 +1208,21 @@ MuseScore {
                             onCheckedChanged: settings.noDiagrams = checked
                         }
 
+                        // The shape of the page: a sheet of paper, or the screen it is read on
+                        Text {
+                            text: t("pdf.pageFormat")
+                            color: systemPalette.windowText
+                        }
+
+                        ComboBox {
+                            id: pageFormatCombo
+                            Layout.preferredWidth: 110
+                            model: ["A4", "iPad", "Tablet"]
+                            property var formats: ["a4", "ipad", "tablet"]
+                            currentIndex: Math.max(0, formats.indexOf(settings.pageFormat))
+                            onActivated: settings.pageFormat = formats[index]
+                        }
+
                         Item { Layout.fillWidth: true }
 
                         Button {
@@ -1410,6 +1427,7 @@ MuseScore {
         onePageCheck.checked = settings.onePage;
         lineNumbersCheck.checked = settings.lineNumbers;
         noDiagramsCheck.checked = settings.noDiagrams;
+        pageFormatCombo.currentIndex = Math.max(0, pageFormatCombo.formats.indexOf(settings.pageFormat));
         headerField.text = settings.pdfHeader;
         footerField.text = settings.pdfFooter;
     }

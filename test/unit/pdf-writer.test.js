@@ -300,3 +300,68 @@ test("a chord line with an annotation is drawn in two colours", function() {
     assert.ok(text.indexOf("0.85 0.45 0.1 rg") >= 0 || text.indexOf("0.85 0.45 0.10 rg") >= 0,
         "and the words get their own");
 });
+
+// --- Page formats -------------------------------------------------------------
+//
+// A sheet is read on a tablet as often as it is printed, and a tablet is not shaped like a
+// sheet of A4: the page comes out with bands of nothing down the sides. A format is therefore
+// a proportion, taken from the screen it is read on, and the width is what the words need.
+
+function mediaBox(pdfText) {
+    var m = pdfText.match(/\/MediaBox \[0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)\]/);
+    return m ? { w: parseFloat(m[1]), h: parseFloat(m[2]) } : null;
+}
+
+var SONG = "TITLE\n\n" + M + "Lam\nHello world.\n";
+
+test("generatePdf writes an A4 page when no format is asked for", function() {
+    assert.deepEqual(mediaBox(pdf.generatePdf(SONG)), { w: 595, h: 842 });
+    assert.deepEqual(mediaBox(pdf.generatePdf(SONG, { page: "a4" })), { w: 595, h: 842 });
+});
+
+test("generatePdf shapes the page to the screen it is read on", function() {
+    // The iPad proportion of MuseScore's own ipad-a4 style, 6.14 by 8.18 inches, and the 5:3
+    // of a Lenovo P11, which is what a plain Android tablet is
+    var ipad = mediaBox(pdf.generatePdf(SONG, { page: "ipad" }));
+    var tablet = mediaBox(pdf.generatePdf(SONG, { page: "tablet" }));
+
+    assert.ok(Math.abs(ipad.w / ipad.h - 6.14 / 8.18) < 0.005,
+        "the iPad page is 4:3: " + JSON.stringify(ipad));
+    assert.ok(Math.abs(tablet.w / tablet.h - 0.6) < 0.005,
+        "the tablet page is 5:3: " + JSON.stringify(tablet));
+    assert.equal(ipad.w, tablet.w, "both hold the same words on a line, so both are as wide");
+    assert.ok(ipad.w < 595, "and narrower than A4, which is what makes the words bigger");
+});
+
+test("generatePdf gives a tablet page the margins of a screen, not of a printer", function() {
+    var result = pdf.generatePdf(SONG, { page: "tablet" });
+    // Lyrics are drawn at the left margin: "4 <y> Td" opens the text object of a line
+    assert.ok(/\n4(\.0)? \d+(\.\d+)? Td/.test(result),
+        "the words start 4pt from the edge: " + result.substring(result.indexOf("Td") - 40, result.indexOf("Td") + 4));
+    assert.ok(result.indexOf("\n50.0 ") < 0, "and not at the 50pt margin a sheet of paper needs");
+
+    // The first line of a page sits on the top margin
+    var box = mediaBox(result);
+    var tops = result.match(/\n[\d.]+ ([\d.]+) Td/g).map(function(m) { return parseFloat(m.split(" ")[1]); });
+    assert.equal(box.h - Math.max.apply(null, tops), 36, "and the first of them 36pt below the top");
+});
+
+test("generatePdf widens a tablet page for a song whose lines are longer", function() {
+    var long = "TITLE\n\n" + M + "Lam\n" + new Array(101).join("a") + "\n";
+    var narrow = mediaBox(pdf.generatePdf(SONG, { page: "tablet" }));
+    var wide = mediaBox(pdf.generatePdf(long, { page: "tablet" }));
+
+    assert.ok(wide.w > narrow.w, "a line of 100 characters does not fit in the usual width");
+    assert.ok(wide.w >= 100 * 11 * 0.6, "the page holds the whole line: " + wide.w);
+    assert.ok(Math.abs(wide.w / wide.h - 0.6) < 0.005, "and keeps the proportion of the screen");
+});
+
+test("generatePdf keeps the room the line numbers need", function() {
+    // They are drawn 15pt to the left of the words, which a 1pt margin has no room for
+    var result = pdf.generatePdf(SONG, { page: "tablet", lineNumbers: true });
+    assert.ok(/\n18(\.0)? \d+(\.\d+)? Td/.test(result), "the words move in to leave the numbers a gutter");
+});
+
+test("generatePdf falls back to A4 when the format is not one it knows", function() {
+    assert.deepEqual(mediaBox(pdf.generatePdf(SONG, { page: "kindle" })), { w: 595, h: 842 });
+});

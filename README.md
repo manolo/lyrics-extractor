@@ -71,10 +71,24 @@ Extracts chord fretboard diagrams from FBox frames (including guitar excerpts) a
 
 ### PDF output
 - Compact layout optimized for printing (A4, safe margins)
+- Page shaped for the screen it is read on: `a4`, `ipad` or `tablet`
 - Chords in green, lyrics in black, monospace alignment
 - Optional: auto-fit to one page, line numbers, header, footer
 - Fretboard diagrams in header with barres, markers, and fret numbers
 - Open generated file directly from the plugin
+
+### Page format
+A sheet is read on a tablet as often as it is printed, and a tablet is not shaped like a sheet of paper: an A4 shown on one leaves a band of nothing down each side. So a format is a proportion, the one of the screen the sheet is read on, and only `a4` is a size.
+
+| Format | Page | Proportion |
+|---|---|---|
+| `a4` | 595 x 842 pt | a sheet of A4 |
+| `ipad` | 506 x 674 pt | 4:3, the 6.14 by 8.18 inches of MuseScore's own ipad-a4 style |
+| `tablet` | 506 x 843 pt | 5:3, a Lenovo P11 and its 2000 by 1200 screen |
+
+Nothing is made smaller. The words keep their size, and the page is given the width they need: the text block of an A4, or the longest line of the song when that is longer, so a tablet page never cuts a line a sheet would have printed. Since a reader fits the page to the width of the screen, a narrower page means larger words, and the proportion is what leaves no screen unused above and below.
+
+A tablet page is also given the margins of a screen rather than those a printer needs: 4pt at the left, 7pt at the right, which is where the credit the licence asks for is written sideways, and 36pt above. The margin below stays at the 20pt the page number needs.
 
 ### Plugin controls
 
@@ -220,6 +234,7 @@ node cli/index.js song.mscz --chords-only             # chord progression only
 | `--header <name>` | Right-aligned header on every PDF page |
 | `--footer <name>` | Centered footer on last PDF page |
 | `--numbers` | Add line numbers in PDF |
+| `--page <format>` | PDF page shape: `a4` (default), `ipad`, `tablet` |
 | `--no-diagrams` | Omit fretboard diagrams from PDF |
 | `--chords-only` | Force chord-only mode (ignore lyrics) |
 | `--lyrics-only` | Output lyrics without chord lines above |

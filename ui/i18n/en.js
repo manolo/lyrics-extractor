@@ -91,6 +91,7 @@ var strings = {
     "pdf.footer": "Footer:",
     "pdf.groupName": "Group name",
     "pdf.onePage": "Fit in 1 page",
+    "pdf.pageFormat": "Page",
     "pdf.lineNumbers": "Line num.",
     "pdf.noDiagrams": "No chord diagrams",
 

@@ -159,3 +159,39 @@ test("integration: trailing chords appended to last line are not duplicated as c
     assert.equal(solCount, 2, "Sol should appear exactly twice (in trailing): " + output);
     assert.equal(doCount, 3, "Do should appear exactly three times (1 inline + 2 trailing): " + output);
 });
+
+// --- The page format of the PDF ----------------------------------------------
+//
+// A sheet is read on a tablet as often as it is printed, and the CLI has to be able to say
+// which. The flag takes a value, which is the part a flag parser gets wrong.
+
+test("integration: --page gives the PDF the shape of the screen it names", function() {
+    var dir = fs.mkdtempSync(path.join(require("os").tmpdir(), "le-page-"));
+    try {
+        var score = path.join(dir, "fixture.mscz");
+        fs.copyFileSync(FIXTURE_PATH, score);
+        var pdfPath = score.replace(/\.mscz$/, "-lyrics.pdf");
+
+        function boxOf(flags) {
+            fs.rmSync(pdfPath, { force: true });
+            child.execSync("node " + JSON.stringify(CLI) + " " + JSON.stringify(score) + " --pdf " + flags,
+                { encoding: "utf8", stdio: ["ignore", "ignore", "pipe"] });
+            var m = fs.readFileSync(pdfPath, "latin1").match(/\/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/);
+            return { w: parseFloat(m[1]), h: parseFloat(m[2]) };
+        }
+
+        assert.deepEqual(boxOf(""), { w: 595, h: 842 }, "a sheet of A4 unless told otherwise");
+        assert.deepEqual(boxOf("--page a4"), { w: 595, h: 842 });
+
+        var tablet = boxOf("--page tablet");
+        assert.ok(Math.abs(tablet.w / tablet.h - 0.6) < 0.005,
+            "the 5:3 of a plain Android tablet: " + JSON.stringify(tablet));
+        assert.ok(tablet.w < 595, "and narrower than A4, which is what makes the words bigger");
+
+        var ipad = boxOf("--page ipad");
+        assert.ok(Math.abs(ipad.w / ipad.h - 6.14 / 8.18) < 0.005,
+            "the 4:3 of an iPad: " + JSON.stringify(ipad));
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+    }
+});

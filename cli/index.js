@@ -31,8 +31,9 @@ function main() {
     for (var ai = 0; ai < args.length; ai++) {
         if (args[ai].charAt(0) === "-") {
             flags.push(args[ai]);
-            // --header, --footer and --staff take a value argument
-            if ((args[ai] === "--header" || args[ai] === "--footer" || args[ai] === "--staff") && ai + 1 < args.length) {
+            // --header, --footer, --staff and --page take a value argument
+            if ((args[ai] === "--header" || args[ai] === "--footer" || args[ai] === "--staff" ||
+                 args[ai] === "--page") && ai + 1 < args.length) {
                 flags.push(args[ai + 1]);
                 ai++;
             }
@@ -53,6 +54,7 @@ function main() {
         console.log("  --header <name>     Right-aligned header on every PDF page");
         console.log("  --footer <name>     Centered footer on every PDF page");
         console.log("  --numbers           Add line numbers in PDF output");
+        console.log("  --page <format>     PDF page shape: a4 (default), ipad, tablet");
         console.log("  --anglo             Force anglo chord names (C, D, E)");
         console.log("  --solfeo            Force solfeo chord names (Do, Re, Mi)");
         console.log("  --compact           Abbreviate repeated stanzas (omit chords on repeats)");
@@ -93,6 +95,8 @@ function main() {
     var fullRepeat = flags.indexOf("--compact") < 0;
     var onePage = flags.indexOf("--single") >= 0 || flags.indexOf("--one-page") >= 0;
     var lineNumbers = flags.indexOf("--numbers") >= 0 || flags.indexOf("--line-numbers") >= 0;
+    var pageIdx = flags.indexOf("--page");
+    var pageFormat = (pageIdx >= 0 && pageIdx + 1 < flags.length) ? flags[pageIdx + 1] : "a4";
     var noDiagrams = flags.indexOf("--no-diagrams") >= 0;
     var chordsOnly = flags.indexOf("--chords-only") >= 0;
     var lyricsOnly = flags.indexOf("--lyrics-only") >= 0;
@@ -226,7 +230,8 @@ function main() {
     if (inputPath.match(/\.txt$/i) && pdfMode) {
         var textContent = fs.readFileSync(inputPath, "utf8");
         var pdfOut = inputPath.replace(/\.txt$/i, ".pdf");
-        var pdfBytes = pdfWriter.generatePdf(textContent, { header: headerName, footer: footerName, onePage: onePage });
+        var pdfBytes = pdfWriter.generatePdf(textContent, { header: headerName, footer: footerName,
+            onePage: onePage, page: pageFormat });
         fs.writeFileSync(pdfOut, pdfBytes, "binary");
         console.error("PDF written to: " + pdfOut);
         return;
@@ -367,6 +372,7 @@ function main() {
             footer: footerName,
             onePage: onePage,
             lineNumbers: lineNumbers,
+            page: pageFormat,
             fretDiagrams: noDiagrams ? [] : (data.fretDiagrams || [])
         };
         var pdfContent = pdfWriter.generatePdf(output, pdfOptions);

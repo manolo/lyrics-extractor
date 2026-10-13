@@ -52,6 +52,7 @@
   "pdf.footer": "Pie:",
   "pdf.groupName": "Nombre del grupo",
   "pdf.onePage": "Condensar en 1 pagina",
+  "pdf.pageFormat": "Pagina",
   "pdf.lineNumbers": "Num. linea",
   "pdf.noDiagrams": "Sin diagramas de acordes",
   "debug.noData": "No se encontraron datos",

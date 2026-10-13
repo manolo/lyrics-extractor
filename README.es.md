@@ -69,10 +69,24 @@ Extrae diagramas de trastes desde frames FBox (incluyendo excerpts de guitarra) 
 
 ### Salida PDF
 - Layout compacto optimizado para impresion (A4, margenes seguros)
+- Pagina con la forma de la pantalla en que se lee: `a4`, `ipad` o `tablet`
 - Acordes en verde, letras en negro, alineacion monoespaciada
 - Opcional: ajustar a una pagina, numeros de linea, cabecera de grupo
 - Diagramas de trastes en la cabecera con cejillas, marcadores y numeros de traste
 - Abrir el archivo generado directamente desde el plugin
+
+### Formato de pagina
+Una hoja se lee en una tablet tanto como se imprime, y una tablet no tiene la forma de una hoja de papel: un A4 en pantalla deja una franja vacia a cada lado. Por eso un formato es una proporcion, la de la pantalla en que se lee la hoja, y solo `a4` es un tamano.
+
+| Formato | Pagina | Proporcion |
+|---|---|---|
+| `a4` | 595 x 842 pt | una hoja A4 |
+| `ipad` | 506 x 674 pt | 4:3, las 6.14 por 8.18 pulgadas del estilo ipad-a4 del propio MuseScore |
+| `tablet` | 506 x 843 pt | 5:3, una Lenovo P11 y su pantalla de 2000 por 1200 |
+
+No se reduce nada. La letra conserva su tamano y la pagina toma el ancho que esa letra necesita: el bloque de texto de un A4, o la linea mas larga de la cancion cuando esa es mayor, de modo que una pagina de tablet nunca corta una linea que el A4 si habria impreso. Como el lector ajusta la pagina al ancho de la pantalla, una pagina mas estrecha significa letra mas grande, y la proporcion es lo que hace que no sobre pantalla ni arriba ni abajo.
+
+La pagina de tablet lleva ademas los margenes de una pantalla y no los que necesita una impresora: 4 pt a la izquierda, 7 pt a la derecha, que es donde va escrito en vertical el credito que pide la licencia, y 36 pt arriba. El de abajo se queda en los 20 pt que necesita el numero de pagina.
 
 ### Controles del plugin
 
@@ -218,6 +232,7 @@ node cli/index.js cancion.mscz --chords-only                # solo progresion de
 | `--header <nombre>` | Texto alineado a la derecha en cada pagina |
 | `--footer <nombre>` | Texto centrado al pie de cada pagina |
 | `--numbers` | Numeros de linea en PDF |
+| `--page <formato>` | Forma de la pagina del PDF: `a4` (por defecto), `ipad`, `tablet` |
 | `--no-diagrams` | Omitir diagramas de trastes del PDF |
 | `--chords-only` | Forzar modo solo acordes (ignorar letras) |
 | `--lyrics-only` | Solo letra sin lineas de acordes |
