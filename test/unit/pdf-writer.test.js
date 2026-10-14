@@ -322,6 +322,7 @@ test("generatePdf writes an A4 page when no format is asked for", function() {
 test("generatePdf shapes the page to the screen it is read on", function() {
     // The iPad proportion of MuseScore's own ipad-a4 style, 6.14 by 8.18 inches, and the 5:3
     // of a Lenovo P11, which is what a plain Android tablet is
+    var a4 = mediaBox(pdf.generatePdf(SONG, { page: "a4" }));
     var ipad = mediaBox(pdf.generatePdf(SONG, { page: "ipad" }));
     var tablet = mediaBox(pdf.generatePdf(SONG, { page: "tablet" }));
 
@@ -329,8 +330,13 @@ test("generatePdf shapes the page to the screen it is read on", function() {
         "the iPad page is 4:3: " + JSON.stringify(ipad));
     assert.ok(Math.abs(tablet.w / tablet.h - 0.6) < 0.005,
         "the tablet page is 5:3: " + JSON.stringify(tablet));
-    assert.equal(ipad.w, tablet.w, "both hold the same words on a line, so both are as wide");
-    assert.ok(ipad.w < 595, "and narrower than A4, which is what makes the words bigger");
+
+    // A sheet of A4 reshaped, not shrunk: it keeps the height, so a page holds the lines it
+    // always held and the words are the size they always were
+    assert.equal(ipad.h, a4.h, "the iPad page is as tall as A4");
+    assert.equal(tablet.h, a4.h, "and so is the tablet one");
+    assert.ok(ipad.w > a4.w, "4:3 is wider than A4: " + ipad.w);
+    assert.ok(tablet.w < a4.w, "5:3 is narrower: " + tablet.w);
 });
 
 test("generatePdf gives a tablet page the margins of a screen, not of a printer", function() {
@@ -346,14 +352,11 @@ test("generatePdf gives a tablet page the margins of a screen, not of a printer"
     assert.equal(box.h - Math.max.apply(null, tops), 36, "and the first of them 36pt below the top");
 });
 
-test("generatePdf widens a tablet page for a song whose lines are longer", function() {
+test("generatePdf gives a format the same page whatever the song", function() {
+    // The page is a size, like a sheet of paper is, and not something the words negotiate
     var long = "TITLE\n\n" + M + "Lam\n" + new Array(101).join("a") + "\n";
-    var narrow = mediaBox(pdf.generatePdf(SONG, { page: "tablet" }));
-    var wide = mediaBox(pdf.generatePdf(long, { page: "tablet" }));
-
-    assert.ok(wide.w > narrow.w, "a line of 100 characters does not fit in the usual width");
-    assert.ok(wide.w >= 100 * 11 * 0.6, "the page holds the whole line: " + wide.w);
-    assert.ok(Math.abs(wide.w / wide.h - 0.6) < 0.005, "and keeps the proportion of the screen");
+    assert.deepEqual(mediaBox(pdf.generatePdf(long, { page: "tablet" })),
+                     mediaBox(pdf.generatePdf(SONG, { page: "tablet" })));
 });
 
 test("generatePdf keeps the room the line numbers need", function() {

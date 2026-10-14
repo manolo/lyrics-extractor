@@ -81,10 +81,10 @@ Una hoja se lee en una tablet tanto como se imprime, y una tablet no tiene la fo
 | Formato | Pagina | Proporcion |
 |---|---|---|
 | `a4` | 595 x 842 pt | una hoja A4 |
-| `ipad` | 506 x 674 pt | 4:3, las 6.14 por 8.18 pulgadas del estilo ipad-a4 del propio MuseScore |
-| `tablet` | 506 x 843 pt | 5:3, una Lenovo P11 y su pantalla de 2000 por 1200 |
+| `ipad` | 632 x 842 pt | 4:3, las 6.14 por 8.18 pulgadas del estilo ipad-a4 del propio MuseScore |
+| `tablet` | 505 x 842 pt | 5:3, una Lenovo P11 y su pantalla de 2000 por 1200 |
 
-No se reduce nada. La letra conserva su tamano y la pagina toma el ancho que esa letra necesita: el bloque de texto de un A4, o la linea mas larga de la cancion cuando esa es mayor, de modo que una pagina de tablet nunca corta una linea que el A4 si habria impreso. Como el lector ajusta la pagina al ancho de la pantalla, una pagina mas estrecha significa letra mas grande, y la proporcion es lo que hace que no sobre pantalla ni arriba ni abajo.
+No se reduce nada. Un formato de tablet es una hoja A4 cambiada de forma, no encogida: conserva el alto de una, 297 mm, y toma el ancho de la proporcion de la pantalla. Asi una pagina lleva las lineas que siempre ha llevado y la letra tiene el tamano que siempre ha tenido, y lo que desaparece es la franja vacia que una pantalla 4:3 o 5:3 deja a los lados de un A4.
 
 La pagina de tablet lleva ademas los margenes de una pantalla y no los que necesita una impresora: 4 pt a la izquierda, 7 pt a la derecha, que es donde va escrito en vertical el credito que pide la licencia, y 36 pt arriba. El de abajo se queda en los 20 pt que necesita el numero de pagina.
 

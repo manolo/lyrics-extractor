@@ -83,10 +83,10 @@ A sheet is read on a tablet as often as it is printed, and a tablet is not shape
 | Format | Page | Proportion |
 |---|---|---|
 | `a4` | 595 x 842 pt | a sheet of A4 |
-| `ipad` | 506 x 674 pt | 4:3, the 6.14 by 8.18 inches of MuseScore's own ipad-a4 style |
-| `tablet` | 506 x 843 pt | 5:3, a Lenovo P11 and its 2000 by 1200 screen |
+| `ipad` | 632 x 842 pt | 4:3, the 6.14 by 8.18 inches of MuseScore's own ipad-a4 style |
+| `tablet` | 505 x 842 pt | 5:3, a Lenovo P11 and its 2000 by 1200 screen |
 
-Nothing is made smaller. The words keep their size, and the page is given the width they need: the text block of an A4, or the longest line of the song when that is longer, so a tablet page never cuts a line a sheet would have printed. Since a reader fits the page to the width of the screen, a narrower page means larger words, and the proportion is what leaves no screen unused above and below.
+Nothing is made smaller. A tablet format is a sheet of A4 reshaped, not shrunk: it keeps the height of one, 297mm, and takes its width from the proportion of the screen. A page therefore holds the lines a page has always held and the words are the size they have always been, and what goes away is the band of nothing a 4:3 or 5:3 screen leaves down the sides of an A4.
 
 A tablet page is also given the margins of a screen rather than those a printer needs: 4pt at the left, 7pt at the right, which is where the credit the licence asks for is written sideways, and 36pt above. The margin below stays at the 20pt the page number needs.
 
