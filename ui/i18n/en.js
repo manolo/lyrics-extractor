@@ -223,6 +223,11 @@ var strings = {
     "help.pdfHeader.body": "Right-aligned text at the top of every page (e.g. group name).",
     "help.pdfFooter.label": "Footer",
     "help.pdfFooter.body": "Centered text at the bottom of every page (e.g. band name).",
+    "help.pageFormat.label": "Page",
+    "help.pageFormat.body": "The shape of the page. A4 is a sheet of paper; iPad and Tablet are the "
+        + "proportions of those screens, so a sheet shown on one leaves no band of nothing down the "
+        + "sides. Nothing is made smaller: the page is narrower, so a reader fitting it to the screen "
+        + "shows the words larger.",
     "help.onePage.label": "Fit in 1 page",
     "help.onePage.body": "Reduce spacing and font size to fit on one page. Prioritizes keeping the font " +
         "readable by reducing gaps first.",

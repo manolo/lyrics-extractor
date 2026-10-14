@@ -117,6 +117,8 @@
   "help.pdfHeader.body": "Texto alineado a la derecha en la parte superior de cada página (ej: nombre del grupo).",
   "help.pdfFooter.label": "Pie de página",
   "help.pdfFooter.body": "Texto centrado al pie de cada página (ej: nombre de la banda).",
+  "help.pageFormat.label": "Página",
+  "help.pageFormat.body": "La forma de la página. A4 es una hoja de papel; iPad y Tablet son las proporciones de esas pantallas, de modo que una hoja no deja franjas vacías a los lados. No se reduce nada: la página es más estrecha, así que el lector, al ajustarla al ancho de la pantalla, muestra la letra más grande.",
   "help.onePage.label": "Condensar en 1 página",
   "help.onePage.body": "Reduce espaciado y tamaño de fuente para que todo quepa en una página. Prioriza mantener la fuente legible reduciendo primero los espacios.",
   "help.lineNumbers.label": "Núm. línea",

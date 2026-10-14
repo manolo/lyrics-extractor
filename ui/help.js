@@ -30,7 +30,8 @@ var SECTIONS = [
         "help.orphanLyrics"
     ], scoresDirAfter: true },
     { heading: "help.heading.pdf", rows: [
-        "help.pdfHeader", "help.pdfFooter", "help.onePage", "help.lineNumbers", "help.noDiagrams"
+        "help.pdfHeader", "help.pdfFooter", "help.pageFormat", "help.onePage", "help.lineNumbers",
+        "help.noDiagrams"
     ] },
     { heading: "help.heading.buttons", rows: [
         "help.fix", "help.chordpro", "help.debug"
