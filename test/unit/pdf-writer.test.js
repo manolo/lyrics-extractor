@@ -365,3 +365,67 @@ test("generatePdf keeps the room the line numbers need", function() {
 test("generatePdf falls back to A4 when the format is not one it knows", function() {
     assert.deepEqual(mediaBox(pdf.generatePdf(SONG, { page: "kindle" })), { w: 595, h: 842 });
 });
+
+// --- Fitting a song into one page --------------------------------------------
+//
+// The fit used to be decided by a second description of the layout, a function that added up
+// what each line was expected to cost. It drifted from the loop that draws, and the drift
+// showed where it hurts: "fit in 1 page" gave two, with a single line on the second. It is
+// decided by laying the page out and counting the pages now, so the two cannot disagree.
+
+function pageCount(pdfText) {
+    return (pdfText.match(/\/Type \/Page[^s]/g) || []).length;
+}
+
+function lyricFont(pdfText) {
+    return parseFloat((pdfText.match(/\/F1 ([\d.]+) Tf/) || [])[1]);
+}
+
+// Nine diagrams, which is what a song in a guitar key carries, and the header they need
+var DIAGRAMS = [];
+for (var di = 0; di < 9; di++) {
+    DIAGRAMS.push({ chordName: "Lam", fretOffset: 0, barre: null,
+        strings: [{ dot: 1 }, { dot: 2 }, { dot: 2 }, { marker: "o" }, { marker: "o" }, { marker: "x" }] });
+}
+
+function longSong(stanzas) {
+    var out = "HORAS DE RONDA\n\n";
+    for (var s = 0; s < stanzas; s++) {
+        out += "- ESTROFA " + (s + 1) + " -\n";
+        for (var l = 0; l < 5; l++) {
+            out += M + "Lam        Re7        Sol\ncuando la noche se viste de luna y plata,\n";
+        }
+        out += "\n";
+    }
+    return out;
+}
+
+test("generatePdf fits a song into the one page it was asked for", function() {
+    // 63 lines over a diagram header, on the shortest page there is: the fit used to stop at a
+    // font it believed would do and leave the last line of the chorus on a second page
+    var result = pdf.generatePdf(longSong(6), { page: "ipad", onePage: true, fretDiagrams: DIAGRAMS });
+    assert.equal(pageCount(result), 1, "one page was asked for, at " + lyricFont(result) + "pt");
+});
+
+test("generatePdf fits the same song on every page format", function() {
+    ["a4", "ipad", "tablet"].forEach(function(format) {
+        var result = pdf.generatePdf(longSong(8), { page: format, onePage: true, fretDiagrams: DIAGRAMS });
+        assert.equal(pageCount(result), 1, format + " needed more than one page");
+    });
+});
+
+test("generatePdf spends no more compression than it has to", function() {
+    // A song that fits as it is keeps its full size, which is what makes the fit worth asking for
+    var small = pdf.generatePdf(longSong(2), { page: "a4", onePage: true });
+    assert.equal(lyricFont(small), 11, "a short song is not shrunk");
+    // And a longer one is shrunk, but no further than it needs
+    var big = pdf.generatePdf(longSong(7), { page: "a4", onePage: true });
+    assert.ok(lyricFont(big) < 11 && lyricFont(big) >= 6, "got " + lyricFont(big) + "pt");
+});
+
+test("generatePdf still draws a song too long for any one page", function() {
+    // Nothing fits 40 stanzas: the page count is what it is, and the words are all there
+    var result = pdf.generatePdf(longSong(40), { page: "ipad", onePage: true, fretDiagrams: DIAGRAMS });
+    assert.ok(pageCount(result) > 1, "it does not pretend to have fitted");
+    assert.ok(result.indexOf("ESTROFA 40") >= 0, "and the last stanza is printed");
+});
