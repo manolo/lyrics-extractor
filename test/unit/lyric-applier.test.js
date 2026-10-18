@@ -297,6 +297,21 @@ test("applyLyrics wraps the write in one command and touches nothing else", func
     });
 });
 
+test("applyLyrics closes its command even when the write throws", function() {
+    // An open command would leave MuseScore's undo stack in a broken state
+    var score = buildScore(chords(2));
+    stubHost(score);
+    applier.setHost({
+        score: function() { return score; },
+        Element: ELEMENT,
+        newElement: function() { throw new Error("no element"); },
+        fraction: function(n, d) { return { numerator: n, denominator: d }; }
+    });
+    assert.throws(function() { applier.applyLyrics("a-mor"); }, /no element/);
+    assert.equal(score.startCmdCount, 1);
+    assert.equal(score.endCmdCount, 1);
+});
+
 test("applyLyrics on a staff other than the first lands on the right chords", function() {
     // Staff 0 has an element at tick 0 only, the vocal staff 1 starts at 480
     var score = buildScore([{ tick: 0, staff: 0 }, { tick: 480, staff: 1 }, { tick: 960, staff: 1 }]);

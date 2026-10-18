@@ -159,6 +159,7 @@
   "add.countOnly": "{count} sílabas",
   "add.applied": "Letra añadida como letra {n}",
   "add.incomplete": "Solo se pudieron colocar {written} sílabas, así que la letra ha quedado incompleta. Un Deshacer (Ctrl+Z) las quita.",
+  "add.applyError": "Falló la escritura de la letra ({error}). Lo que se haya escrito se quita con un Deshacer (Ctrl+Z).",
   "help.heading.addLyrics": "Añadir letra",
   "help.addSelection.label": "Selección",
   "help.addSelection.body": "Selecciona compases de un único pentagrama antes de pulsar Generar. Cuenta cada nota de la voz 1, ligadas incluidas, y la letra se añade como la primera letra libre en todas ellas. Sin esa selección la pestaña solo divide el texto en sílabas.",

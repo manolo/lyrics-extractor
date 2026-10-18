@@ -712,6 +712,9 @@ MuseScore {
     property int addSlotCount: 0
     property var addLanguages: []   // [{code, name}] from Syllabify.languages()
     readonly property bool addCountMatches: addSelection.usable && addSlotCount === addSelection.slots.length
+    // Set by a successful Apply, so a second press does not write the same text as one more
+    // verse. Cleared when the result text or the selected notes change.
+    property bool addApplied: false
 
     // The shape readSelection() returns when nothing usable is selected
     function noAddSelection() {
@@ -719,13 +722,22 @@ MuseScore {
             firstMeasure: 0, lastMeasure: 0, slots: [], tiedCount: 0, targetVerse: 0 };
     }
 
+    // Which notes a selection covers: staff and slot ticks. The target verse is left out on
+    // purpose, since the Apply that just wrote a verse moves it without the selection changing.
+    function selectionKey(sel) {
+        if (!sel.usable) return "";
+        return sel.staffIdx + ":" + sel.slots.map(function(s) { return s.tick; }).join(",");
+    }
+
     function refreshAddSelection() {
+        var before = selectionKey(addSelection);
         try {
             addSelection = LyricApplier.readSelection();
         } catch (e) {
             console.log("[add] selection unreadable: " + e);
             addSelection = noAddSelection();
         }
+        if (selectionKey(addSelection) !== before) addApplied = false;
     }
 
     function setAddStatus(msg, error) {
@@ -775,7 +787,18 @@ MuseScore {
             return;
         }
         var verse = addSelection.targetVerse + 1;
-        var result = LyricApplier.applyLyrics(addResult.text);
+        var result;
+        try {
+            result = LyricApplier.applyLyrics(addResult.text);
+        } catch (e) {
+            // The applier closes its command even when it throws, so whatever went in is one
+            // undo step
+            console.log("[add] apply failed: " + e);
+            setAddStatus(t("add.applyError", { error: String(e) }), true);
+            refreshAddSelection();
+            checkScore();
+            return;
+        }
         if (result.ok) {
             setAddStatus(t("add.applied", { n: verse }), false);
         } else if (result.error === "count") {
@@ -786,8 +809,10 @@ MuseScore {
         } else {
             setAddStatus(t("add.noSelection"), true);
         }
-        // The verse just written is taken now, and the Extract tab's check sees the new lyrics
+        // The verse just written is taken now, and the Extract tab's check sees the new lyrics.
+        // Same notes, so this reread does not clear the flag.
         refreshAddSelection();
+        if (result.ok) addApplied = true;
         if (result.written > 0) checkScore();
     }
 
@@ -1529,7 +1554,10 @@ MuseScore {
                                     background: Rectangle {
                                         color: Qt.lighter(systemPalette.base, 1.15)
                                     }
-                                    onTextChanged: addSlotCount = countAddedSlots(text)
+                                    onTextChanged: {
+                                        addSlotCount = countAddedSlots(text);
+                                        addApplied = false;
+                                    }
                                 }
                             }
 
@@ -1577,7 +1605,7 @@ MuseScore {
 
                                 Button {
                                     text: t("add.apply", { n: addSelection.targetVerse + 1 })
-                                    enabled: addCountMatches
+                                    enabled: addCountMatches && !addApplied
                                     onClicked: applyAddedLyrics()
                                 }
                             }

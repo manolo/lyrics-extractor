@@ -263,6 +263,7 @@ var strings = {
     "add.countOnly": "{count} syllables",
     "add.applied": "Lyrics added as verse {n}",
     "add.incomplete": "Only {written} syllables could be placed, so the verse is incomplete. One Undo (Ctrl+Z) removes them.",
+    "add.applyError": "Writing the lyrics failed ({error}). Whatever was written goes with one Undo (Ctrl+Z).",
 
     // --- help: the Add lyrics tab ---
     "help.heading.addLyrics": "Add lyrics",

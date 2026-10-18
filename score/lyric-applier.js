@@ -179,35 +179,39 @@ function applyLyrics(text) {
     cursor.voice = 0;
 
     curScore.startCmd();
-    for (var i = 0; i < tokens.length; i++) {
-        var token = tokens[i];
-        var start = slots[pos].tick;
+    // endCmd always runs: a command left open breaks MuseScore's undo stack
+    try {
+        for (var i = 0; i < tokens.length; i++) {
+            var token = tokens[i];
+            var start = slots[pos].tick;
 
-        var lyric = _host.newElement(Element.LYRICS);
-        lyric.text = finalTexts[i];
-        lyric.syllabic = SYLLABIC[token.syllabic];
-        lyric.verse = selection.targetVerse;
-        // A "-" hold draws no line of its own: the syllabic chain already does. Only a
-        // "_" hold needs the extender, which runs to the start of the last held chord.
-        if (token.holdKind === "_") {
-            var heldEnd = slots[pos + token.holds].tick;
-            lyric.lyricTicks = _host.fraction(heldEnd - start, WHOLE_NOTE_TICKS);
+            var lyric = _host.newElement(Element.LYRICS);
+            lyric.text = finalTexts[i];
+            lyric.syllabic = SYLLABIC[token.syllabic];
+            lyric.verse = selection.targetVerse;
+            // A "-" hold draws no line of its own: the syllabic chain already does. Only a
+            // "_" hold needs the extender, which runs to the start of the last held chord.
+            if (token.holdKind === "_") {
+                var heldEnd = slots[pos + token.holds].tick;
+                lyric.lyricTicks = _host.fraction(heldEnd - start, WHOLE_NOTE_TICKS);
+            }
+
+            // Adding a lyric with no chord under the cursor crashes MuseScore, and one on the
+            // wrong chord is silently wrong, so the cursor is checked before every add
+            cursor.rewindToTick(start);
+            if (cursor.segment && cursor.segment.tick === start
+                    && cursor.element && cursor.element.type === Element.CHORD) {
+                cursor.add(lyric);
+                count++;
+            } else {
+                failed++;
+            }
+
+            pos += 1 + token.holds;
         }
-
-        // Adding a lyric with no chord under the cursor crashes MuseScore, and one on the
-        // wrong chord is silently wrong, so the cursor is checked before every add
-        cursor.rewindToTick(start);
-        if (cursor.segment && cursor.segment.tick === start
-                && cursor.element && cursor.element.type === Element.CHORD) {
-            cursor.add(lyric);
-            count++;
-        } else {
-            failed++;
-        }
-
-        pos += 1 + token.holds;
+    } finally {
+        curScore.endCmd();
     }
-    curScore.endCmd();
 
     if (failed > 0) {
         return { ok: false, error: "placement", expected: expected, actual: parsed.slotCount, written: count };
