@@ -17,7 +17,9 @@ test("syllabifyWord splits Spanish words", function() {
         ["¡Tuna","¡Tu-na"],["Alcalá!","Al-ca-lá!"],["calles","ca-lles"],["picardía","pi-car-dí-a"],
         ["tradición,","tra-di-ción,"],["leer","le-er"],["baúl","ba-úl"],["guitarra","gui-ta-rra"],
         ["queso","que-so"],["pingüino","pin-güi-no"],["hoy","hoy"],["construir","cons-truir"],
-        ["ahora","a-ho-ra"],["estirpe","es-tir-pe"],["emoción.","e-mo-ción."],["y","y"],["de","de"]];
+        ["ahora","a-ho-ra"],["estirpe","es-tir-pe"],["emoción.","e-mo-ción."],["y","y"],["de","de"],
+        ["cuídate","cuí-da-te"],["construí","cons-truí"],["casuística","ca-suís-ti-ca"],
+        ["yo","yo"],["Guerra","Gue-rra"],["CAPA","CA-PA"]];
     cases.forEach(function(c) {
         assert.equal(es.syllabifyWord(c[0]).join("-"), c[1], c[0]);
     });
