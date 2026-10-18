@@ -1124,6 +1124,19 @@ test("a D.S. replay is headed by the section its jump lands in", function() {
         "each pass is headed by the intro and then the verse, in that order: " + output);
 });
 
+test("stanza marker keeps its comma on the expander path", function() {
+    var texts = ["uno", "dos\uFF1B", "tres", "cuatro."];
+    var output = orch.processExtraction({
+        title: "",
+        syllables: texts.map(function(t, i) {
+            return { tick: i * 480, verse: 0, text: t, syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 };
+        }),
+        chords: [], repeats: [{ startTick: 0, endTick: 3840 }], voltas: []
+    });
+    assert.ok(output.indexOf("Uno dos,\n\n") >= 0, JSON.stringify(output));
+    assert.ok(output.indexOf("Tres cuatro.") >= 0, JSON.stringify(output));
+});
+
 test("stanza marker splits a labelled section", function() {
     function run(second) {
         var texts = ["uno", second, "tres", "cuatro."];
