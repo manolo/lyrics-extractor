@@ -67,3 +67,12 @@ test("a hold at the end of a line goes after the line marker", function() {
     assert.equal(out, "a-mor; _");
     assert.equal(gen.countSlots(out), 3);
 });
+test("generate keeps a typed synalepha as one syllable", function() {
+    var o = { split: true, language: "es", ties: null };
+    var a = gen.generate("de.antiguos", o);
+    assert.equal(a, "de.an-ti-guos;");
+    assert.equal(gen.countSlots(a), 3);
+    var b = gen.generate("esta.estirpe", o);
+    assert.equal(b, "es-ta.es-tir-pe;");
+    assert.equal(gen.countSlots(b), 4);
+});
