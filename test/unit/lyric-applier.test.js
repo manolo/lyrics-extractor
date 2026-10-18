@@ -19,7 +19,8 @@ var SYL = { single: 0, begin: 1, end: 2, middle: 3 };
 
 // --- Stub builders -------------------------------------------------------------
 
-// spec: {tick, tied: bool | [bool per note], lyrics: [verse...], rest: bool}
+// spec: {tick, staff (default 0), tied: bool | [bool per note], lyrics: [verse...], rest: bool}
+// Segments without a chord on a staff return null for its track, as the real API does.
 function buildScore(specs, sel) {
     var segs = specs.map(function(s, i) {
         var el;
@@ -35,8 +36,7 @@ function buildScore(specs, sel) {
         }
         var seg = {
             tick: s.tick,
-            measure: { no: 1 + Math.floor(s.tick / 1920) },
-            elementAt: function(track) { return track === 0 ? el : null; }
+            elementAt: function(track) { return track === (s.staff || 0) * 4 ? el : null; }
         };
         seg._el = el;
         return seg;
@@ -50,24 +50,54 @@ function buildScore(specs, sel) {
             isRange: true, startStaff: 0, endStaff: 1,
             startSegment: segs[0], endSegment: null
         }, sel),
-        parts: [{ startTrack: 0, endTrack: 4, longName: "Voice" }],
+        parts: [{ startTrack: 0, endTrack: 8, longName: "Voice" }],
+        // Measures of 1920 ticks, as firstMeasure/nextMeasure expose them: the number of
+        // a measure is its position in the chain, a segment has no measure of its own
+        firstMeasure: measureChain(segs),
         startCmd: function() { score.startCmdCount++; },
         endCmd: function() { score.endCmdCount++; },
         newCursor: function() {
+            // Like the real cursor: a new one is on track 0, rewindToTick lands on the
+            // first segment at or after the tick that has an element on the CURRENT
+            // track, and changing staffIdx or voice does not move the segment
             var cur = {
-                staffIdx: 0, voice: 0, segment: null,
+                track: 0, segment: null,
+                set staffIdx(v) { cur.track = v * 4 + cur.voice; cur._staff = v; },
+                get staffIdx() { return cur._staff || 0; },
+                set voice(v) { cur._voice = v; cur.track = cur.staffIdx * 4 + v; },
+                get voice() { return cur._voice || 0; },
+                get element() { return cur.segment ? cur.segment.elementAt(cur.track) : null; },
                 rewindToTick: function(t) {
-                    cur.segment = segs.filter(function(s) { return s.tick === t; })[0] || null;
+                    cur.segment = segs.filter(function(s) {
+                        return s.tick >= t && s.elementAt(cur.track);
+                    })[0] || null;
                 },
                 add: function(el) {
-                    assert.ok(cur.segment, "cursor has no segment");
-                    cur.segment._el.lyrics.push(el);
+                    // The real LYRICS branch dereferences the current element
+                    assert.ok(cur.element, "cursor has no element on its track: the real add crashes");
+                    cur.element.lyrics.push(el);
                 }
             };
             return cur;
         }
     };
     return score;
+}
+
+function measureChain(segs) {
+    var starts = [];
+    segs.forEach(function(seg) {
+        var m = Math.floor(seg.tick / 1920);
+        if (starts.indexOf(m) < 0) starts.push(m);
+    });
+    var last = Math.max.apply(null, starts);
+    var head = null, prev = null;
+    for (var m = 0; m <= last; m++) {
+        var node = { firstSegment: { tick: m * 1920 }, nextMeasure: null };
+        if (prev) prev.nextMeasure = node; else head = node;
+        prev = node;
+    }
+    return head;
 }
 
 function chords(n, extra) {
@@ -112,11 +142,20 @@ test("readSelection reports a usable single staff range", function() {
     assert.equal(s.staffIdx, 0);
     assert.equal(s.staffName, "Voice");
     assert.equal(s.firstMeasure, 1);
+    assert.equal(s.lastMeasure, 2);
     assert.equal(s.slots.length, 5);
     assert.equal(s.tiedCount, 1);
     assert.equal(s.slots[2].tieContinuation, true);
     assert.equal(s.slots[1].tieContinuation, false);
     assert.equal(s.targetVerse, 0);
+});
+
+test("readSelection numbers the measures the selection spans", function() {
+    var score = buildScore([{ tick: 1920 }, { tick: 2400 }, { tick: 3840 }]);
+    stubHost(score);
+    var s = applier.readSelection();
+    assert.equal(s.firstMeasure, 2);
+    assert.equal(s.lastMeasure, 3);
 });
 
 test("readSelection marks unusable selections", function() {
@@ -256,4 +295,36 @@ test("applyLyrics wraps the write in one command and touches nothing else", func
         var old = seg._el.lyrics[0];
         assert.deepEqual(old, { text: "x", syllabic: 0, verse: 0 });
     });
+});
+
+test("applyLyrics on a staff other than the first lands on the right chords", function() {
+    // Staff 0 has an element at tick 0 only, the vocal staff 1 starts at 480
+    var score = buildScore([{ tick: 0, staff: 0 }, { tick: 480, staff: 1 }, { tick: 960, staff: 1 }]);
+    score.selection.startStaff = 1;
+    score.selection.endStaff = 2;
+    score.selection.startSegment = score._segments[0];
+    stubHost(score);
+    var r = applier.applyLyrics("a-mor");
+    assert.equal(r.ok, true);
+    assert.deepEqual(written(score).map(function(x) { return x.tick; }), [480, 960]);
+    assert.equal(score._segments[0]._el.lyrics.length, 0);
+});
+
+test("a placement the cursor cannot make is reported and not counted", function() {
+    var score = buildScore(chords(3));
+    stubHost(score);
+    // The cursor lands one chord late on the second write
+    var newCursor = score.newCursor;
+    score.newCursor = function() {
+        var cur = newCursor();
+        var rewind = cur.rewindToTick;
+        var calls = 0;
+        cur.rewindToTick = function(t) { rewind(calls++ === 1 ? t + 1 : t); };
+        return cur;
+    };
+    var r = applier.applyLyrics("a-mor _");
+    assert.equal(r.ok, false);
+    assert.equal(r.error, "placement");
+    assert.equal(r.written, 1);
+    assert.equal(written(score).length, 1);
 });

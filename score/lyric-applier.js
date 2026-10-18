@@ -65,8 +65,28 @@ function staffNameOf(curScore, staffIdx) {
     return "Staff " + (staffIdx + 1);
 }
 
-function measureNumberOf(segment) {
-    try { return segment.measure.no || 0; } catch (e) { return 0; }
+// Start tick of every measure, in order. A segment does not know its measure in the plugin
+// API, so a tick is mapped to a number the way api-extractor.js does it, through
+// firstMeasure/nextMeasure and the first segment of each measure.
+function measureStartTicks(curScore) {
+    var starts = [];
+    try {
+        var m = curScore.firstMeasure;
+        while (m) {
+            var seg = m.firstSegment;
+            starts.push(seg ? seg.tick : 0);
+            m = m.nextMeasure;
+        }
+    } catch (e) { /* measure walk unavailable */ }
+    return starts;
+}
+
+// Measure number (counting from 1) containing a tick, 0 when the measures are unknown
+function measureNumberAt(starts, tick) {
+    for (var i = starts.length - 1; i >= 0; i--) {
+        if (tick >= starts[i]) return i + 1;
+    }
+    return 0;
 }
 
 // What the user has selected, as the slots the lyrics have to fill. Only voice 1 of a
@@ -86,6 +106,7 @@ function readSelection() {
     var firstMeasure = 0;
     var lastMeasure = 0;
     var tiedCount = 0;
+    var starts = measureStartTicks(curScore);
 
     var segment = sel.startSegment;
     while (segment && segment !== endSegment) {
@@ -95,7 +116,7 @@ function readSelection() {
             var tied = isTieContinuation(el);
             if (tied) tiedCount++;
             slots.push({ tick: segment.tick, tieContinuation: tied });
-            var m = measureNumberOf(segment);
+            var m = measureNumberAt(starts, segment.tick);
             if (slots.length === 1) firstMeasure = m;
             lastMeasure = m;
             var lyr = el.lyrics || [];
@@ -149,6 +170,13 @@ function applyLyrics(text) {
     var slots = selection.slots;
     var cursor = curScore.newCursor();
     var count = 0;
+    var failed = 0;
+
+    // The track goes first: rewindToTick ends by searching for the next element on the
+    // cursor's CURRENT track (0 for a new cursor), and changing staffIdx or voice later
+    // does not move the segment. Rewinding first would land on staff 0 or on nothing.
+    cursor.staffIdx = selection.staffIdx;
+    cursor.voice = 0;
 
     curScore.startCmd();
     for (var i = 0; i < tokens.length; i++) {
@@ -166,16 +194,24 @@ function applyLyrics(text) {
             lyric.lyricTicks = _host.fraction(heldEnd - start, WHOLE_NOTE_TICKS);
         }
 
+        // Adding a lyric with no chord under the cursor crashes MuseScore, and one on the
+        // wrong chord is silently wrong, so the cursor is checked before every add
         cursor.rewindToTick(start);
-        cursor.staffIdx = selection.staffIdx;
-        cursor.voice = 0;
-        cursor.add(lyric);
-        count++;
+        if (cursor.segment && cursor.segment.tick === start
+                && cursor.element && cursor.element.type === Element.CHORD) {
+            cursor.add(lyric);
+            count++;
+        } else {
+            failed++;
+        }
 
         pos += 1 + token.holds;
     }
     curScore.endCmd();
 
+    if (failed > 0) {
+        return { ok: false, error: "placement", expected: expected, actual: parsed.slotCount, written: count };
+    }
     return { ok: true, error: null, expected: expected, actual: parsed.slotCount, written: count };
 }
 
