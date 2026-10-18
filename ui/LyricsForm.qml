@@ -92,6 +92,7 @@ MuseScore {
         property string pdfFooter: ""
         property string scoresDirectory: ""
         property bool addSplit: true
+        property bool addSynalepha: true
         property int settingsVersion: 0
     }
 
@@ -782,6 +783,7 @@ MuseScore {
         var language = (i >= 0 && i < addLanguages.length) ? addLanguages[i].code : "es";
         addResult.text = LyricGenerator.generate(addInput.text, {
             split: splitCheck.checked,
+            synalepha: synalephaCheck.checked,
             language: language,
             ties: ties
         });
@@ -1528,6 +1530,14 @@ MuseScore {
                                     onCheckedChanged: settings.addSplit = checked
                                 }
 
+                                CheckBox {
+                                    id: synalephaCheck
+                                    text: t("add.synalepha")
+                                    enabled: splitCheck.checked
+                                    checked: settings.addSynalepha
+                                    onCheckedChanged: settings.addSynalepha = checked
+                                }
+
                                 ComboBox {
                                     id: languageCombo
                                     Layout.preferredWidth: 150
@@ -1832,6 +1842,7 @@ MuseScore {
         lineNumbersCheck.checked = settings.lineNumbers;
         noDiagramsCheck.checked = settings.noDiagrams;
         splitCheck.checked = settings.addSplit;
+        synalephaCheck.checked = settings.addSynalepha;
         pageFormatCombo.currentIndex = Math.max(0, pageFormatCombo.formats.indexOf(settings.pageFormat));
         headerField.text = settings.pdfHeader;
         footerField.text = settings.pdfFooter;

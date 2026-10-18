@@ -250,6 +250,7 @@ var strings = {
     // --- the Add lyrics tab ---
     "add.lyricsLabel": "Lyrics",
     "add.split": "Split into syllables",
+    "add.synalepha": "Mark synalephas",
     "add.generate": "Generate",
     "add.resultLabel": "Result (editable)",
     "add.copy": "Copy",

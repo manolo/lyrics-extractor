@@ -116,3 +116,32 @@ test("a punctuation-only line is kept, not treated as blank", function() {
     var out = gen.generate("uno\n...\ndos", { split: false });
     assert.equal(out, "uno;\n...;\ndos;");
 });
+
+test("generate marks every possible synalepha when asked", function() {
+    var opts = { split: true, language: "es", ties: null, synalepha: true };
+    assert.equal(gen.generate("Sopistas de antiguos días,", opts), "So-pis-tas de.an-ti-guos dí-as;");
+    assert.equal(gen.generate("con picardía y fervor,", opts), "con pi-car-dí-a.y fer-vor;");
+    assert.equal(gen.generate("forjadores de esta estirpe,", opts), "for-ja-do-res de.es-ta.es-tir-pe;");
+    assert.equal(gen.generate("de aventura y de emoción.", opts), "de.a-ven-tu-ra.y de.e-mo-ción.");
+    assert.equal(gen.generate("en la historia", opts), "en la.his-to-ria;");
+});
+
+test("synalepha is not marked before a consonant y, across punctuation or across lines", function() {
+    var opts = { split: true, language: "es", ties: null, synalepha: true };
+    assert.equal(gen.generate("la luna ya", opts), "la lu-na ya;");
+    assert.equal(gen.generate("capa, amor", opts), "ca-pa,, a-mor;");
+    assert.equal(gen.generate("la hierba", opts), "la hier-ba;");
+    assert.equal(gen.generate("canta\nalegre", opts), "can-ta;\na-le-gre;");
+});
+
+test("synalepha marking is off by default and needs splitting", function() {
+    assert.equal(gen.generate("de antiguos", { split: true, language: "es", ties: null }), "de an-ti-guos;");
+    assert.equal(gen.generate("de antiguos", { split: false, synalepha: true }), "de antiguos;");
+});
+
+test("a marked synalepha counts one slot and takes tie holds", function() {
+    var opts = { split: true, language: "es", synalepha: true, ties: [false, true, false] };
+    // de.an (held one note) ti... : slots de.an, tie, ti
+    assert.equal(gen.countSlots(gen.generate("de antiguo", { split: true, language: "es", ties: null, synalepha: true })), 3);
+    assert.equal(gen.generate("de anti", opts), "de.an--ti;");
+});
