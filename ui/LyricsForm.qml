@@ -722,6 +722,14 @@ MuseScore {
             firstMeasure: 0, lastMeasure: 0, slots: [], tiedCount: 0, targetVerse: 0 };
     }
 
+    // Tells the user what to select, one message per reason readSelection() gives
+    function selectionHint() {
+        var reason = addSelection.reason;
+        if (reason === "multiStaff") return t("add.selectSingleStaff");
+        if (reason === "noNotes") return t("add.selectNoNotes");
+        return t("add.selectNothing");
+    }
+
     // Which notes a selection covers: staff and slot ticks. The target verse is left out on
     // purpose, since the Apply that just wrote a verse moves it without the selection changing.
     function selectionKey(sel) {
@@ -783,7 +791,7 @@ MuseScore {
     function applyAddedLyrics() {
         refreshAddSelection();
         if (!addSelection.usable) {
-            setAddStatus(t("add.noSelection"), true);
+            setAddStatus(selectionHint(), true);
             return;
         }
         var verse = addSelection.targetVerse + 1;
@@ -1476,7 +1484,7 @@ MuseScore {
                                             tied: addSelection.tiedCount,
                                             n: addSelection.targetVerse + 1
                                         })
-                                        : t("add.noSelection")
+                                        : selectionHint()
                                 }
                             }
 

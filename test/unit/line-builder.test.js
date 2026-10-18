@@ -451,3 +451,38 @@ test("stanza marker prints as comma or nothing", function() {
     assert.equal(fmt("capa;;"), "Capa,");
     assert.equal(fmt("Alcalá!；"), "Alcalá!");
 });
+
+function fmtMarker(text) {
+    var lines = [{ text: text }, { text: "fin." }];
+    lb.applyStanzaFormatting(lines);
+    return lines[0].text;
+}
+
+test("stanza marker after typed .. prints a period", function() {
+    assert.equal(fmtMarker("cantar..;;"), "Cantar.");
+    assert.equal(fmtMarker("cantar..;"), "Cantar.");
+});
+
+test("stanza marker after fixed .. (U+FE52) prints a period", function() {
+    assert.equal(fmtMarker("cantar﹒;;"), "Cantar.");
+    assert.equal(fmtMarker("cantar﹒；"), "Cantar.");
+});
+
+test("stanza marker after typed ,, prints a comma", function() {
+    assert.equal(fmtMarker("cantar,,;;"), "Cantar,");
+});
+
+test("stanza marker after fixed ,, (U+FE50) prints a comma", function() {
+    assert.equal(fmtMarker("cantar﹐；"), "Cantar,");
+    assert.equal(fmtMarker("cantar﹐;;"), "Cantar,");
+});
+
+test("stanza marker after typed ... prints an ellipsis", function() {
+    assert.equal(fmtMarker("cantar...;;"), "Cantar…");
+    assert.equal(fmtMarker("…;;"), "…");
+});
+
+test("stanza marker after fixed ellipsis prints the ellipsis alone", function() {
+    assert.equal(fmtMarker("cantar…；"), "Cantar…");
+    assert.equal(fmtMarker("cantar…;;"), "Cantar…");
+});

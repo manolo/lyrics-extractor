@@ -76,3 +76,43 @@ test("generate keeps a typed synalepha as one syllable", function() {
     assert.equal(b, "es-ta.es-tir-pe;");
     assert.equal(gen.countSlots(b), 4);
 });
+
+test("a hold typed before trailing punctuation is a hold", function() {
+    var a = gen.parse("a-mor_;");
+    var b = gen.parse("a-mor _;");
+    assert.equal(a.slotCount, 3);
+    assert.equal(b.slotCount, 3);
+    [a, b].forEach(function(p) {
+        var mor = p.tokens[1];
+        assert.equal(mor.text, "mor;");
+        assert.equal(mor.holds, 1);
+        assert.equal(mor.holdKind, "_");
+    });
+    assert.equal(gen.parse("a-mor__!").slotCount, 4);
+    assert.equal(gen.parse("a-mor_,,").tokens[1].text, "mor,,");
+});
+
+test("generate keeps a lone hold chunk readable", function() {
+    var out = gen.generate("a-mor _", { split: false });
+    assert.equal(out, "a-mor _;");
+    assert.equal(gen.countSlots(out), 3);
+});
+
+test("generate turns an inner period into .. but not the last one", function() {
+    assert.equal(gen.generate("fin. del mundo.", { split: false }), "fin.. del mundo.");
+    assert.equal(gen.generate("hola... mundo", { split: false }), "hola... mundo;");
+});
+
+test("generate keeps inner exclamation, question and semicolon marks", function() {
+    assert.equal(gen.generate("hola! que tal? bien", { split: false }), "hola! que tal? bien;");
+});
+
+test("trailing blank line ends the last stanza", function() {
+    assert.equal(gen.generate("uno\ndos\n\n", { split: false }), "uno;\ndos;;\n");
+    assert.equal(gen.generate("uno\ndos\n", { split: false }), "uno;\ndos;");
+});
+
+test("a punctuation-only line is kept, not treated as blank", function() {
+    var out = gen.generate("uno\n...\ndos", { split: false });
+    assert.equal(out, "uno;\n...;\ndos;");
+});
