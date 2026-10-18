@@ -145,3 +145,20 @@ test("a marked synalepha counts one slot and takes tie holds", function() {
     assert.equal(gen.countSlots(gen.generate("de antiguo", { split: true, language: "es", ties: null, synalepha: true })), 3);
     assert.equal(gen.generate("de anti", opts), "de.an--ti;");
 });
+
+test("generate can write the forms Fix leaves in the score", function() {
+    var opts = { split: true, language: "es", ties: null, synalepha: true, finalForms: true };
+    assert.equal(gen.generate("Sopistas de antiguos días,\nya cantaban al amor\n\nfin", opts),
+        "So-pis-tas de‿an-ti-guos dí-as，\nya can-ta-ban al a-mor；\n\nfin，");
+    assert.equal(gen.generate("viajero, pícaro. y libre...", opts), "via-je-ro﹐ pí-ca-ro﹒ y li-bre…，");
+});
+
+test("final forms parse like the typed ones", function() {
+    assert.equal(gen.countSlots("de‿an-ti-guos dí-as，"), 5);
+    assert.equal(gen.countSlots("a-mor _；"), 3);
+    assert.equal(gen.countSlots("a-mor_，"), 3);
+    assert.equal(gen.countSlots("via-je-ro﹐ li-bre…，"), 5);
+    var t = gen.parse("a-mor_，").tokens;
+    assert.equal(t[1].text, "mor，");
+    assert.equal(t[1].holds, 1);
+});

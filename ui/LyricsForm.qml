@@ -784,6 +784,7 @@ MuseScore {
         addResult.text = LyricGenerator.generate(addInput.text, {
             split: splitCheck.checked,
             synalepha: synalephaCheck.checked,
+            finalForms: true,
             language: language,
             ties: ties
         });
@@ -1793,6 +1794,7 @@ MuseScore {
         SyllabifyEs.setTextUtils(TextUtils);
         Syllabify.register("es", SyllabifyEs);
         LyricGenerator.setSyllabify(Syllabify);
+        LyricGenerator.setTextUtils(TextUtils);
         addLanguages = Syllabify.languages();
         if (settings.scoresDirectory && settings.scoresDirectory.length > 0) {
             scoresDirectory = settings.scoresDirectory;
