@@ -90,6 +90,11 @@ Nothing is made smaller. A tablet format is a sheet of A4 reshaped, not shrunk: 
 
 A tablet page is also given the margins of a screen rather than those a printer needs: 4pt at the left, 7pt at the right, which is where the credit the licence asks for is written sideways, and 36pt above. The margin below stays at the 20pt the page number needs.
 
+### Add lyrics
+The dialog has two tabs. **Extract** holds everything described above. **Add lyrics** does the mechanical part of putting a new lyric into a score: paste the plain text, one verse of the poem per line and a blank line between stanzas, and **Generate** splits it into syllables (Spanish for now, one module per language under `lib/`), ends each verse with `;`, each stanza with `;;`, and turns inner commas into `,,`.
+
+Select measures of a single staff first and the tab also fills tied notes (an extra `-` inside a word, a separate `_` after it), says which verse the text will go to, and counts syllables against notes live while you edit the result: join a synalepha with `.`, hold a syllable with `_` or `-`, until the count is green. Then **Copy** puts the text on the clipboard, ready to paste with Ctrl+V while entering lyrics, or **Apply as verse N** writes it into the score as the first verse free on every selected note, in the forms Fix would leave. One undo removes it. Without such a selection the tab only splits, and Copy is always available. Stresses, melismas and synalephas are never guessed: the result stays yours to adjust.
+
 ### Plugin controls
 
 | Control | Description |
@@ -101,6 +106,8 @@ A tablet page is also given the margins of a screen rather than those a printer 
 | **Save txt** | Save text file alongside the score and open it |
 | **Save ChordPro** | Save a `.cho` file alongside the score |
 | **Debug** | Export raw data as JSON |
+| **Generate** | (Add lyrics tab) Split the pasted text into syllables, with holds for the tied notes of the selection |
+| **Copy**, **Apply as verse N** | (Add lyrics tab) Copy the result, or write it into the score as the next free verse; with a selection both need the count to match |
 
 ### Settings (persisted)
 
@@ -116,6 +123,7 @@ Every option in the dialog is remembered between sessions, under the `LyricsExtr
 | Fit in 1 page, Line numbers, No chord diagrams | The PDF options below |
 | Header, Footer | The PDF header and footer text |
 | Scores directory | Where the plugin reads a `.mscz` from to find its chord diagrams |
+| Split into syllables | Add lyrics tab: split the words, or leave them whole |
 
 ### PDF options (visible after extraction)
 

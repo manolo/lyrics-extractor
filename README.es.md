@@ -88,6 +88,11 @@ No se reduce nada. Un formato de tablet es una hoja A4 cambiada de forma, no enc
 
 La pagina de tablet lleva ademas los margenes de una pantalla y no los que necesita una impresora: 4 pt a la izquierda, 7 pt a la derecha, que es donde va escrito en vertical el credito que pide la licencia, y 36 pt arriba. El de abajo se queda en los 20 pt que necesita el numero de pagina.
 
+### Añadir letra
+El dialogo tiene dos pestañas. **Extraer** contiene todo lo descrito arriba. **Añadir letra** hace la parte mecanica de meter una letra nueva en la partitura: se pega el texto plano, un verso del poema por linea y una linea en blanco entre estrofas, y **Generar** lo divide en silabas (de momento en español, un modulo por idioma en `lib/`), termina cada verso con `;`, cada estrofa con `;;`, y convierte las comas interiores en `,,`.
+
+Si antes se seleccionan compases de un unico pentagrama, la pestaña ademas rellena las notas ligadas (un `-` extra dentro de la palabra, un `_` separado detras), dice a que letra ira el texto, y cuenta silabas contra notas en vivo mientras se edita el resultado: se une una sinalefa con `.`, se prolonga una silaba con `_` o `-`, hasta que la cuenta sale en verde. Entonces **Copiar** pone el texto en el portapapeles, listo para pegar con Ctrl+V al escribir la letra, o **Aplicar como letra N** lo escribe en la partitura como la primera letra libre en todas las notas seleccionadas, en las formas que dejaria Corregir. Un solo deshacer la quita. Sin esa seleccion la pestaña solo divide, y Copiar esta siempre disponible. Los acentos, melismas y sinalefas no se adivinan nunca: el resultado lo ajusta el usuario.
+
 ### Controles del plugin
 
 | Control | Descripcion |
@@ -99,6 +104,8 @@ La pagina de tablet lleva ademas los margenes de una pantalla y no los que neces
 | **Guardar txt** | Guardar archivo de texto junto a la partitura y abrirlo |
 | **Guardar ChordPro** | Guardar un fichero `.cho` junto a la partitura |
 | **Depurar** | Exportar datos crudos como JSON |
+| **Generar** | (Pestaña Añadir letra) Dividir el texto pegado en silabas, con prolongaciones para las notas ligadas de la seleccion |
+| **Copiar**, **Aplicar como letra N** | (Pestaña Añadir letra) Copiar el resultado, o escribirlo en la partitura como la siguiente letra libre; con seleccion ambos necesitan que la cuenta coincida |
 
 ### Ajustes (persistentes)
 
@@ -114,6 +121,7 @@ Todas las opciones del dialogo se recuerdan entre sesiones, bajo la categoria `L
 | Ajustar a 1 pagina, Numeros de linea, Sin diagramas | Las opciones de PDF de abajo |
 | Encabezado, Pie | El texto de encabezado y pie del PDF |
 | Directorio de partituras | De donde lee el plugin un `.mscz` para encontrar sus diagramas |
+| Dividir en silabas | Pestaña Añadir letra: dividir las palabras, o dejarlas enteras |
 
 ### Opciones PDF (visibles tras la extraccion)
 

@@ -33,6 +33,9 @@ var SECTIONS = [
         "help.pdfHeader", "help.pdfFooter", "help.pageFormat", "help.onePage", "help.lineNumbers",
         "help.noDiagrams"
     ] },
+    { heading: "help.heading.addLyrics", rows: [
+        "help.addSelection", "help.addGenerate", "help.addEdit", "help.addApply"
+    ] },
     { heading: "help.heading.buttons", rows: [
         "help.fix", "help.chordpro", "help.debug"
     ] }

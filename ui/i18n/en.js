@@ -241,7 +241,48 @@ var strings = {
     "help.fix.body": "Re-adapts lyric input by converting synalepha to ‿ (undertie), and no-break " +
         "markers (<code>..</code> <code>,,</code> <code>...</code>) to their internal symbols.",
     "help.debug.label": "Debug",
-    "help.debug.body": "Export internal data as JSON for diagnostics."
+    "help.debug.body": "Export internal data as JSON for diagnostics.",
+
+    // --- the tabs ---
+    "tab.extract": "Extract",
+    "tab.addLyrics": "Add lyrics",
+
+    // --- the Add lyrics tab ---
+    "add.lyricsLabel": "Lyrics",
+    "add.split": "Split into syllables",
+    "add.generate": "Generate",
+    "add.resultLabel": "Result (editable)",
+    "add.copy": "Copy",
+    "add.apply": "Apply as verse {n}",
+    "add.selection": "{staff}, measures {first} to {last}, {notes} notes ({tied} tied), will go to verse {n}",
+    "add.noSelection": "Split only: select measures of a single staff to count notes and apply the lyrics.",
+    "add.countOk": "{count} / {notes} notes, ready",
+    "add.countBad": "{count} syllables for {notes} notes: {diff} {missingOrExtra}. Adjust before pasting.",
+    "add.missing": "missing",
+    "add.extra": "too many",
+    "add.countOnly": "{count} syllables",
+    "add.applied": "Lyrics added as verse {n}",
+    "add.incomplete": "Only {written} syllables could be placed, so the verse is incomplete. One Undo (Ctrl+Z) removes them.",
+
+    // --- help: the Add lyrics tab ---
+    "help.heading.addLyrics": "Add lyrics",
+    "help.addSelection.label": "Selection",
+    "help.addSelection.body": "Select measures of a single staff before pressing Generate. Every note of " +
+        "voice 1 counts, tied notes included, and the lyrics go to the first verse that is free on " +
+        "all of them. Without such a selection the tab only splits the text into syllables.",
+    "help.addGenerate.label": "Generate",
+    "help.addGenerate.body": "Splits each word of the pasted text into syllables, keeps the author's line " +
+        "ends (<code>;</code>), turns a blank line into a stanza break (<code>;;</code>) and inner " +
+        "commas into <code>,,</code>. With a selection each tied note gets a hold: an extra " +
+        "<code>-</code> inside a word, a separate <code>_</code> after its last syllable.",
+    "help.addEdit.label": "Adjusting",
+    "help.addEdit.body": "The result is editable and the count follows every change. Join two words sung " +
+        "on one note with a <code>.</code> (<code>de.an</code>), hold a syllable over more notes with " +
+        "<code>_</code> or an extra <code>-</code>. Stresses and melismas are your call: nothing is guessed.",
+    "help.addApply.label": "Copy, Apply",
+    "help.addApply.body": "Copy puts the text on the clipboard, ready to paste with Ctrl+V while entering " +
+        "lyrics. Apply writes it into the score as the next free verse, in the forms Fix would leave. " +
+        "With a selection both need the count to match the notes; one Undo removes an applied verse."
 };
 
 if (typeof exports !== "undefined") {

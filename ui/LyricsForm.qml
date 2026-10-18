@@ -35,6 +35,10 @@ import "../score/fallback-runner.js" as FretFallback
 import "../score/xml-chord-reader.js" as XmlChordReader
 import "../lib/constants.js" as Constants
 import "../lib/lyrics-fixer.js" as LyricsFixer
+import "../lib/syllabify.js" as Syllabify
+import "../lib/syllabify-es.js" as SyllabifyEs
+import "../lib/lyric-generator.js" as LyricGenerator
+import "../score/lyric-applier.js" as LyricApplier
 import "help.js" as Help
 import "i18n/i18n.js" as I18n
 import "i18n/en.js" as English
@@ -48,7 +52,7 @@ MuseScore {
     version: "1.0.0"
     pluginType: "dialog"
     width: 800
-    height: 840
+    height: 880
 
     property bool hasSelection: false
     property string savedFilePath: ""
@@ -87,6 +91,7 @@ MuseScore {
         property string pdfHeader: ""
         property string pdfFooter: ""
         property string scoresDirectory: ""
+        property bool addSplit: true
         property int settingsVersion: 0
     }
 
@@ -698,6 +703,95 @@ MuseScore {
     }
 
     // ========================================
+    // ADD LYRICS: plain text in, syllables out, written onto the selected notes
+    // ========================================
+
+    // What lyric-applier.js read of the selection last time: reread on Generate, before Apply,
+    // and when the tab comes to the front, so the user can change it with the dialog open
+    property var addSelection: noAddSelection()
+    property int addSlotCount: 0
+    property var addLanguages: []   // [{code, name}] from Syllabify.languages()
+    readonly property bool addCountMatches: addSelection.usable && addSlotCount === addSelection.slots.length
+
+    // The shape readSelection() returns when nothing usable is selected
+    function noAddSelection() {
+        return { usable: false, reason: "none", staffIdx: 0, staffName: "",
+            firstMeasure: 0, lastMeasure: 0, slots: [], tiedCount: 0, targetVerse: 0 };
+    }
+
+    function refreshAddSelection() {
+        try {
+            addSelection = LyricApplier.readSelection();
+        } catch (e) {
+            console.log("[add] selection unreadable: " + e);
+            addSelection = noAddSelection();
+        }
+    }
+
+    function setAddStatus(msg, error) {
+        addStatus.text = msg;
+        addStatus.isError = !!error;
+    }
+
+    function countAddedSlots(text) {
+        try {
+            return LyricGenerator.countSlots(text);
+        } catch (e) {
+            console.log("[add] count failed: " + e);
+            return 0;
+        }
+    }
+
+    function countMessage(count, notes) {
+        if (count === notes) return t("add.countOk", { count: count, notes: notes });
+        return t("add.countBad", {
+            count: count,
+            notes: notes,
+            diff: Math.abs(notes - count),
+            missingOrExtra: count < notes ? t("add.missing") : t("add.extra")
+        });
+    }
+
+    function generateLyrics() {
+        refreshAddSelection();
+        var ties = null;
+        if (addSelection.usable) {
+            ties = addSelection.slots.map(function(s) { return s.tieContinuation; });
+        }
+        var i = languageCombo.currentIndex;
+        var language = (i >= 0 && i < addLanguages.length) ? addLanguages[i].code : "es";
+        addResult.text = LyricGenerator.generate(addInput.text, {
+            split: splitCheck.checked,
+            language: language,
+            ties: ties
+        });
+        setAddStatus("", false);
+    }
+
+    function applyAddedLyrics() {
+        refreshAddSelection();
+        if (!addSelection.usable) {
+            setAddStatus(t("add.noSelection"), true);
+            return;
+        }
+        var verse = addSelection.targetVerse + 1;
+        var result = LyricApplier.applyLyrics(addResult.text);
+        if (result.ok) {
+            setAddStatus(t("add.applied", { n: verse }), false);
+        } else if (result.error === "count") {
+            setAddStatus(countMessage(result.actual, result.expected), true);
+        } else if (result.error === "placement") {
+            // Part of the verse is in the score: one undo removes it
+            setAddStatus(t("add.incomplete", { written: result.written }), true);
+        } else {
+            setAddStatus(t("add.noSelection"), true);
+        }
+        // The verse just written is taken now, and the Extract tab's check sees the new lyrics
+        refreshAddSelection();
+        if (result.written > 0) checkScore();
+    }
+
+    // ========================================
     // UI
     // ========================================
 
@@ -744,499 +838,752 @@ MuseScore {
                 }
             }
 
-            GroupBox {
-                Layout.fillWidth: true
-                title: ""
-                background: Rectangle {
-                    color: "transparent"
-                    border.color: "#777777"
-                    border.width: 1
-                    radius: 4
-                }
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 8
-
-                    Text {
-                        text: t("group.fix")
-                        font.bold: true
-                        color: systemPalette.windowText
-                    }
-
-                    // Status indicator
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 8
-
-                        Rectangle {
-                            width: 14; height: 14; radius: 7
-                            color: issueCount < 0 ? "gray" : (issueCount === 0 ? "#4CAF50" : "#FF9800")
-                        }
-
-                        Text {
-                            Layout.fillWidth: true
-                            text: issueCount < 0
-                                ? t("check.checking")
-                                : (issueCount === 0
-                                    ? t("check.correct")
-                                    : t("check.issues", { count: issueCount }))
-                            color: systemPalette.windowText
-                            font.pixelSize: 12
-                            font.bold: issueCount > 0
-                        }
-                    }
-
-                    Text {
-                        Layout.fillWidth: true
-                        wrapMode: Text.WordWrap
-                        text: {
-                            var lines = [];
-                            if (issueSynalepha > 0) lines.push(
-                                t("check.synalepha", { count: issueSynalepha }));
-                            if (issueHyphens > 0) lines.push(
-                                t("check.hyphens", { count: issueHyphens }));
-                            if (issueSyllabic > 0) lines.push(
-                                t("check.syllabic", { count: issueSyllabic, detail: issueSyllabicDetail }));
-                            if (issuePunctuation > 0) lines.push(
-                                t("check.punctuation", { count: issuePunctuation, detail: issuePunctuationDetail }));
-                            if (issueChordSync > 0) lines.push(
-                                t("check.chordSync", { count: issueChordSync }));
-                            if (issueChordTypos > 0) lines.push(
-                                t("check.chordTypos", { count: issueChordTypos, detail: issueChordTypoDetail }));
-                            return lines.map(function(l) { return "\u2022 " + l; }).join("\n");
-                        }
-                        color: "#E65100"
-                        font.pixelSize: 11
-                        visible: issueCount > 0
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 10
-                        visible: issueCount !== 0
-
-                        Text {
-                            text: hasSelection ?
-                                t("check.scopeSelection") :
-                                t("check.scopeScore")
-                            color: systemPalette.windowText
-                            font.italic: true
-                            font.pixelSize: 11
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        Button {
-                            text: t("button.fix")
-                            onClicked: {
-                                fixLyrics();
-                                checkScore(); // Re-check after fix
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Lyrics + Chords section
-            GroupBox {
+            // Two tabs: Extract holds everything the dialog did before, unchanged. The tab bar
+            // and the frame are the ones of PulsoPua, drawn in the window's own palette so they
+            // follow MuseScore's light, dark or custom theme.
+            ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                title: ""
-                background: Rectangle {
-                    color: "transparent"
-                    border.color: "#777777"
-                    border.width: 1
-                    radius: 4
+                spacing: 0
+
+                TabBar {
+                    id: tabBar
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 36
+                    bottomPadding: 0
+                    background: Item {}
+                    // The selection may have changed while the other tab was in front
+                    onCurrentIndexChanged: if (currentIndex === 1) refreshAddSelection()
+
+                    Repeater {
+                        model: ["tab.extract", "tab.addLyrics"]
+                        TabButton {
+                            id: tabButton
+                            property int tabIndex: index
+                            text: t(modelData)
+                            height: 36
+                            contentItem: Text {
+                                text: tabButton.text
+                                font: tabButton.font
+                                color: systemPalette.buttonText
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            background: Rectangle {
+                                color: tabBar.currentIndex === tabButton.tabIndex ? systemPalette.window : systemPalette.button
+                                border.color: "#444444"
+                                border.width: 1
+                                Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: tabBar.currentIndex === tabButton.tabIndex ? systemPalette.window : "#444444" }
+                            }
+                        }
+                    }
                 }
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 8
+                // Content area, framed on three sides: no top border, so it joins the active tab
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: systemPalette.window
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 10
-
-                        Text {
-                            text: t("group.extract")
-                            font.bold: true
-                            color: systemPalette.windowText
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        ComboBox {
-                            id: staffCombo
-                            Layout.preferredWidth: 150
-                            visible: availableVoiceStaves.length > 1
-                            model: {
-                                var items = [];
-                                for (var i = 0; i < availableVoiceStaves.length; i++) {
-                                    var vs = availableVoiceStaves[i];
-                                    items.push(vs.name);
-                                }
-                                return items;
-                            }
-                            onActivated: {
-                                if (index >= 0 && index < availableVoiceStaves.length) {
-                                    selectedVoiceStaff = availableVoiceStaves[index].idx;
-                                }
-                            }
-                        }
-
-                        Button {
-                            id: extractButton
-                            text: t("button.extract")
-                            onClicked: {
-                                extractButton.enabled = false;
-                                lyricsPreview.text = "";
-                                statusText.text = t("extract.working");
-                                statusText.isError = false;
-                                extractTimer.start();
-                            }
-                        }
-
-                        Timer {
-                            id: extractTimer
-                            interval: 50
-                            repeat: false
-                            onTriggered: {
-                                // The button re-enables even if extraction throws, otherwise
-                                // the dialog has to be closed and reopened to try again.
-                                try {
-                                    extractLyricsWithChords();
-                                } finally {
-                                    extractButton.enabled = true;
-                                }
-                            }
-                        }
+                    // Left border
+                    Rectangle {
+                        width: 1
+                        height: parent.height
+                        anchors.left: parent.left
+                        color: "#444444"
                     }
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 10
-
-                        CheckBox {
-                            id: solfeoCheck
-                            text: t("option.solfeo")
-                            checked: settings.useSolfeo
-                            onCheckedChanged: settings.useSolfeo = checked
-                        }
-
-                        CheckBox {
-                            id: fullRepeatCheck
-                            text: t("option.fullRepeat")
-                            checked: settings.fullRepeat
-                            onCheckedChanged: settings.fullRepeat = checked
-                        }
-
-                        CheckBox {
-                            id: lyricsOnlyCheck
-                            text: t("option.lyricsOnly")
-                            checked: settings.lyricsOnly
-                            onCheckedChanged: settings.lyricsOnly = checked
-                        }
-
-                        CheckBox {
-                            id: orphanLyricsCheck
-                            text: t("option.orphanLyrics")
-                            checked: settings.orphanLyrics
-                            onCheckedChanged: settings.orphanLyrics = checked
-                        }
-
-                        CheckBox {
-                            id: staffTextsCheck
-                            text: t("option.staffTexts")
-                            checked: settings.staffTexts
-                            onCheckedChanged: settings.staffTexts = checked
-                        }
+                    // Right border
+                    Rectangle {
+                        width: 1
+                        height: parent.height
+                        anchors.right: parent.right
+                        color: "#444444"
                     }
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        visible: needsFallbackDir
-
-                        Text {
-                            text: t("option.directory")
-                            color: systemPalette.windowText
-                            font.pixelSize: 11
-                        }
-
-                        TextField {
-                            id: scoresDirField
-                            Layout.fillWidth: true
-                            text: scoresDirectory
-                            font.family: "monospace"
-                            font.pixelSize: 11
-                            selectByMouse: true
-                            onTextChanged: {
-                                if (text !== scoresDirectory) {
-                                    scoresDirectory = text;
-                                    settings.scoresDirectory = text;
-                                    checkScoresDirectory();
-                                }
-                            }
-                        }
-
-                        Text {
-                            text: scoresDirectoryExists ? "OK" : "X"
-                            color: scoresDirectoryExists ? "#4CAF50" : "#f44336"
-                            font.bold: true
-                            font.pixelSize: 12
-                        }
+                    // Bottom border
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        anchors.bottom: parent.bottom
+                        color: "#444444"
                     }
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-                        visible: lastScorePath.length > 0
+                    StackLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        currentIndex: tabBar.currentIndex
 
-                        Text {
-                            text: t("option.usingFile")
-                            color: systemPalette.windowText
-                            font.pixelSize: 11
-                        }
-
-                        Text {
-                            Layout.fillWidth: true
-                            text: lastScorePath
-                            color: systemPalette.windowText
-                            font.family: "monospace"
-                            font.pixelSize: 11
-                            elide: Text.ElideMiddle
-                        }
-
-                        Text {
-                            text: "\uD83D\uDCCB"
-                            font.pixelSize: 13
-                            opacity: copyScorePathMouse.containsMouse ? 1.0 : 0.5
-
-                            MouseArea {
-                                id: copyScorePathMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    copyHelper.text = lastScorePath;
-                                    copyHelper.selectAll();
-                                    copyHelper.copy();
-                                }
-                            }
-                        }
-
-                        TextEdit {
-                            id: copyHelper
-                            visible: false
-                            width: 0; height: 0
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-                        visible: statusText.text.length > 0
-
-                        Text {
-                            id: statusText
-                            property bool isError: false
-                            text: ""
-                            color: isError ? "#f44336" : systemPalette.windowText
-                            font.italic: true
-                            font.bold: isError
-                            font.pixelSize: 11
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-
-                        Text {
-                            text: "\uD83D\uDCCB"
-                            visible: savedFilePath !== ""
-                            font.pixelSize: 14
-                            opacity: copyPathMouse.containsMouse ? 1.0 : 0.5
-
-                            MouseArea {
-                                id: copyPathMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    textHelper.text = savedFilePath;
-                                    textHelper.selectAll();
-                                    textHelper.copy();
-                                    setStatus(t("save.pathCopied", { path: savedFilePath }), false);
-                                }
-                            }
-                        }
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-
-                        ScrollView {
-                            anchors.fill: parent
-                            clip: true
-
-                            TextArea {
-                                id: lyricsPreview
-                                readOnly: true
-                                wrapMode: TextEdit.NoWrap
-                                textFormat: TextEdit.PlainText
-                                font.family: Qt.platform.os === "osx" || Qt.platform.os === "macos" ? "Menlo" : "Courier New"
-                                font.pixelSize: 11
-                                color: systemPalette.text
+                        // Tab 0: Extract
+                        ColumnLayout {
+                            spacing: 10
+                            GroupBox {
+                                Layout.fillWidth: true
+                                title: ""
                                 background: Rectangle {
-                                    color: Qt.lighter(systemPalette.base, 1.15)
+                                    color: "transparent"
+                                    border.color: "#777777"
+                                    border.width: 1
+                                    radius: 4
                                 }
-                                text: ""
-                            }
-                        }
 
-                        Row {
-                            anchors.right: parent.right
-                            anchors.top: parent.top
-                            anchors.margins: 4
-                            spacing: 4
-                            visible: lyricsPreview.text.length > 0
-                            z: 1
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    spacing: 8
 
-                            Button {
-                                text: t("button.copy")
-                                opacity: 0.85
-                                onClicked: {
-                                    lyricsPreview.selectAll();
-                                    lyricsPreview.copy();
-                                    lyricsPreview.deselect();
-                                    statusText.text = t("save.copied");
+                                    Text {
+                                        text: t("group.fix")
+                                        font.bold: true
+                                        color: systemPalette.windowText
+                                    }
+
+                                    // Status indicator
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+
+                                        Rectangle {
+                                            width: 14; height: 14; radius: 7
+                                            color: issueCount < 0 ? "gray" : (issueCount === 0 ? "#4CAF50" : "#FF9800")
+                                        }
+
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: issueCount < 0
+                                                ? t("check.checking")
+                                                : (issueCount === 0
+                                                    ? t("check.correct")
+                                                    : t("check.issues", { count: issueCount }))
+                                            color: systemPalette.windowText
+                                            font.pixelSize: 12
+                                            font.bold: issueCount > 0
+                                        }
+                                    }
+
+                                    Text {
+                                        Layout.fillWidth: true
+                                        wrapMode: Text.WordWrap
+                                        text: {
+                                            var lines = [];
+                                            if (issueSynalepha > 0) lines.push(
+                                                t("check.synalepha", { count: issueSynalepha }));
+                                            if (issueHyphens > 0) lines.push(
+                                                t("check.hyphens", { count: issueHyphens }));
+                                            if (issueSyllabic > 0) lines.push(
+                                                t("check.syllabic", { count: issueSyllabic, detail: issueSyllabicDetail }));
+                                            if (issuePunctuation > 0) lines.push(
+                                                t("check.punctuation", { count: issuePunctuation, detail: issuePunctuationDetail }));
+                                            if (issueChordSync > 0) lines.push(
+                                                t("check.chordSync", { count: issueChordSync }));
+                                            if (issueChordTypos > 0) lines.push(
+                                                t("check.chordTypos", { count: issueChordTypos, detail: issueChordTypoDetail }));
+                                            return lines.map(function(l) { return "\u2022 " + l; }).join("\n");
+                                        }
+                                        color: "#E65100"
+                                        font.pixelSize: 11
+                                        visible: issueCount > 0
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 10
+                                        visible: issueCount !== 0
+
+                                        Text {
+                                            text: hasSelection ?
+                                                t("check.scopeSelection") :
+                                                t("check.scopeScore")
+                                            color: systemPalette.windowText
+                                            font.italic: true
+                                            font.pixelSize: 11
+                                        }
+
+                                        Item { Layout.fillWidth: true }
+
+                                        Button {
+                                            text: t("button.fix")
+                                            onClicked: {
+                                                fixLyrics();
+                                                checkScore(); // Re-check after fix
+                                            }
+                                        }
+                                    }
                                 }
                             }
 
-                            Button {
-                                text: t("button.saveTxt")
-                                opacity: 0.85
-                                onClicked: saveLyricsToFile(lyricsPreview.text)
+                            // Lyrics + Chords section
+                            GroupBox {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                title: ""
+                                background: Rectangle {
+                                    color: "transparent"
+                                    border.color: "#777777"
+                                    border.width: 1
+                                    radius: 4
+                                }
+
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    spacing: 8
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 10
+
+                                        Text {
+                                            text: t("group.extract")
+                                            font.bold: true
+                                            color: systemPalette.windowText
+                                        }
+
+                                        Item { Layout.fillWidth: true }
+
+                                        ComboBox {
+                                            id: staffCombo
+                                            Layout.preferredWidth: 150
+                                            visible: availableVoiceStaves.length > 1
+                                            model: {
+                                                var items = [];
+                                                for (var i = 0; i < availableVoiceStaves.length; i++) {
+                                                    var vs = availableVoiceStaves[i];
+                                                    items.push(vs.name);
+                                                }
+                                                return items;
+                                            }
+                                            onActivated: {
+                                                if (index >= 0 && index < availableVoiceStaves.length) {
+                                                    selectedVoiceStaff = availableVoiceStaves[index].idx;
+                                                }
+                                            }
+                                        }
+
+                                        Button {
+                                            id: extractButton
+                                            text: t("button.extract")
+                                            onClicked: {
+                                                extractButton.enabled = false;
+                                                lyricsPreview.text = "";
+                                                statusText.text = t("extract.working");
+                                                statusText.isError = false;
+                                                extractTimer.start();
+                                            }
+                                        }
+
+                                        Timer {
+                                            id: extractTimer
+                                            interval: 50
+                                            repeat: false
+                                            onTriggered: {
+                                                // The button re-enables even if extraction throws, otherwise
+                                                // the dialog has to be closed and reopened to try again.
+                                                try {
+                                                    extractLyricsWithChords();
+                                                } finally {
+                                                    extractButton.enabled = true;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 10
+
+                                        CheckBox {
+                                            id: solfeoCheck
+                                            text: t("option.solfeo")
+                                            checked: settings.useSolfeo
+                                            onCheckedChanged: settings.useSolfeo = checked
+                                        }
+
+                                        CheckBox {
+                                            id: fullRepeatCheck
+                                            text: t("option.fullRepeat")
+                                            checked: settings.fullRepeat
+                                            onCheckedChanged: settings.fullRepeat = checked
+                                        }
+
+                                        CheckBox {
+                                            id: lyricsOnlyCheck
+                                            text: t("option.lyricsOnly")
+                                            checked: settings.lyricsOnly
+                                            onCheckedChanged: settings.lyricsOnly = checked
+                                        }
+
+                                        CheckBox {
+                                            id: orphanLyricsCheck
+                                            text: t("option.orphanLyrics")
+                                            checked: settings.orphanLyrics
+                                            onCheckedChanged: settings.orphanLyrics = checked
+                                        }
+
+                                        CheckBox {
+                                            id: staffTextsCheck
+                                            text: t("option.staffTexts")
+                                            checked: settings.staffTexts
+                                            onCheckedChanged: settings.staffTexts = checked
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 6
+                                        visible: needsFallbackDir
+
+                                        Text {
+                                            text: t("option.directory")
+                                            color: systemPalette.windowText
+                                            font.pixelSize: 11
+                                        }
+
+                                        TextField {
+                                            id: scoresDirField
+                                            Layout.fillWidth: true
+                                            text: scoresDirectory
+                                            font.family: "monospace"
+                                            font.pixelSize: 11
+                                            selectByMouse: true
+                                            onTextChanged: {
+                                                if (text !== scoresDirectory) {
+                                                    scoresDirectory = text;
+                                                    settings.scoresDirectory = text;
+                                                    checkScoresDirectory();
+                                                }
+                                            }
+                                        }
+
+                                        Text {
+                                            text: scoresDirectoryExists ? "OK" : "X"
+                                            color: scoresDirectoryExists ? "#4CAF50" : "#f44336"
+                                            font.bold: true
+                                            font.pixelSize: 12
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 6
+                                        visible: lastScorePath.length > 0
+
+                                        Text {
+                                            text: t("option.usingFile")
+                                            color: systemPalette.windowText
+                                            font.pixelSize: 11
+                                        }
+
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: lastScorePath
+                                            color: systemPalette.windowText
+                                            font.family: "monospace"
+                                            font.pixelSize: 11
+                                            elide: Text.ElideMiddle
+                                        }
+
+                                        Text {
+                                            text: "\uD83D\uDCCB"
+                                            font.pixelSize: 13
+                                            opacity: copyScorePathMouse.containsMouse ? 1.0 : 0.5
+
+                                            MouseArea {
+                                                id: copyScorePathMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    copyHelper.text = lastScorePath;
+                                                    copyHelper.selectAll();
+                                                    copyHelper.copy();
+                                                }
+                                            }
+                                        }
+
+                                        TextEdit {
+                                            id: copyHelper
+                                            visible: false
+                                            width: 0; height: 0
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 4
+                                        visible: statusText.text.length > 0
+
+                                        Text {
+                                            id: statusText
+                                            property bool isError: false
+                                            text: ""
+                                            color: isError ? "#f44336" : systemPalette.windowText
+                                            font.italic: true
+                                            font.bold: isError
+                                            font.pixelSize: 11
+                                            wrapMode: Text.WordWrap
+                                            Layout.fillWidth: true
+                                        }
+
+                                        Text {
+                                            text: "\uD83D\uDCCB"
+                                            visible: savedFilePath !== ""
+                                            font.pixelSize: 14
+                                            opacity: copyPathMouse.containsMouse ? 1.0 : 0.5
+
+                                            MouseArea {
+                                                id: copyPathMouse
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    textHelper.text = savedFilePath;
+                                                    textHelper.selectAll();
+                                                    textHelper.copy();
+                                                    setStatus(t("save.pathCopied", { path: savedFilePath }), false);
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Item {
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+
+                                        ScrollView {
+                                            anchors.fill: parent
+                                            clip: true
+
+                                            TextArea {
+                                                id: lyricsPreview
+                                                readOnly: true
+                                                wrapMode: TextEdit.NoWrap
+                                                textFormat: TextEdit.PlainText
+                                                font.family: Qt.platform.os === "osx" || Qt.platform.os === "macos" ? "Menlo" : "Courier New"
+                                                font.pixelSize: 11
+                                                color: systemPalette.text
+                                                background: Rectangle {
+                                                    color: Qt.lighter(systemPalette.base, 1.15)
+                                                }
+                                                text: ""
+                                            }
+                                        }
+
+                                        Row {
+                                            anchors.right: parent.right
+                                            anchors.top: parent.top
+                                            anchors.margins: 4
+                                            spacing: 4
+                                            visible: lyricsPreview.text.length > 0
+                                            z: 1
+
+                                            Button {
+                                                text: t("button.copy")
+                                                opacity: 0.85
+                                                onClicked: {
+                                                    lyricsPreview.selectAll();
+                                                    lyricsPreview.copy();
+                                                    lyricsPreview.deselect();
+                                                    statusText.text = t("save.copied");
+                                                }
+                                            }
+
+                                            Button {
+                                                text: t("button.saveTxt")
+                                                opacity: 0.85
+                                                onClicked: saveLyricsToFile(lyricsPreview.text)
+                                            }
+
+                                            Button {
+                                                text: t("button.saveCho")
+                                                opacity: 0.85
+                                                onClicked: saveChordProFile(extractedOutput || lyricsPreview.text)
+                                            }
+                                        }
+                                    }
+                                }
                             }
 
-                            Button {
-                                text: t("button.saveCho")
-                                opacity: 0.85
-                                onClicked: saveChordProFile(extractedOutput || lyricsPreview.text)
+                            GroupBox {
+                                Layout.fillWidth: true
+                                title: ""
+                                visible: lyricsPreview.text.length > 0
+                                background: Rectangle {
+                                    color: "transparent"
+                                    border.color: "#777777"
+                                    border.width: 1
+                                    radius: 4
+                                }
+
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    spacing: 6
+
+                                    Text {
+                                        text: t("group.pdf")
+                                        font.bold: true
+                                        color: systemPalette.windowText
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 6
+
+                                        Text {
+                                            text: t("pdf.header")
+                                            color: systemPalette.windowText
+                                            font.pixelSize: 11
+                                        }
+
+                                        TextField {
+                                            id: headerField
+                                            Layout.fillWidth: true
+                                            placeholderText: t("pdf.groupName")
+                                            font.pixelSize: 11
+                                            onTextChanged: settings.pdfHeader = text
+                                        }
+
+                                        Text {
+                                            text: t("pdf.footer")
+                                            color: systemPalette.windowText
+                                            font.pixelSize: 11
+                                        }
+
+                                        TextField {
+                                            id: footerField
+                                            Layout.fillWidth: true
+                                            placeholderText: t("pdf.groupName")
+                                            font.pixelSize: 11
+                                            onTextChanged: settings.pdfFooter = text
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 10
+
+                                        CheckBox {
+                                            id: onePageCheck
+                                            text: t("pdf.onePage")
+                                            checked: settings.onePage
+                                            onCheckedChanged: settings.onePage = checked
+                                        }
+
+                                        CheckBox {
+                                            id: lineNumbersCheck
+                                            text: t("pdf.lineNumbers")
+                                            checked: settings.lineNumbers
+                                            onCheckedChanged: settings.lineNumbers = checked
+                                        }
+
+                                        CheckBox {
+                                            id: noDiagramsCheck
+                                            text: t("pdf.noDiagrams")
+                                            checked: settings.noDiagrams
+                                            onCheckedChanged: settings.noDiagrams = checked
+                                        }
+
+                                        // The shape of the page: a sheet of paper, or the screen it is read on
+                                        Text {
+                                            text: t("pdf.pageFormat")
+                                            color: systemPalette.windowText
+                                        }
+
+                                        ComboBox {
+                                            id: pageFormatCombo
+                                            Layout.preferredWidth: 110
+                                            model: ["A4", "iPad", "Tablet"]
+                                            property var formats: ["a4", "ipad", "tablet"]
+                                            currentIndex: Math.max(0, formats.indexOf(settings.pageFormat))
+                                            onActivated: settings.pageFormat = formats[index]
+                                        }
+
+                                        Item { Layout.fillWidth: true }
+
+                                        Button {
+                                            id: pdfButton
+                                            text: t("button.savePdf")
+                                            onClicked: savePdfFile(extractedOutput || lyricsPreview.text)
+                                        }
+                                    }
+                                }
+                            }
+
+                            TextEdit {
+                                id: textHelper
+                                visible: false
+                            }
+                        }
+
+                        // Tab 1: Add lyrics. Plain text in, syllables out, fitted to the selected
+                        // notes when the selection can be used (see add-lyrics-design.md)
+                        ColumnLayout {
+                            spacing: 8
+
+                            // Selection strip: green when the text can be counted and applied,
+                            // orange when the tab can only split
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: selectionSummary.implicitHeight + 16
+                                color: Qt.lighter(systemPalette.base, 1.15)
+
+                                Rectangle {
+                                    width: 4
+                                    height: parent.height
+                                    anchors.left: parent.left
+                                    color: addSelection.usable ? "#4caf50" : "#ff9800"
+                                }
+
+                                Text {
+                                    id: selectionSummary
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.leftMargin: 12
+                                    anchors.rightMargin: 8
+                                    wrapMode: Text.WordWrap
+                                    font.pixelSize: 12
+                                    color: systemPalette.text
+                                    text: addSelection.usable
+                                        ? t("add.selection", {
+                                            staff: addSelection.staffName,
+                                            first: addSelection.firstMeasure,
+                                            last: addSelection.lastMeasure,
+                                            notes: addSelection.slots.length,
+                                            tied: addSelection.tiedCount,
+                                            n: addSelection.targetVerse + 1
+                                        })
+                                        : t("add.noSelection")
+                                }
+                            }
+
+                            Text {
+                                text: t("add.lyricsLabel")
+                                font.bold: true
+                                color: systemPalette.windowText
+                            }
+
+                            ScrollView {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.preferredHeight: 200
+                                clip: true
+
+                                TextArea {
+                                    id: addInput
+                                    wrapMode: TextEdit.NoWrap
+                                    textFormat: TextEdit.PlainText
+                                    selectByMouse: true
+                                    font.pixelSize: 12
+                                    color: systemPalette.text
+                                    background: Rectangle {
+                                        color: Qt.lighter(systemPalette.base, 1.15)
+                                    }
+                                }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 10
+
+                                CheckBox {
+                                    id: splitCheck
+                                    text: t("add.split")
+                                    checked: settings.addSplit
+                                    onCheckedChanged: settings.addSplit = checked
+                                }
+
+                                ComboBox {
+                                    id: languageCombo
+                                    Layout.preferredWidth: 150
+                                    enabled: splitCheck.checked
+                                    model: addLanguages.map(function(l) { return l.name; })
+                                }
+
+                                Item { Layout.fillWidth: true }
+
+                                Button {
+                                    text: t("add.generate")
+                                    onClicked: generateLyrics()
+                                }
+                            }
+
+                            Text {
+                                text: t("add.resultLabel")
+                                font.bold: true
+                                color: systemPalette.windowText
+                            }
+
+                            ScrollView {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.preferredHeight: 200
+                                clip: true
+
+                                TextArea {
+                                    id: addResult
+                                    wrapMode: TextEdit.NoWrap
+                                    textFormat: TextEdit.PlainText
+                                    selectByMouse: true
+                                    font.family: Qt.platform.os === "osx" || Qt.platform.os === "macos" ? "Menlo" : "Courier New"
+                                    font.pixelSize: 12
+                                    color: systemPalette.text
+                                    background: Rectangle {
+                                        color: Qt.lighter(systemPalette.base, 1.15)
+                                    }
+                                    onTextChanged: addSlotCount = countAddedSlots(text)
+                                }
+                            }
+
+                            // Count line: compared with the notes when there is a selection,
+                            // a plain syllable count otherwise
+                            Text {
+                                Layout.fillWidth: true
+                                wrapMode: Text.WordWrap
+                                visible: addResult.text.length > 0
+                                text: addSelection.usable
+                                    ? countMessage(addSlotCount, addSelection.slots.length)
+                                    : t("add.countOnly", { count: addSlotCount })
+                                color: !addSelection.usable ? systemPalette.windowText
+                                     : (addCountMatches ? "#4caf50" : "#f44336")
+                                font.bold: addSelection.usable
+                                font.pixelSize: 12
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 10
+
+                                Text {
+                                    id: addStatus
+                                    property bool isError: false
+                                    Layout.fillWidth: true
+                                    text: ""
+                                    color: isError ? "#f44336" : systemPalette.windowText
+                                    font.italic: true
+                                    font.bold: isError
+                                    font.pixelSize: 11
+                                    wrapMode: Text.WordWrap
+                                }
+
+                                Button {
+                                    text: t("add.copy")
+                                    enabled: addResult.text.length > 0 && (!addSelection.usable || addCountMatches)
+                                    onClicked: {
+                                        addResult.selectAll();
+                                        addResult.copy();
+                                        addResult.deselect();
+                                        setAddStatus(t("save.copied"), false);
+                                    }
+                                }
+
+                                Button {
+                                    text: t("add.apply", { n: addSelection.targetVerse + 1 })
+                                    enabled: addCountMatches
+                                    onClicked: applyAddedLyrics()
+                                }
                             }
                         }
                     }
                 }
-            }
-
-            GroupBox {
-                Layout.fillWidth: true
-                title: ""
-                visible: lyricsPreview.text.length > 0
-                background: Rectangle {
-                    color: "transparent"
-                    border.color: "#777777"
-                    border.width: 1
-                    radius: 4
-                }
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 6
-
-                    Text {
-                        text: t("group.pdf")
-                        font.bold: true
-                        color: systemPalette.windowText
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 6
-
-                        Text {
-                            text: t("pdf.header")
-                            color: systemPalette.windowText
-                            font.pixelSize: 11
-                        }
-
-                        TextField {
-                            id: headerField
-                            Layout.fillWidth: true
-                            placeholderText: t("pdf.groupName")
-                            font.pixelSize: 11
-                            onTextChanged: settings.pdfHeader = text
-                        }
-
-                        Text {
-                            text: t("pdf.footer")
-                            color: systemPalette.windowText
-                            font.pixelSize: 11
-                        }
-
-                        TextField {
-                            id: footerField
-                            Layout.fillWidth: true
-                            placeholderText: t("pdf.groupName")
-                            font.pixelSize: 11
-                            onTextChanged: settings.pdfFooter = text
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 10
-
-                        CheckBox {
-                            id: onePageCheck
-                            text: t("pdf.onePage")
-                            checked: settings.onePage
-                            onCheckedChanged: settings.onePage = checked
-                        }
-
-                        CheckBox {
-                            id: lineNumbersCheck
-                            text: t("pdf.lineNumbers")
-                            checked: settings.lineNumbers
-                            onCheckedChanged: settings.lineNumbers = checked
-                        }
-
-                        CheckBox {
-                            id: noDiagramsCheck
-                            text: t("pdf.noDiagrams")
-                            checked: settings.noDiagrams
-                            onCheckedChanged: settings.noDiagrams = checked
-                        }
-
-                        // The shape of the page: a sheet of paper, or the screen it is read on
-                        Text {
-                            text: t("pdf.pageFormat")
-                            color: systemPalette.windowText
-                        }
-
-                        ComboBox {
-                            id: pageFormatCombo
-                            Layout.preferredWidth: 110
-                            model: ["A4", "iPad", "Tablet"]
-                            property var formats: ["a4", "ipad", "tablet"]
-                            currentIndex: Math.max(0, formats.indexOf(settings.pageFormat))
-                            onActivated: settings.pageFormat = formats[index]
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        Button {
-                            id: pdfButton
-                            text: t("button.savePdf")
-                            onClicked: savePdfFile(extractedOutput || lyricsPreview.text)
-                        }
-                    }
-                }
-            }
-
-            TextEdit {
-                id: textHelper
-                visible: false
             }
 
             Item {
@@ -1391,6 +1738,12 @@ MuseScore {
         ChordProWriter.setConvertChord(ChordUtils.convertChord);
         ChordProWriter.setIsChordName(ChordUtils.isChordName);
         LyricsFixer.setTextUtils(TextUtils);
+        // Add lyrics: QML has no require(), so the language registry starts empty and every
+        // module gets its dependencies here
+        SyllabifyEs.setTextUtils(TextUtils);
+        Syllabify.register("es", SyllabifyEs);
+        LyricGenerator.setSyllabify(Syllabify);
+        addLanguages = Syllabify.languages();
         if (settings.scoresDirectory && settings.scoresDirectory.length > 0) {
             scoresDirectory = settings.scoresDirectory;
         } else {
@@ -1412,6 +1765,16 @@ MuseScore {
         ApiPatcher.setChordUtils(ChordUtils);
         ApiPatcher.setTextUtils(TextUtils);
         PdfWriter.setFretboardRenderer(FretboardRenderer);
+        LyricApplier.setHost({
+            score: function() { return curScore; },
+            Element: Element,
+            // Wrapped for the same reason as above: methods of the plugin object
+            newElement: function(type) { return newElement(type); },
+            fraction: function(n, d) { return fraction(n, d); }
+        });
+        LyricApplier.setLyricGenerator(LyricGenerator);
+        LyricApplier.setLyricsFixer(LyricsFixer);
+        refreshAddSelection();
         checkScore();
     }
 
@@ -1428,6 +1791,7 @@ MuseScore {
         onePageCheck.checked = settings.onePage;
         lineNumbersCheck.checked = settings.lineNumbers;
         noDiagramsCheck.checked = settings.noDiagrams;
+        splitCheck.checked = settings.addSplit;
         pageFormatCombo.currentIndex = Math.max(0, pageFormatCombo.formats.indexOf(settings.pageFormat));
         headerField.text = settings.pdfHeader;
         footerField.text = settings.pdfFooter;
