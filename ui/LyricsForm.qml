@@ -893,20 +893,24 @@ MuseScore {
                         TabButton {
                             id: tabButton
                             property int tabIndex: index
+                            property bool selected: tabBar.currentIndex === tabIndex
                             text: t(modelData)
                             height: 36
                             contentItem: Text {
                                 text: tabButton.text
-                                font: tabButton.font
+                                font.family: tabButton.font.family
+                                font.pixelSize: tabButton.font.pixelSize
+                                font.bold: tabButton.selected
+                                opacity: tabButton.selected ? 1.0 : 0.65
                                 color: systemPalette.buttonText
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                             }
                             background: Rectangle {
-                                color: tabBar.currentIndex === tabButton.tabIndex ? systemPalette.window : systemPalette.button
+                                color: tabButton.selected ? systemPalette.window : systemPalette.button
                                 border.color: "#444444"
                                 border.width: 1
-                                Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: tabBar.currentIndex === tabButton.tabIndex ? systemPalette.window : "#444444" }
+                                Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: tabButton.selected ? systemPalette.window : "#444444" }
                             }
                         }
                     }
