@@ -111,3 +111,12 @@ test("cleanWordText replaces synalepha markers with spaces and converts punctuat
     assert.equal(tu.cleanWordText("da\u00aces"), "da es", "not sign cleaned");
     assert.equal(tu.cleanWordText("da~es"), "da es", "tilde cleaned");
 });
+
+test("endsStanza recognizes both forms", function() {
+    assert.equal(tu.endsStanza("pa;;"), true);
+    assert.equal(tu.endsStanza("pa；"), true);
+    assert.equal(tu.endsStanza("lá!;;"), true);
+    assert.equal(tu.endsStanza("pa;"), false);
+    assert.equal(tu.endsStanza("pa，"), false);
+    assert.equal(tu.endsStanza("pa"), false);
+});

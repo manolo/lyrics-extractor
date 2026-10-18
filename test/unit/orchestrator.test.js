@@ -1123,3 +1123,27 @@ test("a D.S. replay is headed by the section its jump lands in", function() {
     assert.deepEqual(labels, ["- INTRO -", "- ESTROFA -", "- INTRO -", "- ESTROFA -"],
         "each pass is headed by the intro and then the verse, in that order: " + output);
 });
+
+test("stanza marker splits a labelled section", function() {
+    function run(second) {
+        var texts = ["uno", second, "tres", "cuatro."];
+        return orch.processExtraction({
+            title: "",
+            syllables: texts.map(function(t, i) {
+                return { tick: i * 480, verse: 0, text: t, syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 };
+            }),
+            chords: [{ tick: 0, chord: "Lam" }, { tick: 960, chord: "Re" }], repeats: [], voltas: [],
+            systemTexts: [{ tick: 0, text: "Estrofa" }]
+        });
+    }
+    var lines = run("dos；").split("\n");
+    var i = lines.findIndex(function(l) { return /dos,$/.test(l); });
+    assert.ok(i >= 0, JSON.stringify(lines));
+    assert.equal(lines[i + 1], "", "blank line after the marker: " + JSON.stringify(lines));
+    assert.ok(lines.some(function(l) { return /^Tres/.test(l); }), JSON.stringify(lines));
+
+    var plain = run("dos，").split("\n");
+    var j = plain.findIndex(function(l) { return /dos,$/.test(l); });
+    assert.ok(j >= 0, JSON.stringify(plain));
+    assert.notEqual(plain[j + 1], "", "no blank line with a plain comma: " + JSON.stringify(plain));
+});

@@ -359,3 +359,16 @@ test("repairSyllabicChains converts begin to single when split", function() {
     assert.equal(syls[0].syllabic, "single", "sol. should become single");
     assert.equal(syls[1].syllabic, "single", "A should become single");
 });
+
+test("stanza marker breaks and ends the section", function() {
+    assert.equal(wb.detectPhraseBreak({ text: "pa；" }, { text: "que" }), true);
+
+    var syls = [
+        { tick: 0, verse: 0, text: "ca", syllabic: "begin", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 480, verse: 0, text: "pa；", syllabic: "end", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 },
+        { tick: 960, verse: 0, text: "que", syllabic: "single", durationQ: 1, restAfter: false, restDurationQ: 0, gapDurationQ: 0 }
+    ];
+    var words = wb.buildWords(syls, 0);
+    assert.equal(words[0].sectionEnd, true);
+    assert.equal(words[1].sectionEnd, false);
+});

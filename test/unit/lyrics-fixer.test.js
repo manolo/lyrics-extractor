@@ -416,3 +416,8 @@ test("checkLyrics limits punctuationExamples to 4", function() {
     assert.equal(result.punctuation, 10);
     assert.equal(result.punctuationExamples.length, 4);
 });
+
+test("fixGroup converts ;; to fullwidth semicolon", function() {
+    assert.equal(fixer.fixGroup([{ text: "hola;;", syllabic: 0 }])[0].newText, "hola；");
+    assert.equal(fixer.fixGroup([{ text: "hola;", syllabic: 0 }])[0].newText, "hola，");
+});

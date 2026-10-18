@@ -440,3 +440,14 @@ test("mergeShortLines still takes in a short line after an ordinary comma", func
     var result = lb.mergeShortLines(lines);
     assert.equal(result.length, 1, "a comma the composer wrote is no instruction to break");
 });
+
+test("stanza marker prints as comma or nothing", function() {
+    function fmt(text) {
+        var lines = [{ text: text }, { text: "fin." }];
+        lb.applyStanzaFormatting(lines);
+        return lines[0].text;
+    }
+    assert.equal(fmt("capa；"), "Capa,");
+    assert.equal(fmt("capa;;"), "Capa,");
+    assert.equal(fmt("Alcalá!；"), "Alcalá!");
+});

@@ -1386,6 +1386,7 @@ MuseScore {
         Extractor.setFretFilter(FretFilter);
         XmlChordReader.setFretFilter(FretFilter);
         LineBuilder.setTextUtils(TextUtils);
+        WordBuilder.setTextUtils(TextUtils);
         Formatter.setLineBuilder(LineBuilder);
         ChordProWriter.setConvertChord(ChordUtils.convertChord);
         ChordProWriter.setIsChordName(ChordUtils.isChordName);
