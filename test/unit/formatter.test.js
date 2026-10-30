@@ -143,9 +143,10 @@ test("formatPerfLines does not suppress homeChord when late in line", function()
     assert.ok(output.indexOf("Lam") >= 0, "Lam should appear: " + output);
 });
 
-test("formatPerfLines suppresses homeChord at line start", function() {
-    // homeChord = "Lam", first chord of line is Lam at pos 0
-    // Should be suppressed
+test("formatPerfLines writes the home chord at line start when it is a chord change", function() {
+    // homeChord = "Lam" and the intro ends on Mi7, so Lam at the start of the line is a change
+    // (Mi7 -> Lam) and has to be written. Hiding it lost real changes, such as Lam -> Si7 on
+    // "y cuna" in LinaresMinero, where the home chord had been picked as Si7.
     var lines = [{
         text: "hello world",
         sylMap: [
@@ -155,17 +156,10 @@ test("formatPerfLines suppresses homeChord at line start", function() {
         startTick: 0, endTick: 480,
         sectionEnd: false
     }];
-    // lastChord = "Mi7" (from intro), homeChord = "Lam"
     var result = fmt.formatPerfLines(lines, ["Mi7"], "Lam", "", null);
-    var output = result.text;
-    // Lam at pos 0 should be suppressed (return to homeChord at line start)
-    // Re at pos 6 should show
-    var chordLines = output.split("\n").filter(function(l) { return l.indexOf("Re") >= 0; });
-    assert.ok(chordLines.length > 0, "Re should appear");
-    // Lam should NOT appear in chord lines (suppressed)
-    for (var i = 0; i < chordLines.length; i++) {
-        assert.ok(chordLines[i].indexOf("Lam") < 0, "Lam should be suppressed at line start: " + chordLines[i]);
-    }
+    var chordLine = result.text.split("\n").filter(function(l) { return l.indexOf("Re") >= 0; })[0];
+    assert.ok(chordLine, "Re should appear");
+    assert.equal(chordLine.replace(/\u200B/g, "").indexOf("Lam"), 0, "Lam should be written at the start: " + chordLine);
 });
 
 test("formatPerfLines shows dominant-seventh homeChord at labeled section start", function() {
@@ -198,13 +192,12 @@ test("formatPerfLines shows dominant-seventh homeChord at labeled section start"
     assert.ok(d7Pos <= 2, "D7 should be at the start (pos " + d7Pos + "): " + stripped);
 });
 
-test("formatPerfLines still suppresses non-seventh homeChord at labeled section start", function() {
-    // Contrast with the dominant-seventh case: homeChord = "Re" (plain major triad).
-    // The suppression should still fire, keeping Re off the chord line.
+test("formatPerfLines writes a plain home chord at labeled section start after a different chord", function() {
+    // homeChord = "Re" and the intro ends on La7: Re at the start of the section is a change
     var lines = [{
         text: "cada vez que pienso",
         sylMap: [
-            { tick: 1440, pos: 0, chord: "Re" },   // homeChord, plain triad
+            { tick: 1440, pos: 0, chord: "Re" },
             { tick: 1800, pos: 6, chord: "Mim" }
         ],
         startTick: 1440, endTick: 2880,
@@ -212,19 +205,12 @@ test("formatPerfLines still suppresses non-seventh homeChord at labeled section 
     }];
     var systemTexts = [{ tick: 1440, text: "Estrofa" }];
     var result = fmt.formatPerfLines(lines, ["La7"], "Re", "", null, null, systemTexts);
-    var output = result.text;
-    var outputLines = output.split("\n");
+    var outputLines = result.text.split("\n");
     var lyricIdx = outputLines.findIndex(function(l) { return l.indexOf("cada") >= 0; });
     assert.ok(lyricIdx > 0, "lyric line should be found");
-    var chordLine = outputLines[lyricIdx - 1];
-    var stripped = chordLine.replace(/​/g, "");
-    var rePos = stripped.indexOf("Re");
-    var mimPos = stripped.indexOf("Mim");
-    assert.ok(mimPos >= 0, "Mim should appear: " + stripped);
-    // Re should be suppressed (not appear at pos 0), only Mim should be shown
-    if (rePos >= 0) {
-        assert.ok(rePos > 2, "Re should NOT be at the start when it is a plain triad: pos=" + rePos + " in " + stripped);
-    }
+    var stripped = outputLines[lyricIdx - 1].replace(/\u200B/g, "");
+    assert.equal(stripped.indexOf("Re"), 0, "Re should be written at the start: " + stripped);
+    assert.ok(stripped.indexOf("Mim") > 0, "Mim should appear: " + stripped);
 });
 
 test("formatPerfLines re-shows pickup chord at section start when it equals lastChord", function() {
